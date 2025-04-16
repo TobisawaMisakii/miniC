@@ -709,8 +709,11 @@ arm-linux-gnueabihf-gcc -static -g -o tests/test1-1-1 tests/test1-1-1.s
 
 ```shell
 qemu-arm-static tests/test1-1-0
+echo $?
 qemu-arm-static tests/test1-1-1
+echo $?
 ```
+用`echo $?`查看上一个命令的返回值
 
 这里可比较运行的结果，如果两者不一致，则编写的编译器程序有问题。
 
