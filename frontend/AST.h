@@ -27,7 +27,7 @@
 #include "VoidType.h"
 
 ///
-/// @brief AST节点的类型。C++专门因为枚举类来区分C语言的结构体
+/// @brief AST节点的类型。C++专门运用枚举类来区分C语言的结构体
 ///
 enum class ast_operator_type : int {
 
@@ -86,10 +86,13 @@ enum class ast_operator_type : int {
     /// @brief 二元运算符+
     AST_OP_ADD,
 
-    /// @brief 二元运算符*
+    /// @brief 二元运算符-
     AST_OP_SUB, //
 
     // TODO 抽象语法树其它内部节点运算符追加
+
+    /// @brief 二元运算符*
+    AST_OP_MUL,
 
     /// @brief 最大标识符，表示非法运算符
     AST_OP_MAX,
