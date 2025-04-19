@@ -6,7 +6,8 @@
 ## 以下讲解ir的主要内容以及修改的主要部分
 
 ### ir的主要内容：
-主体部分在/home/code/exp04-minic/ir/Generator/IRGenerator.cpp，IRGenerator是将抽象语法树(AST)转换为中间表示(IR)的核心组件，以下是其运行流程的详细说明：
+**主体部分在/home/code/exp04-minic/ir/Generator/IRGenerator.cpp，IRGenerator是将抽象语法树(AST)转换为中间表示(IR)的核心组件，以下是其运行流程的详细说明：**
+
 **1. 关键数据结构**
 
 - **ast_node**：AST节点，包含子节点列表、节点类型、值信息等
@@ -70,7 +71,7 @@
 - **指令传递**：子节点的指令会通过blockInsts向上层节点传递
 - **最终整合**：在函数定义处理中，所有指令被整合到函数的InterCode中
   
-主要修改在（可能不全）：
+**主要修改在（可能不全）：**
 /home/code/exp04-minic/bash.sh
 /home/code/exp04-minic/tests/test1-1.c
 /home/code/exp04-minic/ir/Instruction.h：
