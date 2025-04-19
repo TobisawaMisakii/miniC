@@ -1,0 +1,29 @@
+#!/bin/bash
+# 重新生成antlr4相关文件
+java -jar $HOME/exp04-minic/thirdparty/antlr4/antlr-4.12.0-complete.jar -Dlanguage=Cpp -visitor -no-listener /home/code/exp04-minic/frontend/antlr4/MiniC.g4
+# cmake根据CMakeLists.txt进行配置与检查，这里使用clang编译器并且是Debug模式
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
+# cmake，其中--parallel说明是并行编译，也可用-j选项
+cmake --build build --parallel
+# arm-linux-gnueabihf-gcc -S -o tests/test1-1_standard.s tests/test1-1.c
+# ./build/minic -S -T -A -o ./tests/test-mul-AST.png ./tests/test1-1.c
+# 翻译 test1-1.c 成 ARM32 汇编
+./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
+
+# 命令格式：
+# minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source
+
+# 选项-S为必须项，默认输出汇编。
+
+# 选项-O level指定时可指定优化的级别，0为未开启优化。
+# 选项-o output指定时可把结果输出到指定的output文件中。
+# 选项-t cpu指定时，可指定生成指定cpu的汇编语言。
+
+# 选项-A 指定时通过 antlr4 进行词法与语法分析。
+# 选项-D 指定时可通过递归下降分析法实现语法分析。
+# 选项-A与-D都不指定时按默认的flex+bison进行词法与语法分析。
+
+# 选项-T指定时，输出抽象语法树，默认输出的文件名为ast.png，可通过-o选项来指定输出的文件。
+# 选项-I指定时，输出中间IR(DragonIR)，默认输出的文件名为ir.txt，可通过-o选项来指定输出的文件。
+# 选项-T和-I都不指定时，按照默认的汇编语言输出，默认输出的文件名为asm.s，可通过-o选项来指定输出的文件。

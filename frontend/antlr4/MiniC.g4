@@ -42,7 +42,15 @@ statement:
 	| expr? T_SEMICOLON					# expressionStatement;
 
 // 表达式文法 expr : AddExp 表达式目前只支持加法与减法运算
-expr: addExp;
+expr: addExp | mulExp;
+
+// 乘法表达式定义
+mulExp: unaryExp (mulOp unaryExp)*;
+
+// 乘法运算符
+mulOp: T_MUL;
+
+T_MUL: '*';
 
 // 加减表达式
 addExp: unaryExp (addOp unaryExp)*;

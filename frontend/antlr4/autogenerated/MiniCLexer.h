@@ -12,9 +12,9 @@
 class  MiniCLexer : public antlr4::Lexer {
 public:
   enum {
-    T_L_PAREN = 1, T_R_PAREN = 2, T_SEMICOLON = 3, T_L_BRACE = 4, T_R_BRACE = 5, 
-    T_ASSIGN = 6, T_COMMA = 7, T_ADD = 8, T_SUB = 9, T_RETURN = 10, T_INT = 11, 
-    T_VOID = 12, T_ID = 13, T_DIGIT = 14, WS = 15
+    T_MUL = 1, T_L_PAREN = 2, T_R_PAREN = 3, T_SEMICOLON = 4, T_L_BRACE = 5, 
+    T_R_BRACE = 6, T_ASSIGN = 7, T_COMMA = 8, T_ADD = 9, T_SUB = 10, T_RETURN = 11, 
+    T_INT = 12, T_VOID = 13, T_ID = 14, T_DIGIT = 15, WS = 16
   };
 
   explicit MiniCLexer(antlr4::CharStream *input);

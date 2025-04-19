@@ -149,8 +149,8 @@ std::any MiniCCSTVisitor::visitBlockItem(MiniCParser::BlockItemContext * ctx)
     } else if (ctx->varDecl()) {
         return visitVarDecl(ctx->varDecl());
     }
-    
-	return nullptr;
+
+    return nullptr;
 }
 
 /// @brief 非终结运算符statement中的遍历
@@ -185,20 +185,11 @@ std::any MiniCCSTVisitor::visitReturnStatement(MiniCParser::ReturnStatementConte
     return create_contain_node(ast_operator_type::AST_OP_RETURN, exprNode);
 }
 
-/// @brief 非终结运算符expr的遍历
-/// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitExpr(MiniCParser::ExprContext * ctx)
-{
-    // 识别产生式：expr: addExp;
-
-    return visitAddExp(ctx->addExp());
-}
-
 std::any MiniCCSTVisitor::visitAssignStatement(MiniCParser::AssignStatementContext * ctx)
 {
     // 识别文法产生式：assignStatement: lVal T_ASSIGN expr T_SEMICOLON
 
-	// 赋值左侧左值Lval遍历产生节点
+    // 赋值左侧左值Lval遍历产生节点
     auto lvalNode = std::any_cast<ast_node *>(visitLVal(ctx->lVal()));
 
     // 赋值右侧expr遍历
@@ -265,6 +256,62 @@ std::any MiniCCSTVisitor::visitAddOp(MiniCParser::AddOpContext * ctx)
     }
 }
 
+/// @brief 非终结运算符expr的遍历
+/// @param ctx CST上下文
+std::any MiniCCSTVisitor::visitExpr(MiniCParser::ExprContext * ctx)
+{
+    // 识别产生式：expr: addExp | mulExp;
+    if (ctx->mulExp()) {
+        return visitMulExp(ctx->mulExp());
+    } else if (ctx->addExp()) {
+        return visitAddExp(ctx->addExp());
+    }
+    return nullptr;
+}
+
+std::any MiniCCSTVisitor::visitMulOp(MiniCParser::MulOpContext * ctx)
+{
+    // 识别的文法产生式：mulOp : T_MUL
+    if (ctx->T_MUL()) {
+        return ast_operator_type::AST_OP_MUL; // 对应乘法操作符
+    }
+    return ast_operator_type::AST_OP_MAX; // 对应非法操作符
+}
+
+std::any MiniCCSTVisitor::visitMulExp(MiniCParser::MulExpContext * ctx)
+{
+    // 识别的文法产生式：mulExp : unaryExp (mulOp unaryExp)*;
+
+    if (ctx->mulOp().empty()) {
+        // 没有mulOp运算符，则说明闭包识别为0，只识别了第一个非终结符unaryExp
+        return visitUnaryExp(ctx->unaryExp()[0]);
+    }
+
+    ast_node *left, *right;
+
+    // 存在mulOp运算符
+    auto opsCtxVec = ctx->mulOp();
+
+    // 有操作符，肯定会进循环，使得right设置正确的值
+    for (int k = 0; k < (int) opsCtxVec.size(); k++) {
+        // 获取运算符
+        ast_operator_type op = std::any_cast<ast_operator_type>(visitMulOp(opsCtxVec[k]));
+
+        if (k == 0) {
+            // 左操作数
+            left = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()[k]));
+        }
+
+        // 右操作数
+        right = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()[k + 1]));
+
+        // 新建结点作为下一个运算符的右操作符
+        left = ast_node::New(op, left, right, nullptr);
+    }
+
+    return left;
+}
+
 std::any MiniCCSTVisitor::visitUnaryExp(MiniCParser::UnaryExpContext * ctx)
 {
     // 识别文法产生式：unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN;
@@ -274,7 +321,7 @@ std::any MiniCCSTVisitor::visitUnaryExp(MiniCParser::UnaryExpContext * ctx)
         return visitPrimaryExp(ctx->primaryExp());
     } else if (ctx->T_ID()) {
 
-		// 创建函数调用名终结符节点
+        // 创建函数调用名终结符节点
         ast_node * funcname_node = ast_node::New(ctx->T_ID()->getText(), (int64_t) ctx->T_ID()->getSymbol()->getLine());
 
         // 实参列表
@@ -300,18 +347,18 @@ std::any MiniCCSTVisitor::visitPrimaryExp(MiniCParser::PrimaryExpContext * ctx)
     ast_node * node = nullptr;
 
     if (ctx->T_DIGIT()) {
-		// 无符号整型字面量
+        // 无符号整型字面量
         // 识别 primaryExp: T_DIGIT
 
         uint32_t val = (uint32_t) stoull(ctx->T_DIGIT()->getText());
         int64_t lineNo = (int64_t) ctx->T_DIGIT()->getSymbol()->getLine();
         node = ast_node::New(digit_int_attr{val, lineNo});
     } else if (ctx->lVal()) {
-		// 具有左值的表达式
+        // 具有左值的表达式
         // 识别 primaryExp: lVal
         node = std::any_cast<ast_node *>(visitLVal(ctx->lVal()));
     } else if (ctx->expr()) {
-		// 带有括号的表达式
+        // 带有括号的表达式
         // primaryExp: T_L_PAREN expr T_R_PAREN
         node = std::any_cast<ast_node *>(visitExpr(ctx->expr()));
     }
@@ -373,10 +420,10 @@ std::any MiniCCSTVisitor::visitVarDef(MiniCParser::VarDefContext * ctx)
 std::any MiniCCSTVisitor::visitBasicType(MiniCParser::BasicTypeContext * ctx)
 {
     // basicType: T_INT;
-	type_attr attr {BasicType::TYPE_VOID, -1};
+    type_attr attr{BasicType::TYPE_VOID, -1};
     if (ctx->T_INT()) {
-		attr.type = BasicType::TYPE_INT;
-		attr.lineno = (int64_t) ctx->T_INT()->getSymbol()->getLine();
+        attr.type = BasicType::TYPE_INT;
+        attr.lineno = (int64_t) ctx->T_INT()->getSymbol()->getLine();
     }
 
     return attr;
@@ -404,12 +451,12 @@ std::any MiniCCSTVisitor::visitExpressionStatement(MiniCParser::ExpressionStatem
     if (ctx->expr()) {
         // 表达式语句
 
-		// 遍历expr非终结符，创建表达式节点后返回
+        // 遍历expr非终结符，创建表达式节点后返回
         return visitExpr(ctx->expr());
     } else {
         // 空语句
 
-		// 直接返回空指针，需要再把语句加入到语句块时要注意判断，空语句不要加入
+        // 直接返回空指针，需要再把语句加入到语句块时要注意判断，空语句不要加入
         return nullptr;
     }
 }

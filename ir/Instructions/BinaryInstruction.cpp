@@ -50,6 +50,12 @@ void BinaryInstruction::toString(std::string & str)
             // 减法指令，二元运算
             str = getIRName() + " = sub " + src1->getIRName() + "," + src2->getIRName();
             break;
+            // 在指令执行逻辑中添加（例如在某个执行循环中）
+        case IRInstOperator::IRINST_OP_MUL_I: {
+            // 乘法指令，二元运算
+            str = getIRName() + " = mul " + src1->getIRName() + "," + src2->getIRName();
+            break;
+        }
 
         default:
             // 未知指令

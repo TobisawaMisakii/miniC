@@ -47,6 +47,7 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 表达式运算， 加减 */
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
     ast2ir_handlers[ast_operator_type::AST_OP_ADD] = &IRGenerator::ir_add;
+    ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
 
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
@@ -97,7 +98,9 @@ ast_node * IRGenerator::ir_visit_ast_node(ast_node * node)
     bool result;
 
     std::unordered_map<ast_operator_type, ast2ir_handler_t>::const_iterator pIter;
-    pIter = ast2ir_handlers.find(node->node_type);
+    pIter = ast2ir_handlers.find(
+        node->node_type); //在 ast2ir_handlers 映射表中查找键为 node->node_type 的元素,如果未找到，find()
+                          //方法返回一个迭代器，指向找到的元素,则返回 end() 迭代器
     if (pIter == ast2ir_handlers.end()) {
         // 没有找到，则说明当前不支持
         result = (this->ir_default)(node);
@@ -136,6 +139,7 @@ bool IRGenerator::ir_compile_unit(ast_node * node)
         ast_node * son_node = ir_visit_ast_node(son);
         if (!son_node) {
             // TODO 自行追加语义错误处理
+            std::cout << "ir_visit_ast_node error in IRGenerator" << std::endl;
             return false;
         }
     }
@@ -154,6 +158,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
     if (module->getCurrentFunction()) {
         // 函数中嵌套定义函数，这是不允许的，错误退出
         // TODO 自行追加语义错误处理
+        std::cout << "函数中嵌套定义函数 in IRGenerator" << std::endl;
         return false;
     }
 
@@ -173,6 +178,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
     if (!newFunc) {
         // 新定义的函数已经存在，则失败返回。
         // TODO 自行追加语义错误处理
+        std::cout << "新定义的函数已经存在 in IRGenerator" << std::endl;
         return false;
     }
 
@@ -201,6 +207,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
     if (!result) {
         // 形参解析失败
         // TODO 自行追加语义错误处理
+        std::cout << "形参解析失败 in IRGenerator" << std::endl;
         return false;
     }
     node->blockInsts.addInst(param_node->blockInsts);
@@ -222,6 +229,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
     if (!result) {
         // block解析失败
         // TODO 自行追加语义错误处理
+        std::cout << "block解析失败 in IRGenerator" << std::endl;
         return false;
     }
 
@@ -259,6 +267,41 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
     // 而真实的形参则创建函数内的局部变量。
     // 然后产生赋值指令，用于把表达实参值的临时变量拷贝到形参局部变量上。
     // 请注意这些指令要放在Entry指令后面，因此处理的先后上要注意。
+
+    // 获取当前正在处理的函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        return false;
+    }
+
+    // 获取函数的IR代码列表
+    InterCode & irCode = currentFunc->getInterCode();
+
+    // 找到Entry指令的位置，新的指令要添加在Entry指令之后
+    auto entryIter = irCode.getInsts().begin();
+    if (entryIter == irCode.getInsts().end() || (*entryIter)->getOp() != IRInstOperator::IRINST_OP_ENTRY) {
+        return false;
+    }
+    ++entryIter;
+
+    // 遍历形参列表
+    for (auto son: node->sons) {
+        // 形参的类型和名称
+        Type * paramType = son->sons[0]->type;
+        std::string paramName = son->sons[1]->name;
+
+        // 创建真实的形参局部变量
+        LocalVariable * realParam = currentFunc->newLocalVarValue(paramType, paramName);
+
+        // 创建临时变量用于表达实参传递的值
+        LocalVariable * tempParam = currentFunc->newLocalVarValue(paramType);
+
+        // 产生赋值指令，将临时变量的值拷贝到形参局部变量上
+        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, tempParam);
+
+        // 将赋值指令插入到Entry指令之后
+        irCode.getInsts().insert(entryIter, movInst);
+    }
 
     return true;
 }
@@ -453,6 +496,47 @@ bool IRGenerator::ir_sub(ast_node * node)
 
     node->val = subInst;
 
+    return true;
+}
+
+/// @brief 整数乘法AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_mul(ast_node * node)
+{
+    printf("ir_mul is called\n");
+    // 确保有两个操作数
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "乘法运算需要两个操作数");
+        return false;
+    }
+
+    ast_node * left = ir_visit_ast_node(node->sons[0]);
+    ast_node * right = ir_visit_ast_node(node->sons[1]);
+
+    if (!left || !right) {
+        minic_log(LOG_ERROR, "乘法操作数解析失败");
+        return false;
+    }
+
+    // 类型检查 - 确保都是整数类型
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        minic_log(LOG_ERROR, "乘法运算只支持整数类型");
+        return false;
+    }
+
+    BinaryInstruction * mulInst = new BinaryInstruction(module->getCurrentFunction(),
+                                                        IRInstOperator::IRINST_OP_MUL_I,
+                                                        left->val,
+                                                        right->val,
+                                                        IntegerType::getTypeInt());
+
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(mulInst);
+
+    node->val = mulInst;
+    printf("ir_mul is fianl\n");
     return true;
 }
 
