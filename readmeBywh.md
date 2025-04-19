@@ -72,8 +72,11 @@
 - **最终整合**：在函数定义处理中，所有指令被整合到函数的InterCode中
   
 **主要修改在（可能不全）：**
+
 /home/code/exp04-minic/bash.sh
+
 /home/code/exp04-minic/tests/test1-1.c
+
 /home/code/exp04-minic/ir/Instruction.h：
 
 ```
