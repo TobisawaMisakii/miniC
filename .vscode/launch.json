@@ -10,7 +10,7 @@
 			// 调试的名称，可修改
 			"name": "Debug minic Antlr4 Grammar",
 			// 文法解析的输入文件
-			"input": "tests/test-mul.c",
+			"input": "tests/test1-1.c",
 			// 分析树可视化，也就是具体语法树AST
 			"visualParseTree": true,
 			// 文本输出分析树
@@ -18,7 +18,7 @@
 			// 语法的开始符号
 			"startRule": "compileUnit",
 			// 描述语法的g4文件
-			"grammar": "${workspaceFolder}/frontend/antlr4/MiniC.g4"
+			"grammar": "${workspaceFolder}/frontend/antlr4/SysY.g4"
 		},
 		{
 			// 可采用GCC或者Clang编译器

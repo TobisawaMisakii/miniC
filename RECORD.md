@@ -1,5 +1,5 @@
 # dev_CPY开发文档
-## 前端
+## 一、前端理解及配置
 从源程序到语法树的转换过程，其中词法/语法分析器均需要与symbol table交互
 
 ### 1. 环境配置
@@ -29,11 +29,11 @@
      antlr4
      ```
 
-###  2. debug setting
+### 2. debug setting
 调整vscode/lauch.json，对tests/test1-1.c，使用Debug minic Antlr4 Grammar可以生成语法分析树
 
 
-###  3.antlr4：
+### 3.antlr4流程（以添加乘法语法为例）：
 - 语法分析器的语法文件：`*.g4`，包含了词法分析器和语法分析器的规则，需要自己添加规则
 - 对`.g4`文件进行编译，生成词法分析器和语法分析器的代码
 - 运行词法分析器，读取输入文件，生成token流
@@ -250,15 +250,15 @@ std::any MiniCCSTVisitor::visitMulExp(MiniCParser::MulExpContext * ctx)
 }
 ```
 
-#### 3.3 Antlr4Executor 主程序
+#### 3.3 Antlr4Executor 前端主程序
 
 这是词法与语法分析的执行主程序实现。
 
-其中 filename 为词法分析的对象文件路径,其中 MiniCLexer 为词法分析器、MiniCParser 为语法分析  器,这两个类都是 antlr4 根据 g4 文件自动生成的,而 MiniCCSTVisitor 为用户实现的分析树或具体语法树的遍历从而实现特定的功能,这里实现的是生成抽象语法树 AST。
+其中 filename 为词法分析的对象文件路径,其中 MiniCLexer 为词法分析器、MiniCParser 为语法分析器,这两个类都是 antlr4 根据 g4 文件自动生成的,而 MiniCCSTVisitor 为用户实现的分析树或具体语法树的遍历从而实现特定的功能,这里实现的是生成抽象语法树 AST。
 
 #### 3.4 AST图形输出显示
 
-通过 graphviz 提供的 API 实现抽象语法树图形的显示。具体实现在 graph.cpp 与 graph.h,递归遍历抽象语法树,利用  graphviz 提供的 C 语言 API 进行产生图形的结点以及边等信息,直接输出到指定的文件中
+通过 graphviz 提供的 API 实现抽象语法树图形的显示。具体实现在 graph.cpp 与 graph.h,递归遍历抽象语法树,利用 graphviz 提供的 C 语言 API 进行产生图形的结点以及边等信息,直接输出到指定的文件中
 
 ```cpp
 /// @brief 抽象语法树AST的图形化显示，这里用C语言实现
@@ -370,3 +370,5 @@ result = compile(gInputFile, gOutputFile);
 
 即可逐步调试观察AST的遍历，或在出现错误时通过调用堆栈找出错误来源
 
+
+## 二、以SysY语言为基础的前端
