@@ -17,19 +17,21 @@ constDef: Ident ('[' constExp ']')* '=' constInitVal;
 
 // 常量初值，可以是 '{}'
 constInitVal:
-	constExp
-	| '{' (constInitVal (',' constInitVal)*)? '}';
+	constExp										# singleConstantInit
+	| '{' (constInitVal (',' constInitVal)*)? '}'	# arrayConstantInit;
 
 // 变量声明
 varDecl: basicType varDef (',' varDef)* ';';
 
 // 变量定义
 varDef:
-	Ident ('[' constExp ']')*
-	| Ident ('[' constExp ']')* '=' initVal;
+	Ident ('[' constExp ']')*				# simpleVarDef
+	| Ident ('[' constExp ']')* '=' initVal	# initializedVarDef;
 
 // 变量初值
-initVal: exp | '{' (initVal (',' initVal)*)? '}';
+initVal:
+	exp									# singleVarInit
+	| '{' (initVal (',' initVal)*)? '}'	# arrayVarInit;
 
 // 函数定义
 funcDef: funcType Ident '(' funcFParams? ')' block;
@@ -47,18 +49,20 @@ funcFParam: basicType Ident ('[' ']' ('[' exp ']')*)?;
 block: '{' blockItem* '}';
 
 // 语句块项
-blockItem: decl | stmt;
+blockItem:
+	decl	# declarationBlockItem
+	| stmt	# statementBlockItem;
 
 // 语句
 stmt:
-	lVal '=' exp ';'
-	| exp? ';'
-	| block
-	| 'if' '(' cond ')' stmt ('else' stmt)?
-	| 'while' '(' cond ')' stmt
-	| 'break' ';'
-	| 'continue' ';'
-	| 'return' exp? ';';
+	lVal '=' exp ';'						# assignmentStatement
+	| exp? ';'								# expressionStatement
+	| block									# nestedBlockStatement
+	| 'if' '(' cond ')' stmt ('else' stmt)?	# ifStatement
+	| 'while' '(' cond ')' stmt				# whileStatement
+	| 'break' ';'							# breakStatement
+	| 'continue' ';'						# continueStatement
+	| 'return' exp? ';'						# returnStatement;
 
 // 表达式
 exp: addExp;
@@ -70,16 +74,19 @@ cond: lOrExp;
 lVal: Ident ('[' exp ']')*;
 
 // 基本表达式
-primaryExp: '(' exp ')' | lVal | number;
+primaryExp:
+	'(' exp ')'	# groupedExpression
+	| lVal		# leftValueExpression
+	| number	# numberExpression;
 
-// 数值
+// 数值（常数）
 number: IntConst | FloatConst;
 
 // 一元表达式
 unaryExp:
-	primaryExp
-	| Ident '(' funcRParams? ')'
-	| unaryOp unaryExp;
+	primaryExp						# primaryUnaryExpression
+	| Ident '(' funcRParams? ')'	# functionCall
+	| unaryOp unaryExp				# unaryOperatorExpression;
 
 // 单目运算符
 unaryOp: '+' | '-' | '!';

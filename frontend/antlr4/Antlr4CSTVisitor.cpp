@@ -24,24 +24,24 @@
 #define Instanceof(res, type, var) auto res = dynamic_cast<type>(var)
 
 /// @brief 构造函数
-MiniCCSTVisitor::MiniCCSTVisitor()
+SysYCSTVisitor::SysYCSTVisitor()
 {}
 
 /// @brief 析构函数
-MiniCCSTVisitor::~MiniCCSTVisitor()
+SysYCSTVisitor::~SysYCSTVisitor()
 {}
 
 /// @brief 遍历CST产生AST
 /// @param root CST语法树的根结点
 /// @return AST的根节点
-ast_node * MiniCCSTVisitor::run(MiniCParser::CompileUnitContext * root)
+ast_node * SysYCSTVisitor::run(SysYParser::CompileUnitContext * root)
 {
     return std::any_cast<ast_node *>(visitCompileUnit(root));
 }
 
 /// @brief 非终结运算符compileUnit的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitCompileUnit(MiniCParser::CompileUnitContext * ctx)
+std::any SysYCSTVisitor::visitCompileUnit(SysYParser::CompileUnitContext * ctx)
 {
     // compileUnit: (funcDef | varDecl)* EOF
 
@@ -74,7 +74,7 @@ std::any MiniCCSTVisitor::visitCompileUnit(MiniCParser::CompileUnitContext * ctx
 
 /// @brief 非终结运算符funcDef的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitFuncDef(MiniCParser::FuncDefContext * ctx)
+std::any SysYCSTVisitor::visitFuncDef(SysYParser::FuncDefContext * ctx)
 {
     // 识别的文法产生式：funcDef : T_INT T_ID T_L_PAREN T_R_PAREN block;
 
@@ -99,7 +99,7 @@ std::any MiniCCSTVisitor::visitFuncDef(MiniCParser::FuncDefContext * ctx)
 
 /// @brief 非终结运算符block的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitBlock(MiniCParser::BlockContext * ctx)
+std::any SysYCSTVisitor::visitBlock(SysYParser::BlockContext * ctx)
 {
     // 识别的文法产生式：block : T_L_BRACE blockItemList? T_R_BRACE';
     if (!ctx->blockItemList()) {
@@ -112,12 +112,12 @@ std::any MiniCCSTVisitor::visitBlock(MiniCParser::BlockContext * ctx)
     // 语句块含有语句
 
     // 内部创建Block节点，并把语句加入，这里不需要创建Block节点
-    return visitBlockItemList(ctx->blockItemList());
+    return create_node(ast_operator_type::AST_OP_FUNC_DEF, funcTypeNode, identNode, funcFParamsNode, blockNode);
 }
 
 /// @brief 非终结运算符blockItemList的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitBlockItemList(MiniCParser::BlockItemListContext * ctx)
+std::any SysYCSTVisitor::visitBlockItemList(SysYParser::BlockItemListContext * ctx)
 {
     // 识别的文法产生式：blockItemList : blockItem +;
     // 正闭包 循环 至少一个blockItem
@@ -139,7 +139,7 @@ std::any MiniCCSTVisitor::visitBlockItemList(MiniCParser::BlockItemListContext *
 /// @brief 非终结运算符blockItem的遍历
 /// @param ctx CST上下文
 ///
-std::any MiniCCSTVisitor::visitBlockItem(MiniCParser::BlockItemContext * ctx)
+std::any SysYCSTVisitor::visitBlockItem(SysYParser::BlockItemContext * ctx)
 {
     // 识别的文法产生式：blockItem : statement | varDecl
     if (ctx->statement()) {
@@ -155,15 +155,15 @@ std::any MiniCCSTVisitor::visitBlockItem(MiniCParser::BlockItemContext * ctx)
 
 /// @brief 非终结运算符statement中的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitStatement(MiniCParser::StatementContext * ctx)
+std::any SysYCSTVisitor::visitStatement(SysYParser::StatementContext * ctx)
 {
     // 识别的文法产生式：statement: T_ID T_ASSIGN expr T_SEMICOLON  # assignStatement
     // | T_RETURN expr T_SEMICOLON # returnStatement
     // | block  # blockStatement
     // | expr ? T_SEMICOLON #expressionStatement;
-    if (Instanceof(assignCtx, MiniCParser::AssignStatementContext *, ctx)) {
+    if (Instanceof(assignCtx, SysYParser::AssignStatementContext *, ctx)) {
         return visitAssignStatement(assignCtx);
-    } else if (Instanceof(returnCtx, MiniCParser::ReturnStatementContext *, ctx)) {
+    } else if (Instanceof(returnCtx, SysYParser::ReturnStatementContext *, ctx)) {
         return visitReturnStatement(returnCtx);
     }
 
@@ -174,7 +174,7 @@ std::any MiniCCSTVisitor::visitStatement(MiniCParser::StatementContext * ctx)
 /// @brief 非终结运算符statement中的returnStatement的遍历
 /// @param ctx CST上下文
 ///
-std::any MiniCCSTVisitor::visitReturnStatement(MiniCParser::ReturnStatementContext * ctx)
+std::any SysYCSTVisitor::visitReturnStatement(SysYParser::ReturnStatementContext * ctx)
 {
     // 识别的文法产生式：returnStatement -> T_RETURN expr T_SEMICOLON
 
@@ -187,7 +187,7 @@ std::any MiniCCSTVisitor::visitReturnStatement(MiniCParser::ReturnStatementConte
 
 /// @brief 非终结运算符expr的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitExpr(MiniCParser::ExprContext * ctx)
+std::any SysYCSTVisitor::visitExpr(SysYParser::ExprContext * ctx)
 {
     // 识别产生式：expr: addExp | mulExp;
     if (ctx->addExp()) {
@@ -201,7 +201,7 @@ std::any MiniCCSTVisitor::visitExpr(MiniCParser::ExprContext * ctx)
     return nullptr;
 }
 
-std::any MiniCCSTVisitor::visitAssignStatement(MiniCParser::AssignStatementContext * ctx)
+std::any SysYCSTVisitor::visitAssignStatement(SysYParser::AssignStatementContext * ctx)
 {
     // 识别文法产生式：assignStatement: lVal T_ASSIGN expr T_SEMICOLON
 
@@ -215,14 +215,14 @@ std::any MiniCCSTVisitor::visitAssignStatement(MiniCParser::AssignStatementConte
     return ast_node::New(ast_operator_type::AST_OP_ASSIGN, lvalNode, exprNode, nullptr);
 }
 
-std::any MiniCCSTVisitor::visitBlockStatement(MiniCParser::BlockStatementContext * ctx)
+std::any SysYCSTVisitor::visitBlockStatement(SysYParser::BlockStatementContext * ctx)
 {
     // 识别文法产生式 blockStatement: block
 
     return visitBlock(ctx->block());
 }
 
-std::any MiniCCSTVisitor::visitAddExp(MiniCParser::AddExpContext * ctx)
+std::any SysYCSTVisitor::visitAddExp(SysYParser::AddExpContext * ctx)
 {
     // 识别的文法产生式：addExp : unaryExp (addOp unaryExp)*;
 
@@ -259,7 +259,7 @@ std::any MiniCCSTVisitor::visitAddExp(MiniCParser::AddExpContext * ctx)
     return left;
 }
 
-std::any MiniCCSTVisitor::visitMulExp(MiniCParser::MulExpContext * ctx)
+std::any SysYCSTVisitor::visitMulExp(SysYParser::MulExpContext * ctx)
 {
     // 识别的文法产生式：mulExp : unaryExp (mulOp unaryExp)*;
     if (ctx->mulOp().empty()) {
@@ -297,7 +297,7 @@ std::any MiniCCSTVisitor::visitMulExp(MiniCParser::MulExpContext * ctx)
 
 /// @brief 非终结运算符addOp的遍历
 /// @param ctx CST上下文
-std::any MiniCCSTVisitor::visitAddOp(MiniCParser::AddOpContext * ctx)
+std::any SysYCSTVisitor::visitAddOp(SysYParser::AddOpContext * ctx)
 {
     // 识别的文法产生式：addOp : T_ADD | T_SUB
 
@@ -308,7 +308,7 @@ std::any MiniCCSTVisitor::visitAddOp(MiniCParser::AddOpContext * ctx)
     }
 }
 
-std::any MiniCCSTVisitor::visitMulOp(MiniCParser::MulOpContext * ctx)
+std::any SysYCSTVisitor::visitMulOp(SysYParser::MulOpContext * ctx)
 {
     // 识别的文法产生式：mulOp : T_MUL
     if (ctx->T_MUL()) {
@@ -317,7 +317,7 @@ std::any MiniCCSTVisitor::visitMulOp(MiniCParser::MulOpContext * ctx)
     return ast_operator_type::AST_OP_MAX; // 对应非法操作符
 }
 
-std::any MiniCCSTVisitor::visitUnaryExp(MiniCParser::UnaryExpContext * ctx)
+std::any SysYCSTVisitor::visitUnaryExp(SysYParser::UnaryExpContext * ctx)
 {
     // 识别文法产生式：unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN;
 
@@ -345,7 +345,7 @@ std::any MiniCCSTVisitor::visitUnaryExp(MiniCParser::UnaryExpContext * ctx)
     }
 }
 
-std::any MiniCCSTVisitor::visitPrimaryExp(MiniCParser::PrimaryExpContext * ctx)
+std::any SysYCSTVisitor::visitPrimaryExp(SysYParser::PrimaryExpContext * ctx)
 {
     // 识别文法产生式 primaryExp: T_L_PAREN expr T_R_PAREN | T_DIGIT | lVal;
 
@@ -371,7 +371,7 @@ std::any MiniCCSTVisitor::visitPrimaryExp(MiniCParser::PrimaryExpContext * ctx)
     return node;
 }
 
-std::any MiniCCSTVisitor::visitLVal(MiniCParser::LValContext * ctx)
+std::any SysYCSTVisitor::visitLVal(SysYParser::LValContext * ctx)
 {
     // 识别文法产生式：lVal: T_ID;
     // 获取ID的名字
@@ -383,7 +383,7 @@ std::any MiniCCSTVisitor::visitLVal(MiniCParser::LValContext * ctx)
     return ast_node::New(varId, lineNo);
 }
 
-std::any MiniCCSTVisitor::visitVarDecl(MiniCParser::VarDeclContext * ctx)
+std::any SysYCSTVisitor::visitVarDecl(SysYParser::VarDeclContext * ctx)
 {
     // varDecl: basicType varDef (T_COMMA varDef)* T_SEMICOLON;
 
@@ -410,7 +410,7 @@ std::any MiniCCSTVisitor::visitVarDecl(MiniCParser::VarDeclContext * ctx)
     return stmt_node;
 }
 
-std::any MiniCCSTVisitor::visitVarDef(MiniCParser::VarDefContext * ctx)
+std::any SysYCSTVisitor::visitVarDef(SysYParser::VarDefContext * ctx)
 {
     // varDef: T_ID;
 
@@ -422,7 +422,7 @@ std::any MiniCCSTVisitor::visitVarDef(MiniCParser::VarDefContext * ctx)
     return ast_node::New(varId, lineNo);
 }
 
-std::any MiniCCSTVisitor::visitBasicType(MiniCParser::BasicTypeContext * ctx)
+std::any SysYCSTVisitor::visitBasicType(SysYParser::BasicTypeContext * ctx)
 {
     // basicType: T_INT;
     type_attr attr{BasicType::TYPE_VOID, -1};
@@ -434,7 +434,7 @@ std::any MiniCCSTVisitor::visitBasicType(MiniCParser::BasicTypeContext * ctx)
     return attr;
 }
 
-std::any MiniCCSTVisitor::visitRealParamList(MiniCParser::RealParamListContext * ctx)
+std::any SysYCSTVisitor::visitRealParamList(SysYParser::RealParamListContext * ctx)
 {
     // 识别的文法产生式：realParamList : expr (T_COMMA expr)*;
 
@@ -450,7 +450,7 @@ std::any MiniCCSTVisitor::visitRealParamList(MiniCParser::RealParamListContext *
     return paramListNode;
 }
 
-std::any MiniCCSTVisitor::visitExpressionStatement(MiniCParser::ExpressionStatementContext * ctx)
+std::any SysYCSTVisitor::visitExpressionStatement(SysYParser::ExpressionStatementContext * ctx)
 {
     // 识别文法产生式  expr ? T_SEMICOLON #expressionStatement;
     if (ctx->expr()) {
