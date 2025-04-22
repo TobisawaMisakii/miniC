@@ -259,6 +259,7 @@ protected:
     /// @return AST的节点
     std::any visitConstExp(SysYParser::ConstExpContext * ctx) override;
 
+    // 以下是SysYBaseVisitor中没有的函数，是有多种生成式的非终结符的选择函数
     std::any visitBlockItem(SysYParser::BlockItemContext * ctx);
 
     std::any visitStmt(SysYParser::StmtContext * ctx);
