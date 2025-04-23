@@ -22,6 +22,7 @@
 #include "AttrType.h"
 #include "Types/IntegerType.h"
 #include "Types/VoidType.h"
+#include "Types/FloatType.h"
 
 /* 整个AST的根节点 */
 ast_node * ast_root = nullptr;
@@ -50,7 +51,7 @@ ast_node::ast_node(digit_int_attr attr)
 /// @brief 针对浮点数字面量的构造函数
 /// @param attr 浮点数字面量
 ast_node::ast_node(digit_real_attr attr)
-    : ast_node(ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT, IntegerType::getTypeInt(), attr.lineno)
+    : ast_node(ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT, FloatType::getTypeFloat(), attr.lineno)
 {
     float_val = attr.val;
 }
@@ -298,6 +299,10 @@ Type * typeAttr2Type(type_attr & attr)
 {
     if (attr.type == BasicType::TYPE_INT) {
         return IntegerType::getTypeInt();
+    } else if (attr.type == BasicType::TYPE_FLOAT) {
+        return FloatType::getTypeFloat();
+    } else if (attr.type == BasicType::TYPE_VOID) {
+        return VoidType::getType();
     } else {
         return VoidType::getType();
     }

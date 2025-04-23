@@ -763,6 +763,8 @@ std::any SysYCSTVisitor::visitBasicType(SysYParser::BasicTypeContext * ctx)
         attr.type = BasicType::TYPE_INT;
     } else if (typeText == "float") {
         attr.type = BasicType::TYPE_FLOAT;
+    } else if (typeText == "void") {
+        attr.type = BasicType::TYPE_VOID;
     } else {
         throw std::runtime_error("Unknown basic type: " + typeText);
     }
