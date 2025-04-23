@@ -222,7 +222,7 @@ std::any SysYCSTVisitor::visitInitializedVarDef(SysYParser::InitializedVarDefCon
     auto init_node = std::any_cast<ast_node *>(visitInitVal(ctx->initVal()));
 
     if (dims_node) {
-        return ast_node::New(ast_operator_type::AST_OP_VAR_DEF, id_node, dims_node, init_node);
+        return ast_node::New(ast_operator_type::AST_OP_VAR_DEF, id_node, dims_node, init_node, nullptr);
     } else {
         return ast_node::New(ast_operator_type::AST_OP_VAR_DEF, id_node, init_node, nullptr);
     }
@@ -419,7 +419,7 @@ std::any SysYCSTVisitor::visitIfStatement(SysYParser::IfStatementContext * ctx)
     if (ctx->stmt().size() > 1) {
         // 处理else语句
         auto elseStmt = std::any_cast<ast_node *>(visitStmt(ctx->stmt(1)));
-        return ast_node::New(ast_operator_type::AST_OP_IF, cond, thenStmt, elseStmt);
+        return ast_node::New(ast_operator_type::AST_OP_IF, cond, thenStmt, elseStmt, nullptr);
     } else {
         return ast_node::New(ast_operator_type::AST_OP_IF, cond, thenStmt, nullptr);
     }
