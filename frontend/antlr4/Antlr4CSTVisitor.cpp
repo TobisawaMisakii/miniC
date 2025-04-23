@@ -77,6 +77,7 @@ std::any SysYCSTVisitor::visitDecl(SysYParser::DeclContext * ctx)
 /// @brief 非终结运算符constDecl的遍历
 std::any SysYCSTVisitor::visitConstDecl(SysYParser::ConstDeclContext * ctx)
 {
+    // 识别产生式 constDecl: 'const' basicType constDef (',' constDef)* ';';
     ast_node * stmt_node = create_contain_node(ast_operator_type::AST_OP_DECL_STMT);
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
 
@@ -93,6 +94,8 @@ std::any SysYCSTVisitor::visitConstDecl(SysYParser::ConstDeclContext * ctx)
 /// @brief 非终结运算符constDef的遍历
 std::any SysYCSTVisitor::visitConstDef(SysYParser::ConstDefContext * ctx)
 {
+    // 识别产生式 constDef: Ident ('[' constExp ']')* '=' constInitVal;
+
     // 处理标识符
     std::string varName = ctx->Ident()->getText();
     ast_node * id_node = ast_node::New(varName, ctx->Ident()->getSymbol()->getLine());
@@ -112,7 +115,7 @@ std::any SysYCSTVisitor::visitConstDef(SysYParser::ConstDefContext * ctx)
 
     // 创建constDef节点
     if (dims_node) {
-        return ast_node::New(ast_operator_type::AST_OP_CONST_DEF, id_node, dims_node, init_node);
+        return ast_node::New(ast_operator_type::AST_OP_CONST_DEF, id_node, dims_node, init_node, nullptr);
     } else {
         return ast_node::New(ast_operator_type::AST_OP_CONST_DEF, id_node, init_node, nullptr);
     }
@@ -121,6 +124,9 @@ std::any SysYCSTVisitor::visitConstDef(SysYParser::ConstDefContext * ctx)
 /// @brief 非终结运算符constInitVal的遍历
 std::any SysYCSTVisitor::visitConstInitVal(SysYParser::ConstInitValContext * ctx)
 {
+    // 识别产生式 constInitVal:
+    //						constExp 										#singleConstantInit
+    // 						| '{'(constInitVal(',' constInitVal) *) ? '}'   #arrayConstantInit;
     if (Instanceof(singleConstCtx, SysYParser::SingleConstantInitContext *, ctx)) {
         return visitSingleConstantInit(singleConstCtx);
     } else if (Instanceof(arrayConstCtx, SysYParser::ArrayConstantInitContext *, ctx)) {
@@ -140,6 +146,7 @@ std::any SysYCSTVisitor::visitSingleConstantInit(SysYParser::SingleConstantInitC
 /// @brief 非终结运算符arrayConstantInit的遍历
 std::any SysYCSTVisitor::visitArrayConstantInit(SysYParser::ArrayConstantInitContext * ctx)
 {
+    // 产生式：  '{' (constInitVal (',' constInitVal)*)? '}'
     ast_node * init_node = create_contain_node(ast_operator_type::AST_OP_ARRAY_INIT);
 
     for (auto initVal: ctx->constInitVal()) {
@@ -283,6 +290,7 @@ std::any SysYCSTVisitor::visitFuncDef(SysYParser::FuncDefContext * ctx)
 /// @brief 非终结运算符funcFParams的遍历
 std::any SysYCSTVisitor::visitFuncFParams(SysYParser::FuncFParamsContext * ctx)
 {
+    // 函数形参列表产生式 funcFParam: basicType Ident ('[' ']' ('[' exp ']')*)?;
     ast_node * paramsNode = create_contain_node(ast_operator_type::AST_OP_FUNC_FORMAL_PARAMS);
 
     for (auto param: ctx->funcFParam()) {
@@ -296,6 +304,7 @@ std::any SysYCSTVisitor::visitFuncFParams(SysYParser::FuncFParamsContext * ctx)
 /// @brief 非终结运算符funcFParam的遍历
 std::any SysYCSTVisitor::visitFuncFParam(SysYParser::FuncFParamContext * ctx)
 {
+    // 函数形参 funcFParam: basicType Ident ('[' ']' ('[' exp ']')*)?;
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
     ast_node * typeNode = create_type_node(typeAttr);
 
@@ -305,7 +314,7 @@ std::any SysYCSTVisitor::visitFuncFParam(SysYParser::FuncFParamContext * ctx)
     if (ctx->getText().find('[') != std::string::npos) {
         // 数组参数
         ast_node * dimsNode = create_contain_node(ast_operator_type::AST_OP_ARRAY_DIMS);
-        return ast_node::New(ast_operator_type::AST_OP_FUNC_FORMAL_PARAM, typeNode, idNode, dimsNode);
+        return ast_node::New(ast_operator_type::AST_OP_FUNC_FORMAL_PARAM, typeNode, idNode, dimsNode, nullptr);
     } else {
         // 普通参数
         return ast_node::New(ast_operator_type::AST_OP_FUNC_FORMAL_PARAM, typeNode, idNode, nullptr);
@@ -315,6 +324,7 @@ std::any SysYCSTVisitor::visitFuncFParam(SysYParser::FuncFParamContext * ctx)
 /// @brief 非终结运算符block的遍历
 std::any SysYCSTVisitor::visitBlock(SysYParser::BlockContext * ctx)
 {
+    // 识别产生式 block: '{' blockItem* '}';
     ast_node * blockNode = create_contain_node(ast_operator_type::AST_OP_BLOCK);
 
     for (auto item: ctx->blockItem()) {
@@ -391,7 +401,7 @@ std::any SysYCSTVisitor::visitExpressionStatement(SysYParser::ExpressionStatemen
     if (ctx->exp()) {
         return visitExp(ctx->exp());
     }
-    return nullptr;
+    return ast_node::New(ast_operator_type::AST_OP_EMPTY, nullptr);
 }
 
 /// @brief 非终结运算符nestedBlockStatement的遍历
