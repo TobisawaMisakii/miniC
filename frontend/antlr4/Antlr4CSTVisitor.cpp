@@ -455,6 +455,7 @@ std::any SysYCSTVisitor::visitExp(SysYParser::ExpContext * ctx)
 /// @brief 非终结运算符cond的遍历
 std::any SysYCSTVisitor::visitCond(SysYParser::CondContext * ctx)
 {
+    // 识别产生式 cond: lOrExp;
     return visitLOrExp(ctx->lOrExp());
 }
 
@@ -627,227 +628,122 @@ std::any SysYCSTVisitor::visitFuncRParams(SysYParser::FuncRParamsContext * ctx)
 /// @brief 非终结运算符mulExp的遍历
 std::any SysYCSTVisitor::visitMulExp(SysYParser::MulExpContext * ctx)
 {
-    // 获取第一个 unaryExp
-    auto left = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()));
-
-    // 检查是否有更多的运算符和 unaryExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 unaryExp
-        SysYParser::UnaryExpContext * unaryExpCtx = dynamic_cast<SysYParser::UnaryExpContext *>(ctx->children[i + 1]);
-        if (!unaryExpCtx) {
-            throw std::runtime_error("Error: Expected unaryExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitUnaryExp(unaryExpCtx));
-
-        // 确定运算符类型
-        ast_operator_type op;
-        if (opText == "*") {
-            op = ast_operator_type::AST_OP_MUL;
-        } else if (opText == "/") {
-            op = ast_operator_type::AST_OP_DIV;
-        } else if (opText == "%") {
-            op = ast_operator_type::AST_OP_MOD;
+    // 识别产生式 mulExp: unaryExp | mulExp ('*' | '/' | '%') unaryExp;
+    if (!ctx->mulExp()) {
+        // 没有mulExp，处理 unaryExp
+        return visitUnaryExp(ctx->unaryExp());
+    } else {
+        // 处理 mulExp ('*' | '/' | '%') unaryExp
+        auto left = std::any_cast<ast_node *>(visitMulExp(ctx->mulExp()));
+        auto right = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()));
+        if (ctx->children[1]->getText() == "*") {
+            return ast_node::New(ast_operator_type::AST_OP_MUL, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == "/") {
+            return ast_node::New(ast_operator_type::AST_OP_DIV, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == "%") {
+            return ast_node::New(ast_operator_type::AST_OP_MOD, left, right, nullptr);
         } else {
-            throw std::runtime_error("Unknown binary operator: " + opText);
+            throw std::runtime_error("Unknown multiplication operator: " + ctx->children[1]->getText());
         }
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符addExp的遍历
 std::any SysYCSTVisitor::visitAddExp(SysYParser::AddExpContext * ctx)
 {
-    // 获取第一个 mulExp
-    auto left = std::any_cast<ast_node *>(visitMulExp(ctx->mulExp()));
-
-    // 检查是否有更多的运算符和 mulExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 mulExp
-        SysYParser::MulExpContext * mulExpCtx = dynamic_cast<SysYParser::MulExpContext *>(ctx->children[i + 1]);
-        if (!mulExpCtx) {
-            throw std::runtime_error("Error: Expected mulExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitMulExp(mulExpCtx));
-
-        // 确定运算符类型
-        ast_operator_type op;
-        if (opText == "+") {
-            op = ast_operator_type::AST_OP_ADD;
-        } else if (opText == "-") {
-            op = ast_operator_type::AST_OP_SUB;
+    // 识别产生式 addExp: mulExp | addExp ('+' | '-') mulExp;
+    if (!ctx->addExp()) {
+        // 没有addExp，处理 mulExp
+        return visitMulExp(ctx->mulExp());
+    } else {
+        // 处理 addExp ('+' | '-') mulExp
+        auto left = std::any_cast<ast_node *>(visitAddExp(ctx->addExp()));
+        auto right = std::any_cast<ast_node *>(visitMulExp(ctx->mulExp()));
+        if (ctx->children[1]->getText() == "+") {
+            return ast_node::New(ast_operator_type::AST_OP_ADD, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == "-") {
+            return ast_node::New(ast_operator_type::AST_OP_SUB, left, right, nullptr);
         } else {
-            throw std::runtime_error("Unknown binary operator: " + opText);
+            throw std::runtime_error("Unknown addition operator: " + ctx->children[1]->getText());
         }
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符relExp的遍历
 std::any SysYCSTVisitor::visitRelExp(SysYParser::RelExpContext * ctx)
 {
-    // 获取第一个 addExp
-    auto left = std::any_cast<ast_node *>(visitAddExp(ctx->addExp()));
-
-    // 检查是否有更多的关系运算符和 addExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的关系运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 addExp
-        SysYParser::AddExpContext * addExpCtx = dynamic_cast<SysYParser::AddExpContext *>(ctx->children[i + 1]);
-        if (!addExpCtx) {
-            throw std::runtime_error("Error: Expected addExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitAddExp(addExpCtx));
-
-        // 确定关系运算符类型
-        ast_operator_type op;
-        if (opText == "<") {
-            op = ast_operator_type::AST_OP_LT;
-        } else if (opText == ">") {
-            op = ast_operator_type::AST_OP_GT;
-        } else if (opText == "<=") {
-            op = ast_operator_type::AST_OP_LE;
-        } else if (opText == ">=") {
-            op = ast_operator_type::AST_OP_GE;
+    // 识别产生式 relExp: addExp | relExp ('<' | '>' | '<=' | '>=') addExp;
+    if (!ctx->relExp()) {
+        // 没有relExp，处理 addExp
+        return visitAddExp(ctx->addExp());
+    } else {
+        // 处理 relExp ('<' | '>' | '<=' | '>=') addExp
+        auto left = std::any_cast<ast_node *>(visitRelExp(ctx->relExp()));
+        auto right = std::any_cast<ast_node *>(visitAddExp(ctx->addExp()));
+        if (ctx->children[1]->getText() == "<") {
+            return ast_node::New(ast_operator_type::AST_OP_LT, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == ">") {
+            return ast_node::New(ast_operator_type::AST_OP_GT, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == "<=") {
+            return ast_node::New(ast_operator_type::AST_OP_LE, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == ">=") {
+            return ast_node::New(ast_operator_type::AST_OP_GE, left, right, nullptr);
         } else {
-            throw std::runtime_error("Unknown relational operator: " + opText);
+            throw std::runtime_error("Unknown relational operator: " + ctx->children[1]->getText());
         }
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符eqExp的遍历
 std::any SysYCSTVisitor::visitEqExp(SysYParser::EqExpContext * ctx)
 {
-    // 获取第一个 relExp
-    auto left = std::any_cast<ast_node *>(visitRelExp(ctx->relExp()));
-
-    // 检查是否有更多的关系运算符和 relExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的关系运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 relExp
-        SysYParser::RelExpContext * relExpCtx = dynamic_cast<SysYParser::RelExpContext *>(ctx->children[i + 1]);
-        if (!relExpCtx) {
-            throw std::runtime_error("Error: Expected relExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitRelExp(relExpCtx));
-
-        // 确定关系运算符类型
-        ast_operator_type op;
-        if (opText == "==") {
-            op = ast_operator_type::AST_OP_EQ;
-        } else if (opText == "!=") {
-            op = ast_operator_type::AST_OP_NE;
+    // 识别产生式 eqExp: relExp | eqExp ('==' | '!=') relExp;
+    if (!ctx->eqExp()) {
+        // 没有eqExp，处理 relExp
+        return visitRelExp(ctx->relExp());
+    } else {
+        // 处理 eqExp ('==' | '!=') relExp
+        auto left = std::any_cast<ast_node *>(visitEqExp(ctx->eqExp()));
+        auto right = std::any_cast<ast_node *>(visitRelExp(ctx->relExp()));
+        if (ctx->children[1]->getText() == "==") {
+            return ast_node::New(ast_operator_type::AST_OP_EQ, left, right, nullptr);
+        } else if (ctx->children[1]->getText() == "!=") {
+            return ast_node::New(ast_operator_type::AST_OP_NE, left, right, nullptr);
         } else {
-            throw std::runtime_error("Unknown equality operator: " + opText);
+            throw std::runtime_error("Unknown equality operator: " + ctx->children[1]->getText());
         }
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符lAndExp的遍历
 std::any SysYCSTVisitor::visitLAndExp(SysYParser::LAndExpContext * ctx)
 {
-    // 获取第一个 eqExp
-    auto left = std::any_cast<ast_node *>(visitEqExp(ctx->eqExp()));
-
-    // 检查是否有更多的逻辑与运算符和 eqExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的逻辑与运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 eqExp
-        SysYParser::EqExpContext * eqExpCtx = dynamic_cast<SysYParser::EqExpContext *>(ctx->children[i + 1]);
-        if (!eqExpCtx) {
-            throw std::runtime_error("Error: Expected eqExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitEqExp(eqExpCtx));
-
-        // 确定逻辑与运算符类型
-        ast_operator_type op = ast_operator_type::AST_OP_AND;
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
+    // 识别产生式 lAndExp: eqExp | lAndExp '&&' eqExp;
+    if (!ctx->lAndExp()) {
+        // 没有lAndExp，处理 eqExp
+        return visitEqExp(ctx->eqExp());
+    } else {
+        // 处理 lAndExp '&&' eqExp
+        auto left = std::any_cast<ast_node *>(visitLAndExp(ctx->lAndExp()));
+        auto right = std::any_cast<ast_node *>(visitEqExp(ctx->eqExp()));
+        return ast_node::New(ast_operator_type::AST_OP_AND, left, right, nullptr);
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符lOrExp的遍历
 std::any SysYCSTVisitor::visitLOrExp(SysYParser::LOrExpContext * ctx)
 {
-    // 获取第一个 lAndExp
-    auto left = std::any_cast<ast_node *>(visitLAndExp(ctx->lAndExp()));
+    // 识别产生式 lOrExp: lAndExp | lOrExp '||' lAndExp;
 
-    // 检查是否有更多的逻辑或运算符和 lAndExp
-    size_t i = 1;
-    while (i < ctx->children.size()) {
-        // 获取当前的逻辑或运算符
-        std::string opText = ctx->children[i]->getText();
-
-        // 获取下一个 lAndExp
-        SysYParser::LAndExpContext * lAndExpCtx = dynamic_cast<SysYParser::LAndExpContext *>(ctx->children[i + 1]);
-        if (!lAndExpCtx) {
-            throw std::runtime_error("Error: Expected lAndExp but found " + ctx->children[i + 1]->getText());
-        }
-        auto right = std::any_cast<ast_node *>(visitLAndExp(lAndExpCtx));
-
-        // 确定逻辑或运算符类型
-        ast_operator_type op = ast_operator_type::AST_OP_OR;
-
-        // 创建新的 AST 节点
-        left = ast_node::New(op, left, right, nullptr);
-
-        // 准备下一次迭代
-        i += 2;
+    if (!ctx->lOrExp()) {
+        // 没有lOrExp，处理 lAndExp
+        return visitLAndExp(ctx->lAndExp());
+    } else {
+        // 处理 lOrExp '||' lAndExp
+        auto left = std::any_cast<ast_node *>(visitLOrExp(ctx->lOrExp()));
+        auto right = std::any_cast<ast_node *>(visitLAndExp(ctx->lAndExp()));
+        return ast_node::New(ast_operator_type::AST_OP_OR, left, right, nullptr);
     }
-
-    return left;
 }
 
 /// @brief 非终结运算符constExp的遍历

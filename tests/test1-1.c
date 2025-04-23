@@ -33,3 +33,7 @@ int sbzqr(int a, float b)
     }
     return b;
 }
+
+// 当前前端存在的问题：
+// 1. relExp addExp eqExp左值不对 (已解决)
+// 2. formal-params的类型不对（float被识别为void）
