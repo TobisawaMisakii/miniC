@@ -15,12 +15,6 @@ public:
     static FloatType * getTypeFloat();
 
     ///
-    /// @brief 获取双精度浮点类型，全局只有一份
-    /// @return FloatType*
-    ///
-    static FloatType * getTypeDouble();
-
-    ///
     /// @brief 获取类型的IR标识符
     /// @return std::string IR标识符
     ///
