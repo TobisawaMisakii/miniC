@@ -12,10 +12,10 @@ constDecl: 'const' basicType constDef (',' constDef)* ';';
 // 基本类型
 basicType: 'int' | 'float';
 
-// 常量定义
+// 单个常量(可以是数组)的初始化
 constDef: Ident ('[' constExp ']')* '=' constInitVal;
 
-// 常量初值，可以是 '{}'
+// 常量初值
 constInitVal:
 	constExp										# singleConstantInit
 	| '{' (constInitVal (',' constInitVal)*)? '}'	# arrayConstantInit;
