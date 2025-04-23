@@ -13,7 +13,7 @@ grammar MiniC;
 // 源文件编译单元定义
 compileUnit: (funcDef | varDecl)* EOF;
 
-// 函数定义，目前不支持形参，也不支持返回void类型等
+// 函数定义，目前不支持形参，也不支持返回void类型等 当前函数定义只支持： int func_name() { func_block } 格式
 funcDef: T_INT T_ID T_L_PAREN T_R_PAREN block;
 
 // 语句块看用作函数体，这里允许多个语句，并且不含任何语句
@@ -41,22 +41,20 @@ statement:
 	| block								# blockStatement
 	| expr? T_SEMICOLON					# expressionStatement;
 
-// 表达式文法 expr : AddExp 表达式目前只支持加法与减法运算
+// 表达式文法 expr : AddExp 表达式目前只支持加法与减法运算 新增了乘法运算测试
 expr: addExp | mulExp;
-
-// 乘法表达式定义
-mulExp: unaryExp (mulOp unaryExp)*;
-
-// 乘法运算符
-mulOp: T_MUL;
-
-T_MUL: '*';
 
 // 加减表达式
 addExp: unaryExp (addOp unaryExp)*;
 
+// 乘法表达式
+mulExp: unaryExp (mulOp unaryExp)*;
+
 // 加减运算符
 addOp: T_ADD | T_SUB;
+
+// 乘法运算符
+mulOp: T_MUL;
 
 // 一元表达式
 unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN;
@@ -83,6 +81,7 @@ T_COMMA: ',';
 
 T_ADD: '+';
 T_SUB: '-';
+T_MUL: '*';
 
 // 要注意关键字同样也属于T_ID，因此必须放在T_ID的前面，否则会识别成T_ID
 T_RETURN: 'return';

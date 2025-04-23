@@ -18,7 +18,7 @@
 			// 语法的开始符号
 			"startRule": "compileUnit",
 			// 描述语法的g4文件
-			"grammar": "${workspaceFolder}/frontend/antlr4/MiniC.g4"
+			"grammar": "${workspaceFolder}/frontend/antlr4/SysY.g4"
 		},
 		{
 			// 可采用GCC或者Clang编译器
@@ -76,9 +76,9 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/minic",
-			"args": ["-S", "-A", "-T", "tests/test2-1.c"],
+			"args": ["-S", "-A", "-T", "-o", "tests/test-mul-AST.png", "tests/test-mul.c"],
 			// 程序的入口（main函数的入口）是否停止
-			"stopAtEntry": true,
+			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
 			"externalConsole": false,
@@ -105,9 +105,9 @@
 					"text": "-gdb-set disassembly-flavor intel",
 					"ignoreFailures": true
 				}
-			],
+			]
 			// 不需要编译时可注释掉
-			"preLaunchTask": "CMake: build"
+			// "preLaunchTask": "CMake: build"
 		},
 		{
 			// 可采用GCC或者Clang编译器

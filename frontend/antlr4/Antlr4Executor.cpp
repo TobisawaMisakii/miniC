@@ -18,7 +18,7 @@
 #include "AST.h"
 #include "Antlr4Executor.h"
 #include "Antlr4CSTVisitor.h"
-#include "MiniCLexer.h"
+#include "SysYLexer.h"
 #include "Common.h"
 
 /// @brief 前端词法与语法解析生成AST
@@ -36,13 +36,13 @@ bool Antlr4Executor::run()
     antlr4::ANTLRInputStream input{ifs};
 
     // 词法分析器实例
-    MiniCLexer lexer{&input};
+    SysYLexer lexer{&input};
 
     // 词法分析器实例转化成记号(Token)流
     antlr4::CommonTokenStream tokenStream{&lexer};
 
     // 利用antlr4进行分析，从compileUnit开始分析输入字符串
-    MiniCParser parser{&tokenStream};
+    SysYParser parser{&tokenStream};
 
     // 从具体语法树的根结点进行深度优先遍历，生成抽象语法树
     auto cstRoot = parser.compileUnit();
@@ -52,7 +52,7 @@ bool Antlr4Executor::run()
     }
 
     /// 新建遍历器对具体语法树进行分析，产生抽象语法树
-    MiniCCSTVisitor visitor;
+    SysYCSTVisitor visitor;
 
     // 遍历产生抽象语法树
     astRoot = visitor.run(cstRoot);

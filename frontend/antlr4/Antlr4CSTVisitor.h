@@ -1,178 +1,276 @@
 ///
 /// @file Antlr4CSTVisitor.h
 /// @brief Antlr4的具体语法树的遍历产生AST
-/// @author zenglj (zenglj@live.com)
-/// @version 1.1
-/// @date 2024-11-23
+/// @author TobisawaMisakii (cpy040407@gmail.com)
+/// @version 1.0
+/// @date 2025-04-22
 ///
-/// @copyright Copyright (c) 2024
-///
-/// @par 修改日志:
-/// <table>
-/// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-09-29 <td>1.0     <td>zenglj  <td>新建
-/// <tr><td>2024-11-23 <td>1.1     <td>zenglj  <td>表达式版增强
-/// </table>
-///
+
 #pragma once
 
 #include "AST.h"
-#include "MiniCBaseVisitor.h"
+#include "SysYBaseVisitor.h"
 
 /// @brief 遍历具体语法树产生抽象语法树
-class MiniCCSTVisitor : public MiniCBaseVisitor {
+class SysYCSTVisitor : public SysYBaseVisitor {
 
 public:
     /// @brief 构造函数
-    MiniCCSTVisitor();
+    SysYCSTVisitor();
 
     /// @brief 析构函数
-    virtual ~MiniCCSTVisitor();
+    ~SysYCSTVisitor() override;
 
     /// @brief 遍历CST产生AST
     /// @param root CST语法树的根结点
-    /// @return AST的根节点
-    ast_node * run(MiniCParser::CompileUnitContext * root);
+    /// @return AST的节点
+    ast_node * run(SysYParser::CompileUnitContext * root);
 
 protected:
-    /* 下面的函数都是从MiniCBaseVisitor继承下来的虚拟函数，需要重载实现 */
+    /* 下面的函数都是从SysYBaseVisitor继承下来的虚拟函数，需要重载实现 */
 
     /// @brief 非终结运算符compileUnit的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitCompileUnit(MiniCParser::CompileUnitContext * ctx) override;
+    std::any visitCompileUnit(SysYParser::CompileUnitContext * ctx) override;
+
+    /// @brief 非终结运算符decl的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitDecl(SysYParser::DeclContext * ctx) override;
+
+    /// @brief 非终结运算符constDecl的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitConstDecl(SysYParser::ConstDeclContext * ctx) override;
+
+    /// @brief 非终结运算符basicType的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitBasicType(SysYParser::BasicTypeContext * ctx) override;
+
+    /// @brief 非终结运算符constDef的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitConstDef(SysYParser::ConstDefContext * ctx) override;
+
+    /// @brief 非终结运算符constInitVal中的singleConstantInit的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitSingleConstantInit(SysYParser::SingleConstantInitContext * ctx) override;
+
+    /// @brief 非终结运算符constInitVal中的arrayConstantInit的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitArrayConstantInit(SysYParser::ArrayConstantInitContext * ctx) override;
+
+    /// @brief 非终结运算符varDecl的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitVarDecl(SysYParser::VarDeclContext * ctx) override;
+
+    /// @brief 非终结运算符varDef中的simpleVarDef的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitSimpleVarDef(SysYParser::SimpleVarDefContext * ctx) override;
+
+    /// @brief 非终结运算符varDef中的initializedVarDef的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitInitializedVarDef(SysYParser::InitializedVarDefContext * ctx) override;
+
+    /// @brief 非终结运算符initVal中的singleVarInit的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitSingleVarInit(SysYParser::SingleVarInitContext * ctx) override;
+
+    /// @brief 非终结运算符initVal中的arrayVarInit的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitArrayVarInit(SysYParser::ArrayVarInitContext * ctx) override;
 
     /// @brief 非终结运算符funcDef的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitFuncDef(MiniCParser::FuncDefContext * ctx) override;
+    std::any visitFuncDef(SysYParser::FuncDefContext * ctx) override;
+
+    /// @brief 非终结运算符funcType的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitFuncType(SysYParser::FuncTypeContext * ctx) override;
+
+    /// @brief 非终结运算符funcFParams的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitFuncFParams(SysYParser::FuncFParamsContext * ctx) override;
+
+    /// @brief 非终结运算符funcFParam的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitFuncFParam(SysYParser::FuncFParamContext * ctx) override;
 
     /// @brief 非终结运算符block的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitBlock(MiniCParser::BlockContext * ctx) override;
+    std::any visitBlock(SysYParser::BlockContext * ctx) override;
 
-    /// @brief 非终结运算符blockItemList的遍历
+    /// @brief 非终结运算符blockItem中的declarationBlockItem的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitBlockItemList(MiniCParser::BlockItemListContext * ctx) override;
+    std::any visitDeclarationBlockItem(SysYParser::DeclarationBlockItemContext * ctx) override;
 
-    /// @brief 非终结运算符blockItem的遍历
+    /// @brief 非终结运算符blockItem中的statementBlockItem的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitBlockItem(MiniCParser::BlockItemContext * ctx) override;
+    std::any visitStatementBlockItem(SysYParser::StatementBlockItemContext * ctx) override;
 
-    /// @brief 非终结运算符statement中的遍历
+    /// @brief 非终结运算符statement中的assignmentStatement的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitStatement(MiniCParser::StatementContext * ctx);
+    std::any visitAssignmentStatement(SysYParser::AssignmentStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的expressionStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitExpressionStatement(SysYParser::ExpressionStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的blockStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitNestedBlockStatement(SysYParser::NestedBlockStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的ifStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitIfStatement(SysYParser::IfStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的whileStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitWhileStatement(SysYParser::WhileStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的breakStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitBreakStatement(SysYParser::BreakStatementContext * ctx) override;
+
+    /// @brief 非终结运算符statement中的continueStatement的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitContinueStatement(SysYParser::ContinueStatementContext * ctx) override;
 
     /// @brief 非终结运算符statement中的returnStatement的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitReturnStatement(MiniCParser::ReturnStatementContext * ctx) override;
+    std::any visitReturnStatement(SysYParser::ReturnStatementContext * ctx) override;
 
-    /// @brief 非终结运算符expr的遍历
+    /// @brief 非终结运算符exp的遍历
     /// @param ctx CST上下文
     /// @return AST的节点
-    std::any visitExpr(MiniCParser::ExprContext * ctx) override;
+    std::any visitExp(SysYParser::ExpContext * ctx) override;
 
-    ///
-    /// @brief 内部产生的非终结符assignStatement的分析
+    /// @brief 非终结运算符cond的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitAssignStatement(MiniCParser::AssignStatementContext * ctx) override;
+    /// @return AST的节点
+    std::any visitCond(SysYParser::CondContext * ctx) override;
 
-    ///
-    /// @brief 内部产生的非终结符blockStatement的分析
+    /// @brief 非终结运算符lVal的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitBlockStatement(MiniCParser::BlockStatementContext * ctx) override;
+    /// @return AST的节点
+    std::any visitLVal(SysYParser::LValContext * ctx) override;
 
-    ///
-    /// @brief 非终结符AddExp的分析
+    /// @brief 非终结运算符primaryExp中的groupedExpression的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitAddExp(MiniCParser::AddExpContext * ctx) override;
+    /// @return AST的节点
+    std::any visitGroupedExpression(SysYParser::GroupedExpressionContext * ctx) override;
 
-    ///
-    /// @brief 非终结符addOp的分析
+    /// @brief 非终结运算符primaryExp中的leftValueExpression的遍历
     /// @param ctx CST上下文
-    /// @return std::any 类型
-    ///
-    std::any visitAddOp(MiniCParser::AddOpContext * ctx) override;
+    /// @return AST的节点
+    std::any visitLeftValueExpression(SysYParser::LeftValueExpressionContext * ctx) override;
 
-    ///
-    /// @brief 非终结符MulExp的分析
-    /// @param ctx  CST上下文
-    /// @return std::any  AST的节点
-    ///
-    std::any visitMulExp(MiniCParser::MulExpContext * ctx) override;
-
-    ///
-    /// @brief 	非终结符MulOp的分析
-    /// @param ctx 	CST上下文
-    /// @return std::any  AST的节点
-    ///
-    std::any visitMulOp(MiniCParser::MulOpContext * ctx) override;
-
-    ///
-    /// @brief 非终结符unaryExp的分析
+    /// @brief 非终结运算符primaryExp中的numberExpression的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    ///
-    std::any visitUnaryExp(MiniCParser::UnaryExpContext * ctx) override;
+    /// @return AST的节点
+    std::any visitNumberExpression(SysYParser::NumberExpressionContext * ctx) override;
 
-    ///
-    /// @brief 非终结符PrimaryExp的分析
+    /// @brief 非终结运算符number的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitPrimaryExp(MiniCParser::PrimaryExpContext * ctx) override;
+    /// @return AST的节点
+    std::any visitNumber(SysYParser::NumberContext * ctx) override;
 
-    ///
-    /// @brief 非终结符LVal的分析
+    /// @brief 非终结运算符unaryExp中的primaryUnaryExpression的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitLVal(MiniCParser::LValContext * ctx) override;
+    /// @return AST的节点
+    std::any visitPrimaryUnaryExpression(SysYParser::PrimaryUnaryExpressionContext * ctx) override;
 
-    ///
-    /// @brief 非终结符VarDecl的分析
+    /// @brief 非终结运算符unaryExp中的functionCall的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitVarDecl(MiniCParser::VarDeclContext * ctx) override;
+    /// @return AST的节点
+    std::any visitFunctionCall(SysYParser::FunctionCallContext * ctx) override;
 
-    ///
-    /// @brief 非终结符VarDecl的分析
+    /// @brief 非终结运算符unaryExp中的unaryOperatorExpression的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitVarDef(MiniCParser::VarDefContext * ctx) override;
+    /// @return AST的节点
+    std::any visitUnaryOperatorExpression(SysYParser::UnaryOperatorExpressionContext * ctx) override;
 
-    ///
-    /// @brief 非终结符BasicType的分析
+    /// @brief 非终结运算符unaryOp的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitBasicType(MiniCParser::BasicTypeContext * ctx) override;
+    /// @return AST的节点
+    std::any visitUnaryOp(SysYParser::UnaryOpContext * ctx) override;
 
-    ///
-    /// @brief 非终结符RealParamList的分析
+    /// @brief 非终结运算符funcRParams的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitRealParamList(MiniCParser::RealParamListContext * ctx) override;
+    /// @return AST的节点
+    std::any visitFuncRParams(SysYParser::FuncRParamsContext * ctx) override;
 
-    ///
-    /// @brief 非终结符ExpressionStatement的分析
+    /// @brief 非终结运算符mulExp的遍历
     /// @param ctx CST上下文
-    /// @return std::any AST的节点
-    ///
-    std::any visitExpressionStatement(MiniCParser::ExpressionStatementContext * context) override;
+    /// @return AST的节点
+    std::any visitMulExp(SysYParser::MulExpContext * ctx) override;
+
+    /// @brief 非终结运算符addOp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitAddExp(SysYParser::AddExpContext * ctx) override;
+
+    /// @brief 非终结运算符relExp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitRelExp(SysYParser::RelExpContext * ctx) override;
+
+    /// @brief 非终结运算符eqExp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitEqExp(SysYParser::EqExpContext * ctx) override;
+
+    /// @brief 非终结运算符lAndExp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitLAndExp(SysYParser::LAndExpContext * ctx) override;
+
+    /// @brief 非终结运算符lOrExp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitLOrExp(SysYParser::LOrExpContext * ctx) override;
+
+    /// @brief 非终结运算符constExp的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitConstExp(SysYParser::ConstExpContext * ctx) override;
+
+    // 以下是SysYBaseVisitor中没有的函数，是有多种生成式的非终结符的选择函数
+    std::any visitBlockItem(SysYParser::BlockItemContext * ctx);
+
+    std::any visitStmt(SysYParser::StmtContext * ctx);
+
+    std::any visitConstInitVal(SysYParser::ConstInitValContext * ctx);
+
+    std::any visitVarDef(SysYParser::VarDefContext * ctx);
+
+    std::any visitInitVal(SysYParser::InitValContext * ctx);
+
+    std::any visitPrimaryExp(SysYParser::PrimaryExpContext * ctx);
+
+    std::any visitUnaryExp(SysYParser::UnaryExpContext * ctx);
 };

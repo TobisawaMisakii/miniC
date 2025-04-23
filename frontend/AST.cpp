@@ -22,6 +22,7 @@
 #include "AttrType.h"
 #include "Types/IntegerType.h"
 #include "Types/VoidType.h"
+#include "Types/FloatType.h"
 
 /* 整个AST的根节点 */
 ast_node * ast_root = nullptr;
@@ -45,6 +46,14 @@ ast_node::ast_node(digit_int_attr attr)
     : ast_node(ast_operator_type::AST_OP_LEAF_LITERAL_UINT, IntegerType::getTypeInt(), attr.lineno)
 {
     integer_val = attr.val;
+}
+
+/// @brief 针对浮点数字面量的构造函数
+/// @param attr 浮点数字面量
+ast_node::ast_node(digit_real_attr attr)
+    : ast_node(ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT, FloatType::getTypeFloat(), attr.lineno)
+{
+    float_val = attr.val;
 }
 
 /// @brief 针对标识符ID的叶子构造函数
@@ -135,6 +144,15 @@ ast_node * ast_node::insert_son_node(ast_node * node)
 /// @brief 创建无符号整数的叶子节点
 /// @param attr 无符号整数字面量
 ast_node * ast_node::New(digit_int_attr attr)
+{
+    ast_node * node = new ast_node(attr);
+
+    return node;
+}
+
+/// @brief 创建浮点数字的叶子节点
+/// @param attr 浮点数字面量
+ast_node * ast_node::New(digit_real_attr attr)
 {
     ast_node * node = new ast_node(attr);
 
@@ -281,6 +299,10 @@ Type * typeAttr2Type(type_attr & attr)
 {
     if (attr.type == BasicType::TYPE_INT) {
         return IntegerType::getTypeInt();
+    } else if (attr.type == BasicType::TYPE_FLOAT) {
+        return FloatType::getTypeFloat();
+    } else if (attr.type == BasicType::TYPE_VOID) {
+        return VoidType::getType();
     } else {
         return VoidType::getType();
     }

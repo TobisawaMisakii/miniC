@@ -30,14 +30,14 @@ using namespace std;
 /// @return 运算符对应的字符串
 string getNodeName(ast_node * astnode)
 {
-    string nodeName;
+    std::string nodeName;
 
     switch (astnode->node_type) {
         case ast_operator_type::AST_OP_LEAF_LITERAL_UINT:
-            nodeName = to_string((int32_t) astnode->integer_val);
+            nodeName = std::to_string((int32_t) astnode->integer_val);
             break;
         case ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT:
-            nodeName = to_string(astnode->float_val);
+            nodeName = std::to_string(astnode->float_val);
             break;
         case ast_operator_type::AST_OP_LEAF_VAR_ID:
             nodeName = astnode->name;
@@ -45,35 +45,17 @@ string getNodeName(ast_node * astnode)
         case ast_operator_type::AST_OP_LEAF_TYPE:
             nodeName = astnode->type->toString();
             break;
-        case ast_operator_type::AST_OP_BLOCK:
-            nodeName = "block";
-            break;
-        case ast_operator_type::AST_OP_RETURN:
-            nodeName = "return";
+        case ast_operator_type::AST_OP_COMPILE_UNIT:
+            nodeName = "compile-unit";
             break;
         case ast_operator_type::AST_OP_FUNC_DEF:
             nodeName = "func-def";
             break;
-        case ast_operator_type::AST_OP_COMPILE_UNIT:
-            nodeName = "compile-unit";
-            break;
         case ast_operator_type::AST_OP_FUNC_FORMAL_PARAMS:
             nodeName = "formal-params";
             break;
-        case ast_operator_type::AST_OP_VAR_DECL:
-            nodeName = "var-decl";
-            break;
-        case ast_operator_type::AST_OP_DECL_STMT:
-            nodeName = "decl-stmt";
-            break;
-        case ast_operator_type::AST_OP_ADD:
-            nodeName = "+";
-            break;
-        case ast_operator_type::AST_OP_SUB:
-            nodeName = "-";
-            break;
-        case ast_operator_type::AST_OP_ASSIGN:
-            nodeName = "=";
+        case ast_operator_type::AST_OP_FUNC_FORMAL_PARAM:
+            nodeName = "formal-param";
             break;
         case ast_operator_type::AST_OP_FUNC_CALL:
             nodeName = "func-call";
@@ -81,11 +63,105 @@ string getNodeName(ast_node * astnode)
         case ast_operator_type::AST_OP_FUNC_REAL_PARAMS:
             nodeName = "real-params";
             break;
+        case ast_operator_type::AST_OP_DECL_STMT:
+            nodeName = "decl-stmt";
+            break;
+        case ast_operator_type::AST_OP_VAR_DECL:
+            nodeName = "var-decl";
+            break;
+        case ast_operator_type::AST_OP_CONST_DECL:
+            nodeName = "const-decl";
+            break;
+        case ast_operator_type::AST_OP_VAR_DEF:
+            nodeName = "var-def";
+            break;
+        case ast_operator_type::AST_OP_CONST_DEF:
+            nodeName = "const-def";
+            break;
+        case ast_operator_type::AST_OP_BLOCK:
+            nodeName = "block";
+            break;
+        case ast_operator_type::AST_OP_IF:
+            nodeName = "if";
+            break;
+        case ast_operator_type::AST_OP_WHILE:
+            nodeName = "while";
+            break;
+        case ast_operator_type::AST_OP_BREAK:
+            nodeName = "break";
+            break;
+        case ast_operator_type::AST_OP_CONTINUE:
+            nodeName = "continue";
+            break;
+        case ast_operator_type::AST_OP_RETURN:
+            nodeName = "return";
+            break;
+        case ast_operator_type::AST_OP_ASSIGN:
+            nodeName = "=";
+            break;
+        case ast_operator_type::AST_OP_LVAL:
+            nodeName = "lval";
+            break;
+        case ast_operator_type::AST_OP_ARRAY_DIMS:
+            nodeName = "array-dims";
+            break;
+        case ast_operator_type::AST_OP_ARRAY_INDICES:
+            nodeName = "array-indices";
+            break;
+        case ast_operator_type::AST_OP_ARRAY_INIT:
+            nodeName = "array-init";
+            break;
+        case ast_operator_type::AST_OP_POS:
+            nodeName = "+";
+            break;
+        case ast_operator_type::AST_OP_NEG:
+            nodeName = "-";
+            break;
+        case ast_operator_type::AST_OP_NOT:
+            nodeName = "!";
+            break;
+        case ast_operator_type::AST_OP_ADD:
+            nodeName = "+";
+            break;
+        case ast_operator_type::AST_OP_SUB:
+            nodeName = "-";
+            break;
         case ast_operator_type::AST_OP_MUL:
             nodeName = "*";
             break;
-            // TODO 这里追加其它类型的结点，返回对应结点的字符串
-
+        case ast_operator_type::AST_OP_DIV:
+            nodeName = "/";
+            break;
+        case ast_operator_type::AST_OP_MOD:
+            nodeName = "%";
+            break;
+        case ast_operator_type::AST_OP_LT:
+            nodeName = "<";
+            break;
+        case ast_operator_type::AST_OP_GT:
+            nodeName = ">";
+            break;
+        case ast_operator_type::AST_OP_LE:
+            nodeName = "<=";
+            break;
+        case ast_operator_type::AST_OP_GE:
+            nodeName = ">=";
+            break;
+        case ast_operator_type::AST_OP_EQ:
+            nodeName = "==";
+            break;
+        case ast_operator_type::AST_OP_NE:
+            nodeName = "!=";
+            break;
+        case ast_operator_type::AST_OP_AND:
+            nodeName = "&&";
+            break;
+        case ast_operator_type::AST_OP_OR:
+            nodeName = "||";
+            break;
+        case ast_operator_type::AST_OP_EMPTY:
+            nodeName = "empty stmt";
+            break;
         default:
             nodeName = "unknown";
             break;
