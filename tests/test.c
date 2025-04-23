@@ -1,30 +1,34 @@
 // 常量声明
 const int MAX = 10;
 const float PI = 3.1415926;
-const int array1[5] = {1, 2, 3, 4, 5};
+const int array1[5][2] = {{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}};
 
 // 全局变量声明
 int globalVar;
 float globalFloatVar;
 
+/*
+* 测试多行注释
+* abcsscascav
+*/
 
 // 主函数
 int main() {
     // 局部变量声明
-    int a = 10, b = 20;
-    float c = 3.14, d = 2.718;
+    int a = 0x10, b = 020;
+    float c = 3.14e-2, d = 2.718;
     float array2[3] = {1.1, 2.2, 3.3};
 
     // 条件语句
-    if (a > b) {
-        a = a - b;
+    if (a > b || !1) {
+        a = a % b;
     } else {
-        a = b - a;
+        a = b / a[8][6][7];
     }
 
     // 循环语句
     int i = 0;
-    while (i < MAX) {
+    while (i <= MAX) {
         i = i + 1;
     }
 
