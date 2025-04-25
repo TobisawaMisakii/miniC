@@ -83,8 +83,8 @@ enum class ast_operator_type : int {
     AST_OP_AND, // 逻辑与
     AST_OP_OR,  // 逻辑或
 
-    AST_OP_EMPTY, // 空语句
-    AST_OP_MAX    // 最大标识符
+    AST_OP_EMPTY,  // 空语句
+    AST_OP_MAX   // 最大标识符
 };
 
 ///

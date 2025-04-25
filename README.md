@@ -1,3 +1,4 @@
+# 一、理解整个ir流程
 
 ## 目前完成了ir的乘法，已通过IRCompiler完成了验证，如下图：
 ![alt text](figs/readmeBywh-image-1.png)
@@ -151,3 +152,24 @@ bool IRGenerator::ir_mul(ast_node * node)
 // TODO 自行追加语义错误处理
         std::cout << "block解析失败 in IRGenerator" << std::endl;
 ```
+
+# 二、完善ir功能
+
+## 调试
+1. 使用调试工具定位问题
+使用 gdb 调试
+运行以下命令启动调试器：
+``` 
+gdb ./build/minic
+```
+在 gdb 中运行程序：
+```
+run -S -A -I -o tests/test1-1.ir tests/test1-1.c
+```
+当程序崩溃时，gdb 会显示段错误发生的位置。使用以下命令查看调用栈：
+```
+bt
+```
+## declare
+文法表示：
+![alt text](figs/README-image.png)

@@ -380,7 +380,6 @@ ast_node * createVarDeclNode(Type * type, var_id_attr & id)
 
     // 暂存类型
     decl_node->type = type;
-
     return decl_node;
 }
 

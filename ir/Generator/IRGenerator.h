@@ -82,6 +82,11 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_assign(ast_node * node);
 
+    /// @brief 左值AST节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_lval(ast_node * node);
+
     /// @brief return节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
@@ -112,10 +117,27 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_declare_statment(ast_node * node);
 
-    /// @brief 变量定声明节点翻译成线性中间IR
+    /// @brief 变量的声明节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_variable_declare(ast_node * node);
+
+    /// @brief 变量的定义节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_variable_define(ast_node * node, Type * type);
+
+    bool process_variable_initialization(Value * varValue, ast_node * init_val_node);
+
+    /// @brief 常量的声明节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_const_declare(ast_node * node);
+
+    /// @brief 常量的定义节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_const_define(ast_node * node);
 
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点
