@@ -79,7 +79,7 @@ primaryExp:
 	| lVal		# leftValueExpression
 	| number	# numberExpression;
 
-// 数值（常数）
+// 数值（常数） （实际上都是非负数，负数用单目运算符实现）
 number: IntConst | FloatConst;
 
 // 一元表达式

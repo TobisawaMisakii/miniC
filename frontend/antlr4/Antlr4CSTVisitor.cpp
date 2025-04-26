@@ -161,13 +161,16 @@ std::any SysYCSTVisitor::visitArrayConstantInit(SysYParser::ArrayConstantInitCon
 std::any SysYCSTVisitor::visitVarDecl(SysYParser::VarDeclContext * ctx)
 {
     ast_node * stmt_node = create_contain_node(ast_operator_type::AST_OP_DECL_STMT);
+    ast_node * var_decl_node = ast_node::New(ast_operator_type::AST_OP_VAR_DECL, nullptr);
+    stmt_node->insert_son_node(var_decl_node);
+
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
+    ast_node * type_node = create_type_node(typeAttr);
+    var_decl_node->insert_son_node(type_node);
 
     for (auto varDef: ctx->varDef()) {
         auto defNode = std::any_cast<ast_node *>(visitVarDef(varDef));
-        ast_node * type_node = create_type_node(typeAttr);
-        ast_node * decl_node = ast_node::New(ast_operator_type::AST_OP_VAR_DECL, type_node, defNode, nullptr);
-        stmt_node->insert_son_node(decl_node);
+        var_decl_node->insert_son_node(defNode);
     }
 
     return stmt_node;
