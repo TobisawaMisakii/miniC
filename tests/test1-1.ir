@@ -3,10 +3,15 @@ define i32 @main()
 	declare i32 %l0
 	declare i32 %l1 ; 1:a
 	declare i32 %l2 ; 1:b
+	declare i32 %t3
+	declare i32 %t4
 	entry
-	%l2 = 2
-	%l0 = %l1
-	br label .L3
-.L3:
+	%l1 = 2
+	%t3 = add 2,1
+	%l2 = %t3
+	%t4 = add %l2,%l1
+	%l0 = %t4
+	br label .L5
+.L5:
 	exit %l0
 }

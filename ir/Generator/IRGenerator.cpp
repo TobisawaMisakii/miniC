@@ -98,7 +98,7 @@ ast_node * IRGenerator::ir_visit_ast_node(ast_node * node)
     if (nullptr == node) {
         return nullptr;
     }
-    minic_log(LOG_INFO, "处理节点类型: %d, 名称: %s", static_cast<int>(node->node_type), node->name.c_str());
+    minic_log(LOG_INFO, "Visit节点类型: %d, 名称: %s", static_cast<int>(node->node_type), node->name.c_str());
     bool result;
 
     std::unordered_map<ast_operator_type, ast2ir_handler_t>::const_iterator pIter;
@@ -442,7 +442,6 @@ bool IRGenerator::ir_add(ast_node * node)
 
     // 这里只处理整型的数据，如需支持实数，则需要针对类型进行处理
     // TODO real number add
-
     BinaryInstruction * addInst = new BinaryInstruction(module->getCurrentFunction(),
                                                         IRInstOperator::IRINST_OP_ADD_I,
                                                         left->val,
@@ -455,7 +454,6 @@ bool IRGenerator::ir_add(ast_node * node)
     node->blockInsts.addInst(addInst);
 
     node->val = addInst;
-    minic_log(LOG_INFO, "加法节点翻译成功");
     return true;
 }
 
@@ -643,7 +641,6 @@ bool IRGenerator::ir_return(ast_node * node)
             minic_log(LOG_ERROR, "return语句的返回值类型与函数返回类型不匹配");
             return false;
         }
-
         // 添加返回值的IR指令
         node->blockInsts.addInst(right->blockInsts);
 
@@ -656,14 +653,10 @@ bool IRGenerator::ir_return(ast_node * node)
             return false;
         }
     }
-
     // 跳转到函数的尾部出口指令上
     node->blockInsts.addInst(new GotoInstruction(currentFunc, currentFunc->getExitLabel()));
-
     // 设置节点的值
     node->val = right ? right->val : nullptr;
-
-    minic_log(LOG_INFO, "return语句翻译成功");
     return true;
     // ast_node * right = nullptr;
 
@@ -721,7 +714,6 @@ bool IRGenerator::ir_leaf_node_var_id(ast_node * node)
     Value * val;
     // 查找ID型Value
     // 变量，则需要在符号表中查找对应的值
-    minic_log(LOG_ERROR, "变量(%s)", node->name.c_str());
     val = module->findVarValue(node->name);
     if (!val) {
         minic_log(LOG_ERROR, "变量(%s)未定义", node->name.c_str());
@@ -745,7 +737,6 @@ bool IRGenerator::ir_leaf_node_uint(ast_node * node)
         return false;
     }
     node->val = val;
-    minic_log(LOG_INFO, "处理无符号整数字面量，值: %d", node->integer_val);
     return true;
 }
 
@@ -762,15 +753,11 @@ bool IRGenerator::ir_declare_statment(ast_node * node)
     // 获取唯一的子节点
     ast_node * variable_declare_node = node->sons[0];
     // 判断子节点类型并处理
-    if (variable_declare_node->node_type == ast_operator_type::AST_OP_VAR_DECL) {
-        return ir_visit_ast_node(variable_declare_node);
-    } else if (variable_declare_node->node_type == ast_operator_type::AST_OP_CONST_DECL) {
-        return ir_visit_ast_node(variable_declare_node);
-    } else {
+    if (!ir_visit_ast_node(variable_declare_node)) {
         minic_log(LOG_ERROR, "不支持的声明类型: %d", static_cast<int>(variable_declare_node->node_type));
         return false;
     }
-
+    node->blockInsts.addInst(variable_declare_node->blockInsts);
     return result;
 }
 
@@ -796,6 +783,7 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
             minic_log(LOG_ERROR, "变量定义失败");
             return false;
         }
+        node->blockInsts.addInst(var_def_node->blockInsts);
     }
 
     return true;
@@ -832,38 +820,38 @@ bool IRGenerator::ir_variable_define(ast_node * node, Type * type)
 
     // 创建变量
     Value * varValue = module->newVarValue(varType, varName);
+    node->val = varValue;
+    var_name_node->val = varValue;
     if (!varValue) {
         minic_log(LOG_ERROR, "变量(%s)创建失败", varName.c_str());
         return false;
     }
-    minic_log(LOG_INFO, "变量(%s)已注册到符号表", varName.c_str());
-
     // 检查是否有初始化
     if (node->sons.size() > 1) {
-        // if (!process_variable_initialization(varValue, node->sons[1])) {
-        //     minic_log(LOG_ERROR, "变量(%s)初始化失败", varName.c_str());
-        //     return false;
-        // }
-        ast_node * init_val_node = node->sons[1];
-        // 确保初始化值节点已经被翻译
-        if (!ir_visit_ast_node(init_val_node)) {
-            minic_log(LOG_ERROR, "初始化值节点翻译失败");
+        // 处理初始化表达式
+        ast_node * init_expr_node = node->sons[1];
+        if (!ir_visit_ast_node(init_expr_node)) {
+            minic_log(LOG_ERROR, "初始化表达式翻译失败");
             return false;
         }
-        // 确保初始化值节点已经被正确翻译，val 字段不为空
-        if (!init_val_node->val) {
-            minic_log(LOG_ERROR, "初始化值节点未翻译或无效");
+
+        if (!init_expr_node->val) {
+            minic_log(LOG_ERROR, "初始化表达式无效");
             return false;
         }
-        minic_log(LOG_INFO, "初始化值节点翻译成功，值类型: %s", init_val_node->val->getType()->toString().c_str());
-        // 直接生成赋值指令
-        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_val_node->val);
-        // 将赋值指令添加到当前节点的指令列表中
-        node->blockInsts.addInst(init_val_node->blockInsts);
+
+        // 生成赋值指令
+        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
+
+        // 添加指令到当前块
+        node->blockInsts.addInst(init_expr_node->blockInsts);
+        node->blockInsts.addInst(var_name_node->blockInsts);
         node->blockInsts.addInst(movInst);
-        minic_log(LOG_INFO, "赋值指令生成成功，目标变量: %s, 源值地址: %p", varName.c_str(), init_val_node->val);
+    } else {
+        // 无初始化的情况
+        // 可以生成默认初始化的指令，或者什么都不做
+        // 取决于语言语义是否需要默认初始化
     }
-    node->val = varValue;
     return true;
 }
 bool IRGenerator::process_variable_initialization(Value * varValue, ast_node * init_val_node)
@@ -883,7 +871,6 @@ bool IRGenerator::process_variable_initialization(Value * varValue, ast_node * i
         minic_log(LOG_ERROR, "初始化值节点未翻译或无效");
         return false;
     }
-    minic_log(LOG_INFO, "初始化值节点翻译成功，值类型: %s", init_val_node->val->getType()->toString().c_str());
     // 直接生成赋值指令
     MoveInstruction * movInst =
         new MoveInstruction(module->getCurrentFunction(), varValue, init_val_node->val // 使用初始化值节点的 val 字段
@@ -892,28 +879,6 @@ bool IRGenerator::process_variable_initialization(Value * varValue, ast_node * i
     init_val_node->blockInsts.addInst(movInst);
     return true;
 }
-// Type * IRGenerator::process_array_type(ast_node * array_dims_node, Type * baseType)
-// {
-//     // 遍历数组维度节点
-//     for (auto & dim: array_dims_node->sons) {
-//         if (dim->node_type != ast_operator_type::AST_OP_LEAF_LITERAL_UINT) {
-//             minic_log(LOG_ERROR, "数组维度必须是无符号整数字面量");
-//             return nullptr;
-//         }
-
-//         // 获取维度大小
-//         int32_t dimSize = dim->integer_val;
-//         if (dimSize <= 0) {
-//             minic_log(LOG_ERROR, "数组维度大小必须大于0");
-//             return nullptr;
-//         }
-
-//         // 创建新的数组类型
-//         baseType = module->newArrayType(baseType, dimSize);
-//     }
-
-//     return baseType;
-// }
 
 bool IRGenerator::ir_const_declare(ast_node * node)
 {

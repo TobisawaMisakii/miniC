@@ -11,13 +11,9 @@
 // }
 int main()
 {
-	// int localVariable = 30;  // 局部变量，带初始化表达式
-    // const int localConstant = 40;  // 局部常量，带初始化表达式
-    // return f();
-    int a = 2;
-    int b;
-    b = 2;
-    return a;
+    int a = 2, b;
+    b = 2+1;
+    return b+a;
 }
 
 // int main()

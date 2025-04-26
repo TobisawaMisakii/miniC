@@ -170,6 +170,15 @@ run -S -A -I -o tests/test1-1.ir tests/test1-1.c
 ```
 bt
 ```
-## declare
-文法表示：
+## declare statement
+**文法表示参考：**
 ![alt text](figs/README-image.png)
+
+**完善变量定义时初始化以及连续定义：**
+流程：
+·block节点visit所有子节点，子节点处理完后都node->blockInsts.addInst(temp->blockInsts);对于decl-stmt节点，将var-decl节点传入visit，var-decl再将子节点i32传入visit，var-def将叶子节点并不传入visit，而是直接调用ir_variable_define,因为要传入变量类型i32，所以不能复用visit。暂时不知道怎么复用。叶子节点处理完后都将ir表示放入node->blockInsts，父节点存入自己的，node->blockInsts.addInst(node->sons->blockInsts)。
+![alt text](figs/README-image-3.png)
+**.c文件：**
+![alt text](figs/README-image-1.png)
+**生成的ir：**
+![alt text](figs/README-image-2.png)

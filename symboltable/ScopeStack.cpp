@@ -14,7 +14,6 @@
 /// </table>
 ///
 #include "ScopeStack.h"
-
 ///
 /// @brief 进入作用域
 ///
