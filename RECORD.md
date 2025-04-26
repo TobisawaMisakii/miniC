@@ -1,5 +1,20 @@
 # dev_CPY开发文档
+
+##  TODO
+
+- AST生成已完成，之后需要根据g4文法，探索更多测试用例，验证前端完整性
+- 符合`SysY.g4`文法的程序集合是合法的 SysY 语言程序集合的==超集==，需要对**语义约束**进行另外的实现(见`Grammar_SysY2022.pdf`)。语义分析的具体实现在`IRGenerator`中，对每一个AST节点的Handler（返回值为bool的函数）中判定是否能够成功翻译，如果无问题返回true，反之false
+
+## BUG RECORD
+
+- (fixed)关系/加法/乘法表达式左值不识别
+- (fixed)float type无法识别
+- (fixed)空语句（只有一个分号）不显示在AST中
+- (fixed)创建AST node的ast_node::New(ast_operator_type, ...)方法尾部添加nullptr表示全部孩子识别完成
+- (fixed)var_decl 和 var_def 节点的关系错误，一个decl应该对应一个type + 多个def
+
 ## 一、前端理解及配置
+
 从源程序到语法树的转换过程，其中词法/语法分析器均需要与symbol table交互
 
 ### 1. 环境配置
@@ -29,11 +44,11 @@
      antlr4
      ```
 
-### 2. debug setting
+### 2. Grammar Debug
 调整vscode/lauch.json，对tests/test1-1.c，使用Debug minic Antlr4 Grammar可以生成语法分析树
 
 
-### 3.antlr4流程（以添加乘法语法为例）：
+### 3.antlr4生成AST流程（以添加乘法语法为例）：
 - 语法分析器的语法文件：`*.g4`，包含了词法分析器和语法分析器的规则，需要自己添加规则
 - 对`.g4`文件进行编译，生成词法分析器和语法分析器的代码
 - 运行词法分析器，读取输入文件，生成token流
@@ -371,7 +386,7 @@ result = compile(gInputFile, gOutputFile);
 即可逐步调试观察AST的遍历，或在出现错误时通过调用堆栈找出错误来源
 
 
-## 二、以SysY语言为基础的前端
+## 二、从SysY文法到AST
 
 ### 1.建立SysY.g4文法
 
@@ -555,11 +570,10 @@ result = compile(gInputFile, gOutputFile);
    }
    ```
 
-   
 
-### 5. TODO
 
-- 根据g4文法，探索更多测试用例，验证前端完整性
+
+
 
 
 

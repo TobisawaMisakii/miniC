@@ -5,7 +5,7 @@ project(minic VERSION 1.0.1 LANGUAGES CXX)
 
 # 是否输出Bison语法分析时是否输出自动机， 默认输出
 # 如果修改为OFF，请删除cmake_build_debug后重新build
-set(BISON_OUTPUT_GRAPH OFF CACHE BOOL "Enable/Disable output of a graph of the automaton for Bison")
+# set(BISON_OUTPUT_GRAPH OFF CACHE BOOL "Enable/Disable output of a graph of the automaton for Bison")
 
 # 是否使用GravphViz库
 set(USE_GRAPHVIZ ON CACHE BOOL "Enable/Disable GraphViz")
@@ -348,7 +348,7 @@ add_custom_command(
 	OUTPUT
 	${ANTLR4_OUTPUT}
 	COMMAND
-	${Java_JAVA_EXECUTABLE} -jar ${ANTLR4_JAR_LOCATION} -Dlanguage=Cpp -no-listener -visitor -o ${ANTLR4_GEN_DIR} MiniC.g4
+	${Java_JAVA_EXECUTABLE} -jar ${ANTLR4_JAR_LOCATION} -Dlanguage=Cpp -no-listener -visitor -o ${ANTLR4_GEN_DIR} SysY.g4
 	DEPENDS
 	${ANTLR4_INPUT}
 	WORKING_DIRECTORY
@@ -381,6 +381,6 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-bin")
 
 # 设置包描述
-set(CPACK_PACKAGE_DESCRIPTION "minic表达式版")
+set(CPACK_PACKAGE_DESCRIPTION "minic开发版")
 
 include(CPack)
