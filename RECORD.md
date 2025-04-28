@@ -1,8 +1,15 @@
 # dev_CPY开发文档
 
-##  TODO
+## WebSite
 
-- AST生成已完成，之后需要根据g4文法，探索更多测试用例，验证前端完整性
+- [比赛官网]<https://compiler.educg.net/?token=TPOczAJinR2aJABo2cxpNeD1BnGPTmsJkWpd1yDh0A#/index?TYPE=2025COM>
+
+
+
+##  进度 & TODO
+
+- AST生成已完成，需要在ir实现完毕后根据测例一起验证前端
+- 
 - 符合`SysY.g4`文法的程序集合是合法的 SysY 语言程序集合的==超集==，需要对**语义约束**进行另外的实现(见`Grammar_SysY2022.pdf`)。语义分析的具体实现在`IRGenerator`中，对每一个AST节点的Handler（返回值为bool的函数）中判定是否能够成功翻译，如果无问题返回true，反之false
 
 ## BUG RECORD
@@ -12,6 +19,7 @@
 - (fixed)空语句（只有一个分号）不显示在AST中
 - (fixed)创建AST node的ast_node::New(ast_operator_type, ...)方法尾部添加nullptr表示全部孩子识别完成
 - (fixed)var_decl 和 var_def 节点的关系错误，一个decl应该对应一个type + 多个def
+- (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
 
 ## 一、前端理解及配置
 
@@ -569,7 +577,6 @@ result = compile(gInputFile, gOutputFile);
        }
    }
    ```
-
 
 
 
