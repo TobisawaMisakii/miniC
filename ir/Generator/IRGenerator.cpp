@@ -43,17 +43,43 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_UINT] = &IRGenerator::ir_leaf_node_uint;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_VAR_ID] = &IRGenerator::ir_leaf_node_var_id;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_TYPE] = &IRGenerator::ir_leaf_node_type;
+    ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT] = &IRGenerator::ir_leaf_node_float;
 
-    /* 表达式运算， 加减 */
+    /* 运算表达式*/
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
     ast2ir_handlers[ast_operator_type::AST_OP_ADD] = &IRGenerator::ir_add;
+    ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
+    ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
+    ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
+
+    //单目运算符
+    ast2ir_handlers[ast_operator_type::AST_OP_POS] = &IRGenerator::ir_pos;
+    ast2ir_handlers[ast_operator_type::AST_OP_NEG] = &IRGenerator::ir_neg;
+    ast2ir_handlers[ast_operator_type::AST_OP_NOT] = &IRGenerator::ir_not;
+
+    // 关系表达式
+    ast2ir_handlers[ast_operator_type::AST_OP_EQ] = &IRGenerator::ir_eq;
+    ast2ir_handlers[ast_operator_type::AST_OP_NE] = &IRGenerator::ir_ne;
+    ast2ir_handlers[ast_operator_type::AST_OP_LT] = &IRGenerator::ir_lt;
+    ast2ir_handlers[ast_operator_type::AST_OP_LE] = &IRGenerator::ir_le;
+    ast2ir_handlers[ast_operator_type::AST_OP_GT] = &IRGenerator::ir_gt;
+    ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
+
+    // 逻辑表达式
+    ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
+    ast2ir_handlers[ast_operator_type::AST_OP_OR] = &IRGenerator::ir_or;
 
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
+    ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
+    ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
+    ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
+    ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
 
     /* 函数定义 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_DEF] = &IRGenerator::ir_function_define;
@@ -62,6 +88,17 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 变量定义语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_DECL_STMT] = &IRGenerator::ir_declare_statment;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
+    ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
+
+    // 左值
+    ast2ir_handlers[ast_operator_type::AST_OP_LVAL] = &IRGenerator::ir_lval;
+
+    // 数组
+    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_DIMS] = &IRGenerator::ir_array_dims;
+    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
+    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
 
     /* 语句块 */
     ast2ir_handlers[ast_operator_type::AST_OP_BLOCK] = &IRGenerator::ir_block;

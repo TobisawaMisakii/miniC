@@ -112,10 +112,10 @@ protected:
 	bool ir_ne(ast_node * node);
 
 	/// @brief 逻辑与AST节点翻译成线性中间IR
-	bool ir_logical_and(ast_node * node);
+	bool ir_and(ast_node * node);
 
 	/// @brief 逻辑或AST节点翻译成线性中间IR
-	bool ir_logical_or(ast_node * node);
+	bool ir_or(ast_node * node);
 
     /// @brief 赋值AST节点翻译成线性中间IR
     bool ir_assign(ast_node * node);
