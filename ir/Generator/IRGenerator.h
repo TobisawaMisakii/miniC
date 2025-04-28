@@ -154,7 +154,7 @@ protected:
     bool ir_variable_declare(ast_node * node);
 
     /// @brief 变量的定义节点翻译成线性中间IR
-    bool ir_variable_define(ast_node * node, Type * type);
+    bool ir_variable_define(ast_node * node);
 
     /// @brief 常量的声明节点翻译成线性中间IR
     bool ir_const_declare(ast_node * node);
