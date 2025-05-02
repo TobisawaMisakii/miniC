@@ -43,43 +43,43 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_UINT] = &IRGenerator::ir_leaf_node_uint;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_VAR_ID] = &IRGenerator::ir_leaf_node_var_id;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_TYPE] = &IRGenerator::ir_leaf_node_type;
-    ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT] = &IRGenerator::ir_leaf_node_float;
+    // ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT] = &IRGenerator::ir_leaf_node_float;
 
     /* 运算表达式*/
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
     ast2ir_handlers[ast_operator_type::AST_OP_ADD] = &IRGenerator::ir_add;
-    ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
-    ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
-    ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
+    // ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
+    // ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
+    // ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
 
     //单目运算符
-    ast2ir_handlers[ast_operator_type::AST_OP_POS] = &IRGenerator::ir_pos;
-    ast2ir_handlers[ast_operator_type::AST_OP_NEG] = &IRGenerator::ir_neg;
-    ast2ir_handlers[ast_operator_type::AST_OP_NOT] = &IRGenerator::ir_not;
+    // ast2ir_handlers[ast_operator_type::AST_OP_POS] = &IRGenerator::ir_pos;
+    // ast2ir_handlers[ast_operator_type::AST_OP_NEG] = &IRGenerator::ir_neg;
+    // ast2ir_handlers[ast_operator_type::AST_OP_NOT] = &IRGenerator::ir_not;
 
     // 关系表达式
-    ast2ir_handlers[ast_operator_type::AST_OP_EQ] = &IRGenerator::ir_eq;
-    ast2ir_handlers[ast_operator_type::AST_OP_NE] = &IRGenerator::ir_ne;
-    ast2ir_handlers[ast_operator_type::AST_OP_LT] = &IRGenerator::ir_lt;
-    ast2ir_handlers[ast_operator_type::AST_OP_LE] = &IRGenerator::ir_le;
-    ast2ir_handlers[ast_operator_type::AST_OP_GT] = &IRGenerator::ir_gt;
-    ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
+    // ast2ir_handlers[ast_operator_type::AST_OP_EQ] = &IRGenerator::ir_eq;
+    // ast2ir_handlers[ast_operator_type::AST_OP_NE] = &IRGenerator::ir_ne;
+    // ast2ir_handlers[ast_operator_type::AST_OP_LT] = &IRGenerator::ir_lt;
+    // ast2ir_handlers[ast_operator_type::AST_OP_LE] = &IRGenerator::ir_le;
+    // ast2ir_handlers[ast_operator_type::AST_OP_GT] = &IRGenerator::ir_gt;
+    // ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
 
     // 逻辑表达式
-    ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
-    ast2ir_handlers[ast_operator_type::AST_OP_OR] = &IRGenerator::ir_or;
+    // ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
+    // ast2ir_handlers[ast_operator_type::AST_OP_OR] = &IRGenerator::ir_or;
 
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
-    ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
-    ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
-    ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
-    ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
+    // ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
+    // ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
+    // ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
+    // ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
-    ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
+    // ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
 
     /* 函数定义 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_DEF] = &IRGenerator::ir_function_define;
@@ -88,17 +88,17 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 变量定义语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_DECL_STMT] = &IRGenerator::ir_declare_statment;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
-    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
+    // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
-    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
+    // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
 
     // 左值
     ast2ir_handlers[ast_operator_type::AST_OP_LVAL] = &IRGenerator::ir_lval;
 
     // 数组
-    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_DIMS] = &IRGenerator::ir_array_dims;
-    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
-    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
+    // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_DIMS] = &IRGenerator::ir_array_dims;
+    // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
+    // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
 
     /* 语句块 */
     ast2ir_handlers[ast_operator_type::AST_OP_BLOCK] = &IRGenerator::ir_block;
@@ -595,8 +595,15 @@ bool IRGenerator::ir_leaf_node_var_id(ast_node * node)
     // 变量，则需要在符号表中查找对应的值
 
     val = module->findVarValue(node->name);
+    if (!val) {
+        // 变量没有定义，则出错
+        minic_log(LOG_ERROR, "变量(%s)未定义", node->name.c_str());
+        return false;
+    }
 
-    node->val = val;
+    node->val = val;	// 记录到leaf_var_id中
+	node->parent->val = val;	// 记录到lval node中
+	
 
     return true;
 }
@@ -640,11 +647,113 @@ bool IRGenerator::ir_declare_statment(ast_node * node)
 /// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_variable_declare(ast_node * node)
 {
-    // 共有两个孩子，第一个类型，第二个变量名
+    // 至少有两个孩子，第一个类型，第二个开始为vardef node
+	if (node->sons.size() < 2) {
+		minic_log(LOG_ERROR, "变量声明节点的孩子个数不正确");
+		return false;
+	}
+	// 第一个孩子是类型节点
+	if (node->sons[0]->node_type != ast_operator_type::AST_OP_LEAF_TYPE) {
+		minic_log(LOG_ERROR, "变量声明节点的第一个孩子不是类型节点");
+		return false;
+	}
+    // 从第二个孩子开始是vardef node
+    for (int i = 1; i < node->sons.size(); ++i) {
+		ast_node * var_def_node = node->sons[i];
+		if (var_def_node->node_type != ast_operator_type::AST_OP_VAR_DEF) {
+			minic_log(LOG_ERROR, "变量声明节点的孩子不是变量定义节点");
+			return false;
+		}
+		// 变量定义节点翻译成线性中间IR
+		if (!ir_variable_define(var_def_node)) {
+			minic_log(LOG_ERROR, "变量定义节点翻译失败");
+			return false;
+		}
+	}
 
-    // TODO 这里可强化类型等检查
+    return true;
+}
 
-    node->val = module->newVarValue(node->sons[0]->type, node->sons[1]->name);
+/// @brief 左值节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_lval(ast_node * node)
+{
+	// 如果是变量ID，则深入到变量定义节点
+    return ir_leaf_node_var_id(node->sons[0]);
+}
+
+/// @brief 变量定义节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_variable_define(ast_node * node)
+{
+    if (node->sons.empty()) {
+        minic_log(LOG_ERROR, "变量定义节点没有子节点");
+        return false;
+    }
+
+    // 第一个子节点是变量名
+    ast_node * var_name_node = node->sons[0];
+    if (var_name_node->node_type != ast_operator_type::AST_OP_LEAF_VAR_ID) {
+        minic_log(LOG_ERROR, "变量定义的变量名节点无效");
+        return false;
+    }
+	std::string varName = var_name_node->name;
+
+    // 获取变量类型（从父节点的第一个子节点获取类型信息）
+    Type * varType = node->parent->sons[0]->type;
+    if (!varType) {
+        minic_log(LOG_ERROR, "无法获取变量(%s)的类型信息", varName.c_str());
+        return false;
+    }
+
+    // 检查变量是否已声明
+    if (module->findVarValue(varName)) {
+        minic_log(LOG_ERROR, "变量(%s)重复声明", varName.c_str());
+        return false;
+    }
+
+    // 创建变量Value
+    Value * varValue = module->newVarValue(varType, varName);
+    if (!varValue) {
+        minic_log(LOG_ERROR, "创建变量(%s)失败", varName.c_str());
+        return false;
+    }
+
+    // 处理初始化（如果有）
+    if (node->sons.size() == 2) {
+        ast_node * init_val_node = node->sons[1];
+
+        // 处理初始化表达式
+        ast_node * init_expr = ir_visit_ast_node(init_val_node);
+        if (!init_expr) {
+            minic_log(LOG_ERROR, "变量(%s)初始化表达式处理失败", varName.c_str());
+            return false;
+        }
+
+        // 类型检查
+        if (init_expr->val->getType() != varType) {
+            minic_log(LOG_ERROR, "变量(%s)初始化类型不匹配", varName.c_str());
+            return false;
+        }
+
+        // 生成存储指令
+        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_expr->val);
+
+        // 将初始化表达式的指令和存储指令添加到当前节点的指令列表中
+        node->blockInsts.addInst(init_expr->blockInsts);
+        node->blockInsts.addInst(movInst);
+
+        // 将初始化后的值保存到节点中
+        node->val = varValue;
+    } else  if (node->sons.size() == 1) {
+        // 无初始化，直接保存变量值到节点中
+        node->val = varValue;
+    } else {
+		minic_log(LOG_ERROR, "变量(%s)定义节点的子节点个数不正确", varName.c_str());
+		return false;
+	}
 
     return true;
 }

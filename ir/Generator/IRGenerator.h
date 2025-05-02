@@ -51,32 +51,32 @@ protected:
     /// @brief 函数调用AST节点翻译成线性中间IR
     bool ir_function_call(ast_node * node);
 
-	/// @brief 实参列表AST节点翻译成线性中间IR
-	bool ir_function_real_params(ast_node * node);
+    /// @brief 实参列表AST节点翻译成线性中间IR
+    bool ir_function_real_params(ast_node * node);
 
     /// @brief 语句块（含函数体）AST节点翻译成线性中间IR
     bool ir_block(ast_node * node);
 
-	/// @brief if语句AST节点翻译成线性中间IR
-	bool ir_if(ast_node * node);
+    /// @brief if语句AST节点翻译成线性中间IR
+    bool ir_if(ast_node * node);
 
-	/// @brief while语句AST节点翻译成线性中间IR
-	bool ir_while(ast_node * node);
+    /// @brief while语句AST节点翻译成线性中间IR
+    bool ir_while(ast_node * node);
 
-	/// @brief break语句AST节点翻译成线性中间IR
-	bool ir_break(ast_node * node);
+    /// @brief break语句AST节点翻译成线性中间IR
+    bool ir_break(ast_node * node);
 
-	/// @brief continue语句AST节点翻译成线性中间IR
-	bool ir_continue(ast_node * node);
+    /// @brief continue语句AST节点翻译成线性中间IR
+    bool ir_continue(ast_node * node);
 
-	/// @brief 正号AST节点翻译成线性中间IR
-	bool ir_pos(ast_node * node);
+    /// @brief 正号AST节点翻译成线性中间IR
+    bool ir_pos(ast_node * node);
 
-	/// @brief 负号AST节点翻译成线性中间IR
-	bool ir_neg(ast_node * node);
+    /// @brief 负号AST节点翻译成线性中间IR
+    bool ir_neg(ast_node * node);
 
-	/// @brief 逻辑非AST节点翻译成线性中间IR
-	bool ir_not(ast_node * node);
+    /// @brief 逻辑非AST节点翻译成线性中间IR
+    bool ir_not(ast_node * node);
 
     /// @brief 整数加法AST节点翻译成线性中间IR
     bool ir_add(ast_node * node);
@@ -87,35 +87,35 @@ protected:
     /// @brief 整数乘法AST节点翻译成线性中间IR
     bool ir_mul(ast_node * node);
 
-	/// @brief 整数除法AST节点翻译成线性中间IR
-	bool ir_div(ast_node * node);
+    /// @brief 整数除法AST节点翻译成线性中间IR
+    bool ir_div(ast_node * node);
 
-	/// @brief 整数取余AST节点翻译成线性中间IR
-	bool ir_mod(ast_node * node);
+    /// @brief 整数取余AST节点翻译成线性中间IR
+    bool ir_mod(ast_node * node);
 
-	/// @brief 小于AST节点翻译成线性中间IR
-	bool ir_lt(ast_node * node);
+    /// @brief 小于AST节点翻译成线性中间IR
+    bool ir_lt(ast_node * node);
 
-	/// @brief 小于等于AST节点翻译成线性中间IR
-	bool ir_le(ast_node * node);
+    /// @brief 小于等于AST节点翻译成线性中间IR
+    bool ir_le(ast_node * node);
 
-	/// @brief 大于AST节点翻译成线性中间IR
-	bool ir_gt(ast_node * node);
+    /// @brief 大于AST节点翻译成线性中间IR
+    bool ir_gt(ast_node * node);
 
-	/// @brief 大于等于AST节点翻译成线性中间IR
-	bool ir_ge(ast_node * node);
+    /// @brief 大于等于AST节点翻译成线性中间IR
+    bool ir_ge(ast_node * node);
 
-	/// @brief 等于AST节点翻译成线性中间IR
-	bool ir_eq(ast_node * node);
+    /// @brief 等于AST节点翻译成线性中间IR
+    bool ir_eq(ast_node * node);
 
-	/// @brief 不等于AST节点翻译成线性中间IR
-	bool ir_ne(ast_node * node);
+    /// @brief 不等于AST节点翻译成线性中间IR
+    bool ir_ne(ast_node * node);
 
-	/// @brief 逻辑与AST节点翻译成线性中间IR
-	bool ir_and(ast_node * node);
+    /// @brief 逻辑与AST节点翻译成线性中间IR
+    bool ir_and(ast_node * node);
 
-	/// @brief 逻辑或AST节点翻译成线性中间IR
-	bool ir_or(ast_node * node);
+    /// @brief 逻辑或AST节点翻译成线性中间IR
+    bool ir_or(ast_node * node);
 
     /// @brief 赋值AST节点翻译成线性中间IR
     bool ir_assign(ast_node * node);
@@ -123,14 +123,14 @@ protected:
     /// @brief 左值AST节点翻译成线性中间IR
     bool ir_lval(ast_node * node);
 
-	/// @brief 数组维度AST节点翻译成线性中间IR
-	bool ir_array_dims(ast_node * node);
+    /// @brief 数组维度AST节点翻译成线性中间IR
+    bool ir_array_dims(ast_node * node);
 
-	/// @brief 数组下标索引AST节点翻译成线性中间IR
-	bool ir_array_indices(ast_node * node);
+    /// @brief 数组下标索引AST节点翻译成线性中间IR
+    bool ir_array_indices(ast_node * node);
 
-	/// @brief 数组初始化AST节点翻译成线性中间IR
-	bool ir_array_init(ast_node * node);
+    /// @brief 数组初始化AST节点翻译成线性中间IR
+    bool ir_array_init(ast_node * node);
 
     /// @brief return节点翻译成线性中间IR
     bool ir_return(ast_node * node);
