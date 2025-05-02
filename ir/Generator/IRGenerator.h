@@ -127,8 +127,6 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_variable_define(ast_node * node, Type * type);
 
-    bool process_variable_initialization(Value * varValue, ast_node * init_val_node);
-
     /// @brief 常量的声明节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败

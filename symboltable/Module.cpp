@@ -18,6 +18,7 @@
 #include "ScopeStack.h"
 #include "Common.h"
 #include "VoidType.h"
+#include <bits/floatn-common.h>
 
 Module::Module(std::string _name) : name(_name)
 {
@@ -158,6 +159,20 @@ ConstInt * Module::newConstInt(int32_t intVal)
     return val;
 }
 
+ConstFloat * Module::newConstFloat(float floatVal)
+{
+    // 查找整数字符串
+    ConstFloat * val = findConstFloat(floatVal);
+    if (!val) {
+
+        // 不存在，则创建浮点常量Value
+        val = new ConstFloat(floatVal);
+        constFloatMap.emplace(val->getVal(), val);
+    }
+
+    return val;
+}
+
 /// @brief 根据整数值获取当前符号
 /// \param name 变量名
 /// \return 变量对应的值
@@ -167,6 +182,22 @@ ConstInt * Module::findConstInt(int32_t val)
 
     auto pIter = constIntMap.find(val);
     if (pIter != constIntMap.end()) {
+        // 查找到
+        temp = pIter->second;
+    }
+
+    return temp;
+}
+
+/// @brief 根据浮点值获取当前符号
+/// \param name 变量名
+/// \return 变量对应的值
+ConstFloat * Module::findConstFloat(float val)
+{
+    ConstFloat * temp = nullptr;
+
+    auto pIter = constFloatMap.find(val);
+    if (pIter != constFloatMap.end()) {
         // 查找到
         temp = pIter->second;
     }
@@ -195,7 +226,7 @@ Value * Module::newVarValue(Type * type, std::string name)
         }
     } else if (!currentFunc) {
         // 全局变量要求name不能为空串，必须有效
-        minic_log(LOG_ERROR, "变量名为空");
+        minic_log(LOG_ERROR, "全局变量要求name不能为空串");
         return nullptr;
     }
 
@@ -208,7 +239,6 @@ Value * Module::newVarValue(Type * type, std::string name)
         } else {
             scope_level = scopeStack->getCurrentScopeLevel();
         }
-
         retVal = currentFunc->newLocalVarValue(type, name, scope_level);
 
     } else {

@@ -36,12 +36,15 @@ enum class IRInstOperator {
 
     /// @brief 整数的加法指令，二元运算
     IRINST_OP_ADD_I,
+    IRINST_OP_ADD_F,
 
     /// @brief 整数的减法指令，二元运算
     IRINST_OP_SUB_I,
+    IRINST_OP_SUB_F,
 
     /// @brief 整数的乘法指令，二元运算
     IRINST_OP_MUL_I,
+    IRINST_OP_MUL_F,
 
     /// @brief 赋值指令，一元运算
     IRINST_OP_ASSIGN,

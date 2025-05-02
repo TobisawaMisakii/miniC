@@ -7,15 +7,15 @@
 // {
 //  int functionVariable = 50;  // 局部变量，带初始化表达式
 //  const int functionConstant = 60;  // 局部常量，带初始化表达式
-//  return functionVariable + functionConstant;	
+//  return functionVariable + functionConstant;
 // }
 int main()
 {
-    int a = 2, b;
-    b = 2+1;
-    return b+a;
+    float a = 3.1,b;
+    b = 1.1 + a;
+    // putfloat(a);
+    return 0;
 }
-
 // int main()
 // {
 //     int a[10], b[10];

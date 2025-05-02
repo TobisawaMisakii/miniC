@@ -1,0 +1,12 @@
+define i32 @main() {
+	declare i32 %l0
+	declare float %l1 ; variable: a
+.L1:
+	entry
+	%l1 = 0x1.8cccccp+1
+	call void @putfloat(float %l1)
+	%l0 = 0
+	br label .L2
+.L2:
+	exit %l0
+}
