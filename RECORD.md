@@ -1,9 +1,23 @@
 # dev_CPY开发文档
 
-##  TODO
+## WebSite
 
-- AST生成已完成，之后需要根据g4文法，探索更多测试用例，验证前端完整性
-- 符合`SysY.g4`文法的程序集合是合法的 SysY 语言程序集合的==超集==，需要对**语义约束**进行另外的实现(见`Grammar_SysY2022.pdf`)。语义分析的具体实现在`IRGenerator`中，对每一个AST节点的Handler（返回值为bool的函数）中判定是否能够成功翻译，如果无问题返回true，反之false
+- [比赛官网]<https://compiler.educg.net/?token=TPOczAJinR2aJABo2cxpNeD1BnGPTmsJkWpd1yDh0A#/index?TYPE=2025COM>
+- [ARM64架构文档]<https://www.kernel.org/doc/html/latest/translations/zh_CN/arch/arm64/index.html>
+- [2024Compiler（包括测例）]<https://gitlab.eduxiji.net/csc1/nscscc/compiler2024/-/tree/main>
+- [LLVM IR Manual]<[LLVM Language Reference Manual — LLVM 21.0.0git documentation](https://llvm.org/docs/LangRef.html)>
+
+##  进度 & TODO
+
+- AST生成已完成，需要在ir实现完毕后根据测例一起验证前端
+- IR已完成函数定义和handlers关联，需要根据llvm重写已有函数，进一步实现所有处理函数
+  - 重写`IRConstant.h`，定义llvm ir符号常量和keyword
+  - 重写`Instruction.h`，在**IRInstOperator**中定义需要的指令集
+  - 建立llvm ir instruction表，在`ir/instructions`实现
+
+- 在`IRGenerator`中，对每一个AST节点建立对应的Handler（返回值为bool的函数）中判定是否能够成功翻译，如果无问题返回true，反之false。处理语义分析，建立符号表
+
+- 加法指令已实现
 
 ## BUG RECORD
 
@@ -12,10 +26,13 @@
 - (fixed)空语句（只有一个分号）不显示在AST中
 - (fixed)创建AST node的ast_node::New(ast_operator_type, ...)方法尾部添加nullptr表示全部孩子识别完成
 - (fixed)var_decl 和 var_def 节点的关系错误，一个decl应该对应一个type + 多个def
+- (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
+- ir_variable_define有问题，会报段错误，在Module->FindVarValue()
+- minic_log在哪？
 
 ## 一、前端理解及配置
 
-从源程序到语法树的转换过程，其中词法/语法分析器均需要与symbol table交互
+从源程序到语法树的转换过程
 
 ### 1. 环境配置
 -    打开.zshrc
@@ -570,10 +587,197 @@ result = compile(gInputFile, gOutputFile);
    }
    ```
 
+# 三、IR
+
+针对每一个AST node，需要一个`ast2ir_handler_t`类型的操作函数， 集成在：
+
+```cpp
+/// @brief AST节点运算符与动作函数关联的映射表
+    std::unordered_map<ast_operator_type, ast2ir_handler_t> ast2ir_handlers;
+```
+
+在`main.cpp`中，初始化了一个符号表，传入IRGenerator中，需要在操作函数中完成符号表的写入
+
+```cpp
+// 符号表，保存所有的变量以及函数等信息
+Module * module = new Module(inputFile);
+
+// 遍历抽象语法树产生线性IR，相关信息保存到符号表中
+IRGenerator ast2IR(astRoot, module);
+subResult = ast2IR.run();
+if (!subResult) {
+
+    // 输出错误信息
+    minic_log(LOG_ERROR, "中间IR生成错误");
+
+    break;
+}
+```
+
+## 1. Value--(Use)-->User
+
+**Use类**: 保存一个user一个usee，即保存一条表示使用关系的边。如果用Use->remove()，在user和usee内部清理相关资源，但并未删除use类，需要手动清理。
+
+```cpp
+class Use {
+protected:
+    /// @brief 指向要使用的value
+    Value * usee = nullptr;
+    /// @brief 使用val的使用者或者用户
+    User * user = nullptr;
+}
+```
+
+**Value类**: 值操作类型，所有的变量、函数、常量都是Value，一个Value对象有Name和IRName，可以通过addUse和removeUse来操作**被使用关系**的记录。Use向量存在value中。作为usee的时候有这个vector，但作为user的时候不考虑uses。
+
+```cpp
+class Value {
+protected:
+    /// @brief 变量名，函数名等原始的名字，可能为空串
+    std::string name;
+    /// @brief IR名字，用于文本IR的输出
+    std::string IRName;
+    /// @brief 类型
+    Type * type;
+    /// @brief define-use链，这个定值被使用的所有边，即所有的User
+    std::vector<Use *> uses;
+}
+```
+
+**User类**：使用Value的就是User，一个User本身也同时是一个Value。**函数、指令都是User**。
+
+## 2. (User-->)Constant-->GlobalValue-->Function
+
+> 常量是在运行时不可更改(immutable)的值
+>
+> 常量可以是基本类型的值，如整数或浮点类型的值，也可以是复杂的，如结构体或数组
+>
+> 或者是基于表达式运算得到的，可以用其它常量的值计算得到
+>
+> 函数是常量，这是因为函数的地址运行时不可更改
+>
+> 全局变量也是常量，也是因为全局变量的地址运行时不可更改
+
+Const没有User基础之外的内容
+
+GlobalValue:
+
+```cpp
+class GlobalValue : public Constant {
+    /// @brief 用于区分函数或变量是否是static，或者外部都可见
+    enum LinkageTypes {
+        ExternalLinkage = 0, ///< Externally visible function
+        InternalLinkage,     ///< Rename collisions when linking (static functions).
+    };
+    /// 全局对象的作用域，可见，或者只对文件可见，也就是隐藏的
+    enum VisibilityTypes {
+        DefaultVisibility = 0, ///< The GlobalValue is visible
+        HiddenVisibility,      ///< The GlobalValue is hidden
+        ProtectedVisibility    ///< The GlobalValue is protected
+    };
+protected:
+    /// @brief The linkage of this global
+    LinkageTypes linkage;
+    /// @brief The visibility style of this global
+    VisibilityTypes visibility;
+    /// @brief 默认对齐大小为4字节
+    int32_t alignment = 4;
+};
+```
+
+Function:
+
+```cpp
+class Function : public GlobalValue {
+private:
+    /// @brief 函数的返回值类型，有点冗余，可删除，直接从type中取得即可
+    Type * returnType;
+    /// @brief 形式参数列表
+    std::vector<FormalParam *> params;
+    /// @brief 是否是内置函数或者外部库函数
+    bool builtIn = false;
+    /// @brief 线性IR指令块，可包含多条IR指令
+    InterCode code;
+    /// @brief 函数内变量的向量表，可能重名，请注意
+    std::vector<LocalVariable *> varsVector;
+    /// @brief 内存型Value
+    std::vector<MemVariable *> memVector;
+    /// @brief 函数出口Label指令
+    Instruction * exitLabel = nullptr;
+    /// @brief 函数返回值变量，不能是临时变量，必须是局部变量
+    LocalVariable * returnValue = nullptr;
+    /// @brief 由于局部变量、前4个形参需站内空间分配而导致的栈帧大小
+    int maxDepth = 0;
+    /// @brief 由于函数调用需要栈传递而导致的栈空间大小
+    int maxExtraStackSize = 0;
+    /// @brief 是否存在函数调用
+    bool funcCallExist = false;
+    /// @brief 本函数内函数调用的参数个数最大值
+    int maxFuncCallArgCnt = 0;
+    /// @brief 函数是否需要重定位，栈帧发生变化
+    bool relocated = false;
+    /// @brief 被保护的寄存器编号
+    std::vector<int32_t> protectedRegs;
+    /// @brief 被保护寄存器字符串
+    std::string protectedRegStr;
+    /// @brief 累计的实参个数，用于ARG指令的统计
+    int32_t realArgCount = 0;
+};
+
+```
 
 
 
+## 3.  (User-->)Instruction=>IRCode
 
+**IRCode**保存一个指令序列
 
+```cpp
+class InterCode {
+protected:
+    /// @brief 指令块的指令序列
+    std::vector<Instruction *> code;
+}
+```
 
+`InterCode::addInst(InterCode & block)`: 可以将一个代码块block的内容添加到调用此方法的intercode类的code vector末端，并且清理原始的block块
+
+`InterCode::addInst(Instruction * inst)`: 可以添加一条instruction
+
+**Instruction**是一个**User**，每条指令都是IRInstOperator中的一种：
+
+```cpp
+/// @brief IR指令操作码
+enum class IRInstOperator {
+	/// @brief 函数入口指令，对应函数的prologue，用户栈空间分配、寄存器保护等
+    IRINST_OP_ENTRY,
+    /// @brief 函数出口指令，对应函数的epilogue，用于栈空间的恢复与清理、寄存器恢复等
+    IRINST_OP_EXIT,
+    ...
+}
+```
+
+Instruction中需要保存的内容有：
+
+```cpp
+class Instruction : public User {
+protected:
+    /// @brief IR指令操作码
+    enum IRInstOperator op = IRInstOperator::IRINST_OP_MAX;
+    /// @brief 是否是Dead指令
+    bool dead = false;
+    /// @brief 当前指令属于哪个函数
+    Function * func = nullptr;
+    /// @brief 寄存器编号，-1表示没有分配寄存器，大于等于0代表是寄存器型Value
+    int32_t regId = -1;
+    /// @brief 变量在栈内的偏移量，对于全局变量默认为0，临时变量没有意义
+    int32_t offset = 0;
+    /// @brief 栈内寻找时基址寄存器编号
+    int32_t baseRegNo = -1;
+    /// @brief 栈内寻找时基址寄存器名字
+    std::string baseRegName;
+    /// @brief 变量加载到寄存器中时对应的寄存器编号
+    int32_t loadRegNo = -1;
+};
+```
 
