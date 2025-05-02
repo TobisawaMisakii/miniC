@@ -36,13 +36,17 @@ llvm-as tests/test1-1.ll -o - | llvm-dis > /dev/null && echo "IR验证成功" ||
 # 选项-I指定时，输出中间IR(DragonIR)，默认输出的文件名为ir.txt，可通过-o选项来指定输出的文件。
 # 选项-T和-I都不指定时，按照默认的汇编语言输出，默认输出的文件名为asm.s，可通过-o选项来指定输出的文件。
 
-git指令：
-git checkout dev_wh       # 切换到你的开发分支
-git fetch origin
-git merge origin/dev_CPY
-git push origin dev_wh    # 将合并后的 dev_wh 推送到远程
+# git指令：
+# git checkout dev_CPY          # 切换到队友的分支
+# git fetch origin             # 获取远程最新代码
+# git merge origin/dev_CPY     # 合并远程更新（或 git pull origin dev_CPY）
 
-查看分支差异	git diff dev_wh origin/dev_CPY
-放弃合并	git merge --abort 或 git rebase --abort
-查看合并状态	git status
-查看提交历史	git log --graph --oneline
+# git checkout dev_wh       # 切换到你的开发分支
+# git merge origin/dev_CPY
+# git push origin dev_wh    # 将合并后的 dev_wh 推送到远程
+
+# 查看分支差异	git diff dev_wh origin/dev_CPY
+# 放弃合并	git merge --abort 或 git rebase --abort
+# 查看合并状态	git status
+# 查看提交历史	git log --graph --oneline
+# 创建一个本地分支并自动跟踪  git checkout -b dev_CPY origin/dev_CPY
