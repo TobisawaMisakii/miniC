@@ -18,6 +18,8 @@
 #include "ScopeStack.h"
 #include "Common.h"
 #include "VoidType.h"
+#include "FloatType.h"
+#include "PointerType.h"
 #include <bits/floatn-common.h>
 
 Module::Module(std::string _name) : name(_name)
@@ -28,9 +30,37 @@ Module::Module(std::string _name) : name(_name)
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
 
-    // 加入内置函数putint
-    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+    // 注册内置函数
     (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
+    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
+
+    (void) newFunction("getarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+    (void) newFunction("getfarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
+
+    (void) newFunction("putarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    (void) newFunction("putfarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    // 用户调用无需参数，在IR生成阶段展开，插入line_no
+    (void) newFunction("starttime", VoidType::getType(), {}, true);
+    (void) newFunction("stoptime", VoidType::getType(), {}, true);
 }
 
 /// @brief 进入作用域，如进入函数体块、语句块等
