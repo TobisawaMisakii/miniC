@@ -1,7 +1,10 @@
 
 int main() {
-    int a = 1;
-    float b = 2.0;
-    float c = a + b;
-	return 0;
+    int a = 1, b;
+	b = getint();
+	starttime();
+    putint(a);
+	putint(b);
+	stoptime();
+    return 0;
 }

@@ -380,7 +380,8 @@ bool IRGenerator::ir_function_call(ast_node * node)
     currentFunc->setExistFuncCall(true);
 
     // 如果没有孩子，也认为是没有参数
-    if (!paramsNode->sons.empty()) {
+    // if (!paramsNode->sons.empty()) {
+    if (nullptr != paramsNode) {
 
         int32_t argsCount = (int32_t) paramsNode->sons.size();
 
