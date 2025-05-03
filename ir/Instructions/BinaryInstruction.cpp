@@ -41,14 +41,28 @@ void BinaryInstruction::toString(std::string & str)
 
     switch (op) {
         case IRInstOperator::IRINST_OP_ADD_I:
-
-            // 加法指令，二元运算
+            // 整数加法指令
             str = getIRName() + " = add " + src1->getIRName() + "," + src2->getIRName();
             break;
+        case IRInstOperator::IRINST_OP_ADD_F:
+            // 浮点数加法指令
+            str = getIRName() + " = fadd " + src1->getIRName() + "," + src2->getIRName();
+            break;
         case IRInstOperator::IRINST_OP_SUB_I:
-
-            // 减法指令，二元运算
+            // 减法指令
             str = getIRName() + " = sub " + src1->getIRName() + "," + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_SUB_F:
+            // 浮点数减法指令
+            str = getIRName() + " = fsub " + src1->getIRName() + "," + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_MUL_I:
+            // 乘法指令
+            str = getIRName() + " = mul " + src1->getIRName() + "," + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_MUL_F:
+            // 浮点数乘法指令
+            str = getIRName() + " = fmul " + src1->getIRName() + "," + src2->getIRName();
             break;
 
         default:

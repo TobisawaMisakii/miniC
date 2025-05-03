@@ -1,6 +1,7 @@
 
 int main() {
     int a = 1;
-	int b = 2;
-	return a + b;
+    float b = 2.0;
+    float c = a + b;
+	return 0;
 }

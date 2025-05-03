@@ -18,8 +18,7 @@
 #include "ScopeStack.h"
 #include "Common.h"
 #include "VoidType.h"
-#include "FloatType.h"
-#include "PointerType.h"
+#include <bits/floatn-common.h>
 
 Module::Module(std::string _name) : name(_name)
 {
@@ -29,37 +28,9 @@ Module::Module(std::string _name) : name(_name)
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
 
-    // 注册内置函数
-    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
-    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
-
-    (void) newFunction("getarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-    (void) newFunction("getfarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
-                       true);
-
+    // 加入内置函数putint
     (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
-    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
-
-    (void) newFunction("putarray",
-                       VoidType::getType(),
-                       {new FormalParam{IntegerType::getTypeInt(), ""},
-                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-
-    (void) newFunction("putfarray",
-                       VoidType::getType(),
-                       {new FormalParam{IntegerType::getTypeInt(), ""},
-                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
-                       true);
-
-    // 用户调用无需参数，在IR生成阶段展开，插入line_no
-    (void) newFunction("starttime", VoidType::getType(), {}, true);
-    (void) newFunction("stoptime", VoidType::getType(), {}, true);
+    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
 }
 
 /// @brief 进入作用域，如进入函数体块、语句块等
@@ -188,6 +159,20 @@ ConstInt * Module::newConstInt(int32_t intVal)
     return val;
 }
 
+ConstFloat * Module::newConstFloat(float floatVal)
+{
+    // 查找整数字符串
+    ConstFloat * val = findConstFloat(floatVal);
+    if (!val) {
+
+        // 不存在，则创建浮点常量Value
+        val = new ConstFloat(floatVal);
+        constFloatMap.emplace(val->getVal(), val);
+    }
+
+    return val;
+}
+
 /// @brief 根据整数值获取当前符号
 /// \param name 变量名
 /// \return 变量对应的值
@@ -197,6 +182,22 @@ ConstInt * Module::findConstInt(int32_t val)
 
     auto pIter = constIntMap.find(val);
     if (pIter != constIntMap.end()) {
+        // 查找到
+        temp = pIter->second;
+    }
+
+    return temp;
+}
+
+/// @brief 根据浮点值获取当前符号
+/// \param name 变量名
+/// \return 变量对应的值
+ConstFloat * Module::findConstFloat(float val)
+{
+    ConstFloat * temp = nullptr;
+
+    auto pIter = constFloatMap.find(val);
+    if (pIter != constFloatMap.end()) {
         // 查找到
         temp = pIter->second;
     }
@@ -225,7 +226,7 @@ Value * Module::newVarValue(Type * type, std::string name)
         }
     } else if (!currentFunc) {
         // 全局变量要求name不能为空串，必须有效
-        minic_log(LOG_ERROR, "变量名为空");
+        minic_log(LOG_ERROR, "全局变量要求name不能为空串");
         return nullptr;
     }
 
@@ -238,7 +239,6 @@ Value * Module::newVarValue(Type * type, std::string name)
         } else {
             scope_level = scopeStack->getCurrentScopeLevel();
         }
-
         retVal = currentFunc->newLocalVarValue(type, name, scope_level);
 
     } else {

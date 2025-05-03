@@ -2,12 +2,16 @@ define i32 @main()
 {
 	declare i32 %l0
 	declare i32 %l1 ; 1:a
-	declare i32 %l2 ; 1:b
-	declare i32 %t3
+	declare float %l2 ; 1:b
+	declare float %l3 ; 1:c
+	declare float %t4
 	entry
-	%t3 = add %l1,%l2
-	%l0 = %t3
-	br label .L4
-.L4:
+	%l1 = 1
+	%l2 = 2.000000
+	%t4 = fadd %l1,%l2
+	%l3 = %t4
+	%l0 = 0
+	br label .L5
+.L5:
 	exit %l0
 }
