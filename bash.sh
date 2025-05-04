@@ -10,13 +10,13 @@ cmake --build build --parallel
 # 生成标准ir
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1_standard.ir tests/test1-1.c 
 # 用自己的编译器生成ir
- ./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
+./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
 # 用ircompiler生成标准ir做参考
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1-standard.ir tests/test1-1.c
 # 用ircompiler运行自己的ir测试准确性
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
 # 查看返回值
-echo $?  
+# echo $?  
 
 # 命令格式：
 # minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source

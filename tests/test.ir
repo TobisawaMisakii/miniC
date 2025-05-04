@@ -5,8 +5,14 @@ define i32 @main()
 	declare i32 %l2 ; 1:b
 	declare i32 %t3
 	entry
-	%t3 = add %l1,%l2
-	%l0 = %t3
+	%l1 = 1
+	i32 %t3 = call i32 @getint(i32 %t3)
+	%l2 = %t3
+	call void @starttime()
+	call void @putint(i32 %l1)
+	call void @putint(i32 %l2)
+	call void @stoptime()
+	%l0 = 0
 	br label .L4
 .L4:
 	exit %l0

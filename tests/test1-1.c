@@ -1,8 +1,8 @@
-// void putfloat(float f);
+
 int main() {
     int a = 1, b = 2;
     float c = 3.1;
-    // putfloat(c);
+	// putfloat(c);
     return a + b;
 }
 // int n;

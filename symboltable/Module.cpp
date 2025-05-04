@@ -20,6 +20,7 @@
 #include "VoidType.h"
 #include "FloatType.h"
 #include "PointerType.h"
+#include <bits/floatn-common.h>
 
 Module::Module(std::string _name) : name(_name)
 {
