@@ -90,7 +90,7 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
     // ir_variable_define is not assembled into handlers because it has two parameters
-    // ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
+    ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
 
     // 左值
@@ -806,7 +806,7 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
     // 遍历所有 var_def 节点
     for (size_t i = 1; i < node->sons.size(); ++i) {
         ast_node * var_def_node = node->sons[i];
-        if (!ir_variable_define(var_def_node, type_node->type)) {
+        if (!ir_variable_define(var_def_node)) {
             minic_log(LOG_ERROR, "变量定义失败");
             return false;
         }
@@ -815,16 +815,13 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
 
     return true;
 }
-bool IRGenerator::ir_variable_define(ast_node * node, Type * type)
+bool IRGenerator::ir_variable_define(ast_node * node)
 {
     if (node->sons.empty()) {
         minic_log(LOG_ERROR, "变量定义节点没有子节点");
         return false;
     }
-    if (!type) {
-        minic_log(LOG_ERROR, "未指定变量类型");
-        return false;
-    }
+    Type * type = node->parent->sons[0]->type;
 
     // 第一个子节点是变量名
     ast_node * var_name_node = node->sons[0];

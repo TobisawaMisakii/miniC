@@ -125,7 +125,7 @@ protected:
     /// @brief 变量的定义节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
-    bool ir_variable_define(ast_node * node, Type * type);
+    bool ir_variable_define(ast_node * node);
 
     /// @brief 常量的声明节点翻译成线性中间IR
     /// @param node AST节点
