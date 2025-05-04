@@ -1,55 +1,51 @@
-
-
-// int globalVariable = 10;  // 全局变量，带初始化表达式
-// const int globalConstant = 20;  // 全局常量，带初始化表达式
-
-// int f()
-// {
-//  int functionVariable = 50;  // 局部变量，带初始化表达式
-//  const int functionConstant = 60;  // 局部常量，带初始化表达式
-//  return functionVariable + functionConstant;
-// }
-int main()
-{
-    float a = 3.1,b;
-    b = 1.1 + a;
-    // putfloat(a);
-    return 0;
+// void putfloat(float f);
+int main() {
+    int a = 1, b = 2;
+    float c = 3.1;
+    // putfloat(c);
+    return a + b;
 }
-// int main()
+// int n;
+
+// void putint(int k);
+
+// int bubblesort(int arr[])
 // {
-//     int a[10], b[10];
-//     int i = 0;
-//     while (i < 10)
-//     {
-//         a[i] = i;
-//         i = i + 1;
-//     }
-// 	i = 0;
-//     while (i < 10)
-//     {
-//         if (a[i] % 2 == 0)
-// 		{
-// 			b[i] = a[i] * 2;
-// 		} else {
-//             b[i] = a[i] / 3;
+//     int i;
+//     int j;
+//     i =0; 
+//     while(i < n-1){
+//     // Last i elements are already in place
+//         j = 0;
+//         while(j < n-i-1){
+//             if (arr[j] > arr[j+1]) {
+//                 // swap(&arr[j], &arr[j+1]); 
+//                 int tmp;
+//                 tmp = arr[j+1];
+//                 arr[j+1] = arr[j];
+//                 arr[j] = tmp;
+//             }
+//             j = j + 1;
 //         }
-// 		i = i + 1;
-//     }
-//     return b[0];
-// }
-
-// int sbzqr(int a, float b)
-// {
-//     int i = 0;
-//     while (i < 10)
-//     {
-//         a = a + i;
 //         i = i + 1;
 //     }
-//     return b;
+//     return 0;
 // }
 
-// 当前前端存在的问题：
-// 1. relExp addExp eqExp左值不对 (已解决)
-// 2. formal-params的类型不对（float被识别为void） (已解决)
+// int main(){
+//     n = 10;
+//     int a[10];
+//     a[0]=4;a[1]=3;a[2]=9;a[3]=2;a[4]=0;
+//     a[5]=1;a[6]=6;a[7]=5;a[8]=7;a[9]=8;
+//     int i;
+//     i = bubblesort(a);
+//     while (i < n) {
+//         int tmp;
+//         tmp = a[i];
+//         putint(tmp);
+//         tmp = 10;
+//         putch(tmp);
+//         i = i + 1;
+//     }
+//     return 0;
+// }

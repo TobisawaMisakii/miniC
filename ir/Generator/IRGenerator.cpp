@@ -43,7 +43,7 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_UINT] = &IRGenerator::ir_leaf_node_uint;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_VAR_ID] = &IRGenerator::ir_leaf_node_var_id;
     ast2ir_handlers[ast_operator_type::AST_OP_LEAF_TYPE] = &IRGenerator::ir_leaf_node_type;
-    // ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT] = &IRGenerator::ir_leaf_node_float;
+    ast2ir_handlers[ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT] = &IRGenerator::ir_leaf_node_float;
 
     /* 运算表达式*/
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
@@ -71,7 +71,6 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
 
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
-    ast2ir_handlers[ast_operator_type::AST_OP_LVAL] = &IRGenerator::ir_lval;
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
     // ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
@@ -628,28 +627,6 @@ bool IRGenerator::ir_assign(ast_node * node)
     return true;
 }
 
-/// @brief 左值节点翻译成线性中间IR
-/// @param node AST节点
-/// @return 翻译是否成功，true：成功，false：失败
-bool IRGenerator::ir_lval(ast_node * node)
-{
-    if (node->sons.empty()) {
-        minic_log(LOG_ERROR, "LVAL节点没有子节点");
-        return false;
-    }
-    // 左值节点的第一个子节点通常是变量名
-    ast_node * var_node = node->sons[0];
-    if (!ir_visit_ast_node(var_node)) {
-        minic_log(LOG_ERROR, "LVAL节点的子节点不是变量标识符");
-        return false;
-    }
-    // 设置 LVAL 节点的值为变量节点的值
-    node->val = var_node->val;
-    // 生成 IR 指令
-    node->blockInsts.addInst(var_node->blockInsts);
-    return true;
-}
-
 /// @brief return节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
@@ -730,9 +707,8 @@ bool IRGenerator::ir_leaf_node_var_id(ast_node * node)
         return false;
     }
 
-    node->val = val;	// 记录到leaf_var_id中
-	node->parent->val = val;	// 记录到lval node中
-	
+    node->val = val;         // 记录到leaf_var_id中
+    node->parent->val = val; // 记录到lval node中
 
     return true;
 }
@@ -798,28 +774,29 @@ bool IRGenerator::ir_declare_statment(ast_node * node)
 bool IRGenerator::ir_variable_declare(ast_node * node)
 {
     // 至少有两个孩子，第一个类型，第二个开始为vardef node
-	if (node->sons.size() < 2) {
-		minic_log(LOG_ERROR, "变量声明节点的孩子个数不正确");
-		return false;
-	}
-	// 第一个孩子是类型节点
-	if (node->sons[0]->node_type != ast_operator_type::AST_OP_LEAF_TYPE) {
-		minic_log(LOG_ERROR, "变量声明节点的第一个孩子不是类型节点");
-		return false;
-	}
+    if (node->sons.size() < 2) {
+        minic_log(LOG_ERROR, "变量声明节点的孩子个数不正确");
+        return false;
+    }
+    // 第一个孩子是类型节点
+    if (node->sons[0]->node_type != ast_operator_type::AST_OP_LEAF_TYPE) {
+        minic_log(LOG_ERROR, "变量声明节点的第一个孩子不是类型节点");
+        return false;
+    }
     // 从第二个孩子开始是vardef node
     for (int i = 1; i < node->sons.size(); ++i) {
-		ast_node * var_def_node = node->sons[i];
-		if (var_def_node->node_type != ast_operator_type::AST_OP_VAR_DEF) {
-			minic_log(LOG_ERROR, "变量声明节点的孩子不是变量定义节点");
-			return false;
-		}
-		// 变量定义节点翻译成线性中间IR
-		if (!ir_variable_define(var_def_node)) {
-			minic_log(LOG_ERROR, "变量定义节点翻译失败");
-			return false;
-		}
-	}
+        ast_node * var_def_node = node->sons[i];
+        if (var_def_node->node_type != ast_operator_type::AST_OP_VAR_DEF) {
+            minic_log(LOG_ERROR, "变量声明节点的孩子不是变量定义节点");
+            return false;
+        }
+        // 变量定义节点翻译成线性中间IR
+        if (!ir_variable_define(var_def_node)) {
+            minic_log(LOG_ERROR, "变量定义节点翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(var_def_node->blockInsts);
+    }
 
     return true;
 }
@@ -829,7 +806,7 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
 /// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_lval(ast_node * node)
 {
-	// 如果是变量ID，则深入到变量定义节点
+    // 如果是变量ID，则深入到变量定义节点
     return ir_leaf_node_var_id(node->sons[0]);
 }
 
@@ -849,7 +826,7 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         minic_log(LOG_ERROR, "变量定义的变量名节点无效");
         return false;
     }
-	std::string varName = var_name_node->name;
+    std::string varName = var_name_node->name;
 
     // 获取变量类型（从父节点的第一个子节点获取类型信息）
     Type * varType = node->parent->sons[0]->type;
@@ -897,13 +874,13 @@ bool IRGenerator::ir_variable_define(ast_node * node)
 
         // 将初始化后的值保存到节点中
         node->val = varValue;
-    } else  if (node->sons.size() == 1) {
+    } else if (node->sons.size() == 1) {
         // 无初始化，直接保存变量值到节点中
         node->val = varValue;
     } else {
-		minic_log(LOG_ERROR, "变量(%s)定义节点的子节点个数不正确", varName.c_str());
-		return false;
-	}
+        minic_log(LOG_ERROR, "变量(%s)定义节点的子节点个数不正确", varName.c_str());
+        return false;
+    }
 
     return true;
 }

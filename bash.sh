@@ -1,23 +1,22 @@
 #!/bin/bash
-# 生成ANTLR解析器（保持不变）
+# 生成ANTLR解析器
 java -jar $HOME/miniC/thirdparty/antlr4/antlr-4.12.0-complete.jar -Dlanguage=Cpp -visitor -no-listener /home/code/miniC/frontend/antlr4/MiniC.g4
-
-# 配置和构建项目（保持不变）
+# 配置和构建项目
 # rm -rf build
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
 cmake --build build --parallel
-
-# 使用LLVM生成标准IR（替代IRCompiler）
-clang -S -emit-llvm -o tests/test1-1_standard.ll tests/test1-1.c
-
-# 生成AST图（保持不变）
+# 生成AST图
 ./build/minic -S -T -A -o ./tests/test-AST.png ./tests/test1-1.c
-
-# 用你的编译器生成IR（保持不变）
-./build/minic -S -A -I -o tests/test1-1.ll tests/test1-1.c
-
-# 使用LLVM验证IR（替代IRCompiler验证）
-llvm-as tests/test1-1.ll -o - | llvm-dis > /dev/null && echo "IR验证成功" || echo "IR验证失败"
+# 生成标准ir
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1_standard.ir tests/test1-1.c 
+# 用自己的编译器生成ir
+ ./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
+# 用ircompiler生成标准ir做参考
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1-standard.ir tests/test1-1.c
+# 用ircompiler运行自己的ir测试准确性
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
+# 查看返回值
+echo $?  
 
 # 命令格式：
 # minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source
@@ -38,11 +37,9 @@ llvm-as tests/test1-1.ll -o - | llvm-dis > /dev/null && echo "IR验证成功" ||
 
 # git指令：
 # git checkout dev_CPY          # 切换到队友的分支
-# git fetch origin             # 获取远程最新代码
-# git merge origin/dev_CPY     # 合并远程更新（或 git pull origin dev_CPY）
-
+# git fetch origin dev_CPY             # 获取远程最新代码
 # git checkout dev_wh       # 切换到你的开发分支
-# git merge origin/dev_CPY
+# git merge origin/dev_CPY     # 合并远程更新（或 git pull origin dev_CPY）
 # git push origin dev_wh    # 将合并后的 dev_wh 推送到远程
 
 # 查看分支差异	git diff dev_wh origin/dev_CPY
@@ -50,3 +47,4 @@ llvm-as tests/test1-1.ll -o - | llvm-dis > /dev/null && echo "IR验证成功" ||
 # 查看合并状态	git status
 # 查看提交历史	git log --graph --oneline
 # 创建一个本地分支并自动跟踪  git checkout -b dev_CPY origin/dev_CPY
+# git branch -r  # 查看所有远程跟踪分支
