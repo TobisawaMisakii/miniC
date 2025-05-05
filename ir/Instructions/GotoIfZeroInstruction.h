@@ -15,7 +15,7 @@ public:
 
     /// @brief 获取条件值
     /// @return 条件值
-    [[nodiscard]] Value * getCond() const;
+    [[nodiscard]] Value * getCond();
 
     /// @brief 获取目标Label指令
     /// @return 目标Label指令

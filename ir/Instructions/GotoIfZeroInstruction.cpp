@@ -5,20 +5,20 @@
 #include "Function.h"
 
 /// 构造函数
-/// @param func 所属函数
-/// @param cond 条件值
-/// @param target 跳转目标
-GotoIfZeroInstruction::GotoIfZeroInstruction(Function * func, Value * cond, Instruction * target)
-    : Instruction(func, IRInstOperator::IRINST_OP_GOTO_IF_ZERO, VoidType::getType())
+/// @param _func 所属函数
+/// @param _cond 条件值
+/// @param _target 跳转目标
+GotoIfZeroInstruction::GotoIfZeroInstruction(Function * _func, Value * _cond, Instruction * _target)
+    : Instruction(_func, IRInstOperator::IRINST_OP_GOTO_IF_ZERO, VoidType::getType())
 {
-    this->target = static_cast<LabelInstruction *>(target);
-    this->addOperand(cond); // 添加条件值
+    this->target = static_cast<LabelInstruction *>(_target);
+    this->addOperand(_cond); // 添加条件值
 }
 
 /// 获取条件值
-Value * GotoIfZeroInstruction::getCond() const
+Value * GotoIfZeroInstruction::getCond()
 {
-    return this->cond;
+    return getOperand(0); // 获取条件值
 }
 
 /// 转换成字符串
