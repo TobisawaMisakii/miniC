@@ -73,10 +73,10 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
-    // ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
-    // ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
+    ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
     ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
-    // ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
+    ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
     ast2ir_handlers[ast_operator_type::AST_OP_EMPTY] = &IRGenerator::ir_empty;
 
     /* 函数调用 */
@@ -982,6 +982,133 @@ bool IRGenerator::ir_if(ast_node * node)
     irCode.addInst(endLabelInst);
     // 跳转到endLabel
     irCode.addInst(new GotoInstruction(currentFunc, endLabelInst));
+
+    return true;
+}
+
+/// @brief while语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_while(ast_node * node)
+{
+    // while语句包含2个子节点
+    // 第一个子节点是条件表达式
+    // 第二个子节点是while语句的语句块
+
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "while语句的子节点数量不正确");
+        return false;
+    }
+
+    ast_node * condNode = node->sons[0];  // 条件表达式
+    ast_node * blockNode = node->sons[1]; // 语句块
+
+    // 处理条件表达式
+    ast_node * cond = ir_visit_ast_node(condNode);
+    if (!cond) {
+        minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+        return false;
+    }
+    // 检查条件表达式的值是否有效
+    if (!cond->val) {
+        minic_log(LOG_ERROR, "while语句的条件表达式值无效");
+        return false;
+    }
+    // 检查条件表达式的类型是否为布尔类型
+    if (!cond->val->getType()->isInt1Byte()) {
+        minic_log(LOG_ERROR, "while语句的条件表达式类型错误,不是bool类型");
+        return false;
+    }
+
+    // 获取当前函数及其IR代码
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        return false;
+    }
+    InterCode & irCode = currentFunc->getInterCode();
+
+    // 标签指令，用于跳转
+    LabelInstruction * condLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * bodyLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
+
+    // ======= 记录continue目标 =======
+    loopLabelStack.push(condLabelInst);
+
+    // 添加条件判断的Label指令
+    irCode.addInst(condLabelInst);
+
+    // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则跳转到bodyLabel
+    GotoIfZeroInstruction * condGotoInst = new GotoIfZeroInstruction(currentFunc, cond->val, endLabelInst);
+
+    node->blockInsts.addInst(cond->blockInsts);
+    node->blockInsts.addInst(condGotoInst);
+
+    // 添加body分支的Label指令，进入循环体
+    irCode.addInst(bodyLabelInst);
+    // 处理while语句块
+    if (!ir_visit_ast_node(blockNode)) {
+        minic_log(LOG_ERROR, "while语句的语句块翻译失败");
+        loopLabelStack.pop(); // 弹出以防出错造成污染
+        return false;
+    }
+    node->blockInsts.addInst(blockNode->blockInsts);
+    // 回跳条件判断
+    irCode.addInst(new GotoInstruction(currentFunc, condLabelInst));
+    // 循环结束标签
+    irCode.addInst(endLabelInst);
+
+    // ======= 循环结束，弹出continue目标 =======
+    loopLabelStack.pop();
+
+    return true;
+}
+
+/// @brief break语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_break(ast_node * node)
+{
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        minic_log(LOG_ERROR, "break语句不在函数内");
+        return false;
+    }
+
+    // 获取当前函数的IR代码
+    InterCode & irCode = currentFunc->getInterCode();
+
+    // 添加跳转到循环出口的指令
+    irCode.addInst(new GotoInstruction(currentFunc, currentFunc->getExitLabel()));
+
+    return true;
+}
+
+/// @brief continue语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_continue(ast_node * node)
+{
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        minic_log(LOG_ERROR, "continue语句不在函数内");
+        return false;
+    }
+
+    // 获取当前函数的IR代码
+    InterCode & irCode = currentFunc->getInterCode();
+
+    // 获取当前loop的Entry标签
+    if (loopLabelStack.empty()) {
+        minic_log(LOG_ERROR, "continue语句不在循环内");
+        return false;
+    }
+    LabelInstruction * entryLabel = loopLabelStack.top();
+    loopLabelStack.pop();
+    // 添加跳转到循环条件判断的指令
+    irCode.addInst(new GotoInstruction(currentFunc, entryLabel));
 
     return true;
 }

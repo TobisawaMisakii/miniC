@@ -17,9 +17,11 @@
 #pragma once
 
 #include <unordered_map>
+#include <stack>
 
 #include "AST.h"
 #include "Module.h"
+#include "../ir/Instructions/LabelInstruction.h"
 
 /// @brief AST遍历产生线性IR类
 class IRGenerator {
@@ -147,6 +149,21 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_if(ast_node * node);
 
+    /// @brief while节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_while(ast_node * node);
+
+    /// @brief break节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_break(ast_node * node);
+
+    /// @brief continue节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_continue(ast_node * node);
+
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
@@ -169,4 +186,7 @@ private:
 
     /// @brief 符号表:模块
     Module * module;
+
+    /// @brief 可以continue的entry label(循环体的开始，为了continue跳转服务)
+    std::stack<LabelInstruction *> loopLabelStack;
 };
