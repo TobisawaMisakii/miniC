@@ -92,6 +92,11 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_return(ast_node * node);
 
+    /// @brief empty stmt节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_empty(ast_node * node);
+
     /// @brief 类型叶子节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
@@ -136,6 +141,11 @@ protected:
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_const_define(ast_node * node);
+
+    /// @brief if节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_if(ast_node * node);
 
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点

@@ -33,6 +33,7 @@
 #include "BinaryInstruction.h"
 #include "MoveInstruction.h"
 #include "GotoInstruction.h"
+#include "GotoIfZeroInstruction.h"
 
 /// @brief 构造函数
 /// @param _root AST的根
@@ -74,8 +75,9 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
     // ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
-    // ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
+    ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
     // ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
+    ast2ir_handlers[ast_operator_type::AST_OP_EMPTY] = &IRGenerator::ir_empty;
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
@@ -815,6 +817,10 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
 
     return true;
 }
+
+/// @brief 处理单个变量定义节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_variable_define(ast_node * node)
 {
     if (node->sons.empty()) {
@@ -838,13 +844,13 @@ bool IRGenerator::ir_variable_define(ast_node * node)
     }
 
     // 检查是否为数组声明
-    if (node->sons.size() > 1 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_DIMS) {
-        // varType = process_array_type(node->sons[1], baseType);
-        // if (!varType) {
-        //     minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
-        //     return false;
-        // }
-    }
+    // if (node->sons.size() > 1 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_DIMS) {
+    // varType = process_array_type(node->sons[1], baseType);
+    // if (!varType) {
+    //     minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
+    //     return false;
+    // }
+    // }
 
     // 创建变量
     Value * varValue = module->newVarValue(varType, varName);
@@ -881,6 +887,102 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         // 可以生成默认初始化的指令，或者什么都不做
         // 取决于语言语义是否需要默认初始化
     }
+    return true;
+}
+
+/// @brief empty stmtAST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_empty(ast_node * node)
+{
+    // 空语句不需要做任何处理
+    return true;
+}
+
+/// @brief if语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_if(ast_node * node)
+{
+    // if语句包含2个或3个子节点
+    // 第一个子节点是条件表达式
+    // 第二个子节点是if语句的语句块
+    // 第三个可选子节点是else语句的语句块
+
+    if (node->sons.size() < 2 || node->sons.size() > 3) {
+        minic_log(LOG_ERROR, "if语句的子节点数量不正确");
+        return false;
+    }
+
+    ast_node * condNode = node->sons[0];                                      // 条件表达式
+    ast_node * thenNode = node->sons[1];                                      // then分支
+    ast_node * elseNode = (node->sons.size() == 3) ? node->sons[2] : nullptr; // 可选的else分支
+
+    // 处理条件表达式
+    ast_node * cond = ir_visit_ast_node(condNode);
+    if (!cond) {
+        minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+        return false;
+    }
+    // 检查条件表达式的值是否有效
+    if (!cond->val) {
+        minic_log(LOG_ERROR, "if语句的条件表达式值无效");
+        return false;
+    }
+    // 检查条件表达式的类型是否为布尔类型
+    if (!cond->val->getType()->isInt1Byte()) {
+        minic_log(LOG_ERROR, "if语句的条件表达式类型错误,不是bool类型");
+        return false;
+    }
+
+    // 获取当前函数及其IR代码
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        return false;
+    }
+    InterCode & irCode = currentFunc->getInterCode();
+
+    // 标签指令，用于跳转
+    LabelInstruction * thenLabel = new LabelInstruction(currentFunc);
+    LabelInstruction * elseLabelInst = elseNode ? new LabelInstruction(currentFunc) : nullptr;
+    LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
+
+    // 创建条件跳转指令，如果cond->val为0，则跳转到elseLabel(如果没有就是endLable)，否则跳转到thenLabel
+    GotoIfZeroInstruction * condGotoInst =
+        new GotoIfZeroInstruction(currentFunc, cond->val, elseLabelInst ? elseLabelInst : endLabelInst);
+
+    node->blockInsts.addInst(cond->blockInsts);
+    node->blockInsts.addInst(condGotoInst);
+
+    // 添加then分支的Label指令
+    irCode.addInst(thenLabel);
+    // 处理then分支
+    if (!ir_visit_ast_node(thenNode)) {
+        minic_log(LOG_ERROR, "if语句的then分支翻译失败");
+        return false;
+    }
+    node->blockInsts.addInst(thenNode->blockInsts);
+    // then 执行完毕后跳转到end（如果有else）
+    if (elseNode) {
+        irCode.addInst(new GotoInstruction(currentFunc, endLabelInst));
+    }
+
+    // 添加else分支的Label指令
+    if (elseNode) {
+        irCode.addInst(elseLabelInst);
+        // 处理else分支
+        if (!ir_visit_ast_node(elseNode)) {
+            minic_log(LOG_ERROR, "if语句的else分支翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(elseNode->blockInsts);
+    }
+
+    // 添加end分支的Label指令
+    irCode.addInst(endLabelInst);
+    // 跳转到endLabel
+    irCode.addInst(new GotoInstruction(currentFunc, endLabelInst));
+
     return true;
 }
 
