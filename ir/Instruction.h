@@ -33,6 +33,8 @@ enum class IRInstOperator {
 
     /// @brief 无条件分支指令
     IRINST_OP_GOTO,
+    /// @brief 有条件分支指令(基于条件值为0)
+    IRINST_OP_GOTO_IF_ZERO,
 
     /// @brief 整数的加法指令，二元运算
     IRINST_OP_ADD_I,

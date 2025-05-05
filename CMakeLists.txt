@@ -121,6 +121,8 @@ set(IR_SRCS
 	ir/Instructions/ExitInstruction.h
 	ir/Instructions/FuncCallInstruction.cpp
 	ir/Instructions/FuncCallInstruction.h
+	ir/Instructions/GotoIfZeroInstruction.cpp
+	ir/Instructions/GotoIfZeroInstruction.h
 	ir/Instructions/GotoInstruction.cpp
 	ir/Instructions/GotoInstruction.h
 	ir/Instructions/LabelInstruction.cpp
