@@ -1,9 +1,11 @@
-
-int main() {
-    int a = 1, b = 2;
-    float c = 3.1;
-	// putfloat(c);
-    return a + b;
+// int n;
+int main()
+{
+    int a[2],b[2][3],n;
+    a[0] = 1;
+    b[1][1] = 2;
+    n = b[1][1]-a[0];
+    return n;
 }
 // int n;
 

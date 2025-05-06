@@ -11,12 +11,10 @@ cmake --build build --parallel
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1_standard.ir tests/test1-1.c 
 # 用自己的编译器生成ir
 ./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
-# 用ircompiler生成标准ir做参考
-tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1-standard.ir tests/test1-1.c
 # 用ircompiler运行自己的ir测试准确性
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
 # 查看返回值
-# echo $?  
+echo $?  
 
 # 命令格式：
 # minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source
@@ -40,6 +38,8 @@ tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
 # git fetch origin dev_CPY             # 获取远程最新代码
 # git checkout dev_wh       # 切换到你的开发分支
 # git merge origin/dev_CPY     # 合并远程更新（或 git pull origin dev_CPY）
+# git add .			  修改过的文件和新增的文件添加到暂存区
+# git commit -m "XXX"     将暂存区的文件提交到本地仓库
 # git push origin dev_wh    # 将合并后的 dev_wh 推送到远程
 
 # 查看分支差异	git diff dev_wh origin/dev_CPY

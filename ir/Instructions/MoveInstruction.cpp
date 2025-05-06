@@ -25,8 +25,8 @@
 /// @param result 结构操作数
 /// @param srcVal1 源操作数
 ///
-MoveInstruction::MoveInstruction(Function * _func, Value * _result, Value * _srcVal1)
-    : Instruction(_func, IRInstOperator::IRINST_OP_ASSIGN, VoidType::getType())
+MoveInstruction::MoveInstruction(Function * _func, Value * _result, Value * _srcVal1, bool deref, bool load)
+    : Instruction(_func, IRInstOperator::IRINST_OP_ASSIGN, VoidType::getType()), dereference(deref), isLoad(load)
 {
     addOperand(_result);
     addOperand(_srcVal1);
@@ -36,8 +36,17 @@ MoveInstruction::MoveInstruction(Function * _func, Value * _result, Value * _src
 /// @param str 转换后的字符串
 void MoveInstruction::toString(std::string & str)
 {
-
     Value *dstVal = getOperand(0), *srcVal = getOperand(1);
-
-    str = dstVal->getIRName() + " = " + srcVal->getIRName();
+    if (dereference) {
+        if (isLoad) {
+            // 加载操作: dst = *src
+            str = dstVal->getIRName() + " = *" + srcVal->getIRName();
+        } else {
+            // 存储操作: *dst = src
+            str = "*" + dstVal->getIRName() + " = " + srcVal->getIRName();
+        }
+    } else {
+        // 普通赋值: dst = src
+        str = dstVal->getIRName() + " = " + srcVal->getIRName();
+    }
 }

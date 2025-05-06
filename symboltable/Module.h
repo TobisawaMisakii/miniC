@@ -23,8 +23,12 @@
 #include "ConstFloat.h"
 #include "Type.h"
 #include "GlobalVariable.h"
-#include "Function.h"
 
+#include "Function.h"
+#include "VoidType.h"
+#include "FloatType.h"
+#include "ArrayType.h"
+#include "PointerType.h"
 class ScopeStack;
 
 ///
@@ -127,6 +131,8 @@ public:
     /// @param name 变量ID
     /// @return 指针有效则找到，空指针未找到
     Value * findVarValue(std::string name);
+
+    Value * newArrayValue(Type * type, std::string name = "", const std::vector<int32_t> & dimensions = {});
 
     /// @brief 清理Module中管理的所有信息资源
     void Delete();

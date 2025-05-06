@@ -125,7 +125,7 @@ protected:
     /// @brief 变量的定义节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
-    bool ir_variable_define(ast_node * node, Type * type);
+    bool ir_variable_define(ast_node * node);
 
     /// @brief 常量的声明节点翻译成线性中间IR
     /// @param node AST节点
@@ -136,6 +136,16 @@ protected:
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_const_define(ast_node * node);
+
+    /// @brief 数组维度节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_array_dims(ast_node * node, std::vector<int32_t> & dimensions);
+
+    /// @brief 数组初始化节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_array_init(ast_node * node);
 
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点

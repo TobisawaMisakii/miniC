@@ -30,14 +30,14 @@ ast_node * ast_root = nullptr;
 /// @brief 创建指定节点类型的节点
 /// @param _node_type 节点类型
 /// @param _line_no 行号
-ast_node::ast_node(ast_operator_type _node_type, Type * _type, int64_t _line_no)
-    : node_type(_node_type), line_no(_line_no), type(_type)
+ast_node::ast_node(ast_operator_type _node_type, Type * _type, int64_t _line_no, bool load)
+    : node_type(_node_type), line_no(_line_no), type(_type), store(false)
 {}
 
 /// @brief 构造函数
 /// @param _type 节点值的类型
 /// @param line_no 行号
-ast_node::ast_node(Type * _type) : ast_node(ast_operator_type::AST_OP_LEAF_TYPE, _type, -1)
+ast_node::ast_node(Type * _type) : ast_node(ast_operator_type::AST_OP_LEAF_TYPE, _type, -1, false)
 {}
 
 /// @brief 针对无符号整数字面量的构造函数
