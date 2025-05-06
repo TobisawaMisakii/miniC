@@ -90,7 +90,7 @@ bt  # 崩溃时查看调用栈
 ![alt text](figs/README-image-2.png)
 
 ## 增加数组类型 
-对于数组类型，主要操作在ir_lval函数。当传入为数组时，对于ir_assign的左值不做处理(将node->store置为true)，留在ir_assign单独处理store指令生成，而对于其他情况，全都在ir_lval处理load指令生成(类似%l5=*%t17)，返回的是普通变量%15，而不是数组地址。这样方便增加功能时不必额外考略数组处理，按一般情况处理就行。
+对于数组类型，主要操作在ir_lval函数。当传入为数组时，对于ir_assign的左值不做处理(将node->store置为true)，留在ir_assign单独处理store指令生成，而对于其他情况，全都在ir_lval处理load指令生成(类似%l5=*%t17)，返回的是普通变量%15，而不是数组地址。这样方便增加功能时不必额外考略数组处理，按一般情况处理就行。注意，不支持数组定义时初始化，也不支持a[5]={1,2,3,4,5}这样的连续赋值（因为zlj的也不行）
 我们采用行优先存储，地址计算参考：
 ![alt text](figs/README-image-6.png)
 ![alt text](figs/README-image-4.png)

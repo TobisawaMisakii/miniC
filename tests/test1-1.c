@@ -1,11 +1,11 @@
-// int n;
+
 int main()
 {
-    int a[2],b[2][3],n;
-    a[0] = 1;
-    b[1][1] = 2;
+    float a[2],b[2][3],n;
+    a[0] = 1.1;
+    b[1][1] = 1.2;
     n = b[1][1]-a[0];
-    return n;
+    return 0;
 }
 // int n;
 

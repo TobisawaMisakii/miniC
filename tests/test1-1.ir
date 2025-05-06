@@ -1,33 +1,33 @@
 define i32 @main()
 {
 	declare i32 %l0
-	declare i32 %l1[2] ;  1:a
-	declare i32 %l2[2][3] ;  1:b
-	declare i32 %l3 ; 1:n
-	declare i32 %l4
-	declare i32 %l5
+	declare float %l1[2] ;  1:a
+	declare float %l2[2][3] ;  1:b
+	declare float %l3 ; 1:n
+	declare float %l4
+	declare float %l5
 	declare i32 %t6
-	declare i32* %t7
+	declare float* %t7
 	declare i32 %t8
 	declare i32 %t9
 	declare i32 %t10
-	declare i32* %t11
+	declare float* %t11
 	declare i32 %t12
 	declare i32 %t13
 	declare i32 %t14
-	declare i32* %t15
+	declare float* %t15
 	declare i32 %t16
-	declare i32* %t17
+	declare float* %t17
 	declare i32 %t18
 	entry
 	%t6 = mul 0,4
 	%t7 = add %l1,%t6
-	*%t7 = 1
+	*%t7 = 1.100000
 	%t8 = mul 1,3
 	%t9 = add %t8,1
 	%t10 = mul %t9,4
 	%t11 = add %l2,%t10
-	*%t11 = 2
+	*%t11 = 1.200000
 	%t12 = mul 1,3
 	%t13 = add %t12,1
 	%t14 = mul %t13,4
@@ -38,7 +38,8 @@ define i32 @main()
 	%l5 = *%t17
 	%t18 = sub %l4,%l5
 	%l3 = %t18
-	%l0 = %l3
+	call void @putfloat(float %l3)
+	%l0 = 0
 	br label .L19
 .L19:
 	exit %l0
