@@ -82,6 +82,11 @@ public:
         return false; // 其他情况不允许转换
     }
 
+    virtual Type * getBaseType() const
+    {
+        return nullptr;
+    }
+
     /// @brief 检查是否是VOID类型
     /// @return true 是
     /// @return false  不是

@@ -19,6 +19,7 @@
 #include "Common.h"
 #include "VoidType.h"
 #include "FloatType.h"
+#include "ArrayType.h"
 #include "PointerType.h"
 #include <bits/floatn-common.h>
 
@@ -272,6 +273,7 @@ Value * Module::newVarValue(Type * type, std::string name)
         retVal = currentFunc->newLocalVarValue(type, name, scope_level);
 
     } else {
+        printf("创建全局变量%s\n", name.c_str());
         retVal = newGlobalVariable(type, name);
     }
 
@@ -292,6 +294,56 @@ Value * Module::findVarValue(std::string name)
     Value * tempValue = scopeStack->findAllScope(name);
 
     return tempValue;
+}
+
+/// @brief 新建一个数组变量的 Value，并加入到符号表中
+/// @param type 数组的基础类型（如 int、float）
+/// @param name 数组的名称
+/// @param dimensions 数组的维度信息（每一维的大小）
+/// @return 新建的数组变量 Value，如果失败则返回 nullptr
+Value * Module::newArrayValue(Type * type, std::string name, const std::vector<int32_t> & dimensions)
+{
+    // 检查变量名是否有效
+    if (!name.empty()) {
+        Value * tempValue = scopeStack->findCurrentScope(name);
+        if (tempValue) {
+            // 变量已存在，语义错误
+            minic_log(LOG_ERROR, "数组变量(%s)已经存在", name.c_str());
+            return nullptr;
+        }
+    } else if (!currentFunc) {
+        // 全局数组变量要求 name 不能为空
+        minic_log(LOG_ERROR, "全局数组变量要求 name 不能为空");
+        return nullptr;
+    }
+
+    // 计算数组的总大小
+    // int32_t totalSize = 1;
+    for (int32_t dim: dimensions) {
+        if (dim <= 0) {
+            minic_log(LOG_ERROR, "数组(%s)的维度大小无效", name.c_str());
+            return nullptr;
+        }
+        // totalSize *= dim;
+    }
+
+    // 创建数组类型
+    ArrayType * arrayType = new ArrayType(type, dimensions);
+
+    Value * retVal;
+    if (currentFunc) {
+        // 局部数组变量
+        int32_t scope_level = scopeStack->getCurrentScopeLevel();
+        retVal = currentFunc->newLocalVarValue(arrayType, name, scope_level);
+    } else {
+        // 全局数组变量
+        retVal = newGlobalVariable(arrayType, name);
+    }
+
+    // 将数组变量加入作用域
+    scopeStack->insertValue(retVal);
+
+    return retVal;
 }
 
 ///

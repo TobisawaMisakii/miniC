@@ -13,6 +13,7 @@ GotoIfZeroInstruction::GotoIfZeroInstruction(Function * _func, Value * _cond, In
 {
     this->target = static_cast<LabelInstruction *>(_target);
     this->addOperand(_cond); // 添加条件值
+    this->cond = _cond;
 }
 
 /// 获取条件值

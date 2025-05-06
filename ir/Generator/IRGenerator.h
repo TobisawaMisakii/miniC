@@ -38,6 +38,12 @@ public:
     /// @brief 运行产生IR
     bool run();
 
+    /// @brief while语句的label记录
+    struct LoopContext {
+        LabelInstruction * continueTarget; // 通常是循环条件的起始
+        LabelInstruction * breakTarget;    // 通常是循环结束处
+    };
+
 protected:
     /// @brief 编译单元AST节点翻译成线性中间IR
     /// @param node AST节点
@@ -134,6 +140,16 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_variable_define(ast_node * node);
 
+    /// @brief 数组的维度节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_array_dims(ast_node * node, std::vector<int32_t> & dimensions);
+
+    /// @brief 数组的初始化节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_array_init(ast_node * node);
+
     /// @brief 常量的声明节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
@@ -164,6 +180,36 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_continue(ast_node * node);
 
+    /// @brief less than节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_lt(ast_node * node);
+
+    /// @brief less than equal节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_le(ast_node * node);
+
+    /// @brief greater than节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_gt(ast_node * node);
+
+    /// @brief greater than equal节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_ge(ast_node * node);
+
+    /// @brief equal节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_eq(ast_node * node);
+
+    /// @brief not equal节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_ne(ast_node * node);
+
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败
@@ -187,6 +233,6 @@ private:
     /// @brief 符号表:模块
     Module * module;
 
-    /// @brief 可以continue的entry label(循环体的开始，为了continue跳转服务)
-    std::stack<LabelInstruction *> loopLabelStack;
+    /// @brief while loop 的标签栈，为break和continue服务
+    std::stack<LoopContext> loopLabelStack;
 };

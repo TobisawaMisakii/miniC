@@ -27,6 +27,9 @@ class Function;
 /// @brief 复制指令
 ///
 class MoveInstruction : public Instruction {
+private:
+    bool dereference; // 是否需要解引用
+    bool isLoad;      // 是否是加载操作
 
 public:
     ///
@@ -34,8 +37,10 @@ public:
     /// @param _func 所属的函数
     /// @param result 结构操作数
     /// @param srcVal1 源操作数
+    /// @param deref 是否需要解引用
+    /// @param load 是否是加载操作
     ///
-    MoveInstruction(Function * _func, Value * result, Value * srcVal1);
+    MoveInstruction(Function * _func, Value * result, Value * srcVal1, bool deref = false, bool load = false);
 
     /// @brief 转换成字符串
     void toString(std::string & str) override;

@@ -95,6 +95,7 @@ public:
     ast_operator_type node_type; // 节点类型
     int64_t line_no;             // 行号信息
     Type * type;                 // 节点值的类型
+    bool store; //该节点是否可以store, 即是否为赋值语句的左值，至于是否为数组或指针，在左值节点判断
     union {
         uint32_t integer_val; // 整数值
         float float_val;      // 浮点值
@@ -107,7 +108,10 @@ public:
     bool needScope = true;        // 是否需要作用域管理， 默认需要
 
     /// @brief 构造函数
-    ast_node(ast_operator_type _node_type, Type * _type = VoidType::getType(), int64_t _line_no = -1);
+    ast_node(ast_operator_type _node_type,
+             Type * _type = VoidType::getType(),
+             int64_t _line_no = -1,
+             bool store = false);
 
     /// @brief 类型节点构造函数
     ast_node(Type * _type);
