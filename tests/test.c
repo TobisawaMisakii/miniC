@@ -5,7 +5,7 @@ int main()
 	{
         break;
         ;
-        i = i + 1;
+        i = i - 1;
 	}
 	float a = 1.1;
 	while (a != 0.1)
