@@ -42,7 +42,6 @@ define i32 @main() {
 	%t21 = *%t17
 	%t22 = fsub %t20, %t21
 	%l3 = %t22
-	call void @putfloat(float %l3)
 	%l0 = 0
 	br label .L2
 .L2:

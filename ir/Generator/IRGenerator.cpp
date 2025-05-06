@@ -518,15 +518,19 @@ bool IRGenerator::ir_sub(ast_node * node)
         // 某个变量没有定值
         return false;
     }
-
-    // 这里只处理整型的数据，如需支持实数，则需要针对类型进行处理
-    // TODO real number add
-
-    BinaryInstruction * subInst = new BinaryInstruction(module->getCurrentFunction(),
-                                                        IRInstOperator::IRINST_OP_SUB_I,
-                                                        left->val,
-                                                        right->val,
-                                                        IntegerType::getTypeInt());
+    //分别处理整数和浮点
+    IRInstOperator op;
+    Type * resultType;
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+        op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
+        resultType = FloatType::getTypeFloat();
+        // 需要确保0.1这样的常量被识别为float
+    } else {
+        op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
+        resultType = IntegerType::getTypeInt();
+    }
+    BinaryInstruction * subInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
 
     // 创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(left->blockInsts);
@@ -558,17 +562,20 @@ bool IRGenerator::ir_mul(ast_node * node)
         return false;
     }
 
-    // 类型检查 - 确保都是整数类型
-    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
-        minic_log(LOG_ERROR, "乘法运算只支持整数类型");
-        return false;
+    //分别处理整数和浮点
+    IRInstOperator op;
+    Type * resultType;
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+        op = IRInstOperator::IRINST_OP_MUL_F; // 浮点加法指令
+        resultType = FloatType::getTypeFloat();
+        // 需要确保0.1这样的常量被识别为float
+    } else {
+        op = IRInstOperator::IRINST_OP_MUL_I; // 整数加法指令
+        resultType = IntegerType::getTypeInt();
     }
 
-    BinaryInstruction * mulInst = new BinaryInstruction(module->getCurrentFunction(),
-                                                        IRInstOperator::IRINST_OP_MUL_I,
-                                                        left->val,
-                                                        right->val,
-                                                        IntegerType::getTypeInt());
+    BinaryInstruction * mulInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
 
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);

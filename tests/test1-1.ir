@@ -18,7 +18,7 @@ define i32 @main()
 	declare float* %t15
 	declare i32 %t16
 	declare float* %t17
-	declare i32 %t18
+	declare float %t18
 	entry
 	%t6 = mul 0,4
 	%t7 = add %l1,%t6
@@ -36,9 +36,8 @@ define i32 @main()
 	%t16 = mul 0,4
 	%t17 = add %l1,%t16
 	%l5 = *%t17
-	%t18 = sub %l4,%l5
+	%t18 = fsub %l4,%l5
 	%l3 = %t18
-	call void @putfloat(float %l3)
 	%l0 = 0
 	br label .L19
 .L19:
