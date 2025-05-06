@@ -115,14 +115,14 @@ set(IR_SRCS
 	ir/Instructions/ArgInstruction.h
 	ir/Instructions/BinaryInstruction.cpp
 	ir/Instructions/BinaryInstruction.h
+	ir/Instructions/BranchConditional.cpp
+	ir/Instructions/BranchConditional.h
 	ir/Instructions/EntryInstruction.cpp
 	ir/Instructions/EntryInstruction.h
 	ir/Instructions/ExitInstruction.cpp
 	ir/Instructions/ExitInstruction.h
 	ir/Instructions/FuncCallInstruction.cpp
 	ir/Instructions/FuncCallInstruction.h
-	ir/Instructions/GotoIfZeroInstruction.cpp
-	ir/Instructions/GotoIfZeroInstruction.h
 	ir/Instructions/GotoInstruction.cpp
 	ir/Instructions/GotoInstruction.h
 	ir/Instructions/LabelInstruction.cpp

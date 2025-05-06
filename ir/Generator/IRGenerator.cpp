@@ -33,7 +33,7 @@
 #include "BinaryInstruction.h"
 #include "MoveInstruction.h"
 #include "GotoInstruction.h"
-#include "GotoIfZeroInstruction.h"
+#include "BranchConditional.h"
 
 /// @brief 构造函数
 /// @param _root AST的根
@@ -91,7 +91,6 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_DECL_STMT] = &IRGenerator::ir_declare_statment;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
-    // ir_variable_define is not assembled into handlers because it has two parameters
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
 
@@ -235,7 +234,10 @@ bool IRGenerator::ir_function_define(ast_node * node)
     // 获取函数的IR代码列表，用于后面追加指令用，注意这里用的是引用传值
     InterCode & irCode = newFunc->getInterCode();
 
-    // 这里也可增加一个函数入口Label指令，便于后续基本块划分
+    // // 这里也可增加一个函数入口Label指令，便于后续基本块划分
+    // LabelInstruction * entryLabelInst = new LabelInstruction(newFunc);
+    // // 添加函数入口Label指令
+    // irCode.addInst(entryLabelInst);
 
     // 创建并加入Entry入口指令
     irCode.addInst(new EntryInstruction(newFunc));
@@ -1207,16 +1209,18 @@ bool IRGenerator::ir_if(ast_node * node)
 
     // 标签指令，用于跳转
     LabelInstruction * elseLabelInst = elseNode ? new LabelInstruction(currentFunc) : nullptr;
+    LabelInstruction * thenLabelInst = new LabelInstruction(currentFunc);
     LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
 
     // 创建条件跳转指令，如果cond->val为0，则跳转到elseLabel(如果没有就是endLable)，否则跳转到thenLabel
-    GotoIfZeroInstruction * condGotoInst =
-        new GotoIfZeroInstruction(currentFunc, cond->val, elseLabelInst ? elseLabelInst : endLabelInst);
+    BranchCondInstruction * condGotoInst =
+        new BranchCondInstruction(currentFunc, cond->val, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst);
 
     node->blockInsts.addInst(cond->blockInsts);
     node->blockInsts.addInst(condGotoInst);
 
     // 处理then分支
+    node->blockInsts.addInst(thenLabelInst);
     if (!ir_visit_ast_node(thenNode)) {
         minic_log(LOG_ERROR, "if语句的then分支翻译失败");
         return false;
@@ -1296,7 +1300,8 @@ bool IRGenerator::ir_while(ast_node * node)
     loopLabelStack.push(loopContext);
 
     // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则按顺序进入bodyLabel
-    GotoIfZeroInstruction * condGotoInst = new GotoIfZeroInstruction(currentFunc, cond->val, endLabelInst);
+    BranchCondInstruction * condGotoInst =
+        new BranchCondInstruction(currentFunc, cond->val, bodyLabelInst, endLabelInst);
     node->blockInsts.addInst(condGotoInst);
 
     // 添加body分支的Label指令，进入循环体

@@ -66,63 +66,51 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_LT:
             // 小于比较指令，指令格式为：<result> = icmp <cond> <ty> <op1>, <op2>
-            str = getIRName() + " = icmp lt " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp lt " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_LT:
             // 小于比较指令 float
-            str = getIRName() + " = fcmp lt " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp lt " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_GT:
             // 大于比较指令
-            str = getIRName() + " = icmp gt " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp gt " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_GT:
             // 大于比较指令 float
-            str = getIRName() + " = fcmp gt " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp gt " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_EQ:
             // 等于比较指令
-            str = getIRName() + " = icmp eq " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp eq " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_EQ:
             // 等于比较指令 float
-            str = getIRName() + " = fcmp eq " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp eq " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_NE:
             // 不等于比较指令
-            str = getIRName() + " = icmp ne " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp ne " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_NE:
             // 不等于比较指令 float
-            str = getIRName() + " = fcmp ne " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp ne " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_LE:
             // 小于等于比较指令
-            str = getIRName() + " = icmp le " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp le " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_LE:
             // 小于等于比较指令 float
-            str = getIRName() + " = fcmp le " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp le " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_GE:
             // 大于等于比较指令
-            str = getIRName() + " = icmp ge " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = icmp ge " + src1->getIRName() + "," + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_GE:
             // 大于等于比较指令 float
-            str = getIRName() + " = fcmp ge " + src1->getType()->toString() + " " + src1->getIRName() + "," +
-                  src2->getIRName();
+            str = getIRName() + " = fcmp ge " + src1->getIRName() + "," + src2->getIRName();
             break;
 
         default:

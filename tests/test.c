@@ -1,19 +1,21 @@
 int main()
 {
     int i = 0;
-	while (i < 10)
+	while (i < 5)
 	{
-        break;
-        ;
-        i = i - 1;
+		i = i + 1;
+		if (i == 2)
+		{
+			continue;
+		}
+		break;
+		while (i != 1)
+		{
+			putint(i);
+		}
+		
 	}
-	float a = 1.1;
-	while (a != 0.1)
-	{
-		a = a - 1;
-		continue;
-	}
-    return 0;
+    return i;
 }
 // int main()
 // {
