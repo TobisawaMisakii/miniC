@@ -234,11 +234,6 @@ bool IRGenerator::ir_function_define(ast_node * node)
     // 获取函数的IR代码列表，用于后面追加指令用，注意这里用的是引用传值
     InterCode & irCode = newFunc->getInterCode();
 
-    // // 这里也可增加一个函数入口Label指令，便于后续基本块划分
-    // LabelInstruction * entryLabelInst = new LabelInstruction(newFunc);
-    // // 添加函数入口Label指令
-    // irCode.addInst(entryLabelInst);
-
     // 创建并加入Entry入口指令
     irCode.addInst(new EntryInstruction(newFunc));
 
@@ -1185,6 +1180,8 @@ bool IRGenerator::ir_if(ast_node * node)
     ast_node * elseNode = (node->sons.size() == 3) ? node->sons[2] : nullptr; // 可选的else分支
 
     // 处理条件表达式
+    Value * condResult = nullptr;
+
     ast_node * cond = ir_visit_ast_node(condNode);
     if (!cond) {
         minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
@@ -1195,10 +1192,28 @@ bool IRGenerator::ir_if(ast_node * node)
         minic_log(LOG_ERROR, "if语句的条件表达式值无效");
         return false;
     }
-    // 检查条件表达式的类型是否为布尔类型
-    if (!cond->val->getType()->isInt1Byte()) {
-        minic_log(LOG_ERROR, "if语句的条件表达式类型错误,不是bool类型");
+
+    if (cond->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果cond是一个单独的lval节点
+        // 这里需要处理lval的值
+        if (!ir_visit_ast_node(cond)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              cond->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        condResult = lval_ne_0;
+    } else if (!cond->val->getType()->isInt1Byte()) {
+        // 如果cond是一个关系表达式
+        minic_log(LOG_ERROR, "if语句的条件表达式类型错误");
         return false;
+    } else {
+        // 直接使用条件表达式的值
+        condResult = cond->val;
     }
 
     // 获取当前函数
@@ -1214,7 +1229,7 @@ bool IRGenerator::ir_if(ast_node * node)
 
     // 创建条件跳转指令，如果cond->val为0，则跳转到elseLabel(如果没有就是endLable)，否则跳转到thenLabel
     BranchCondInstruction * condGotoInst =
-        new BranchCondInstruction(currentFunc, cond->val, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst);
+        new BranchCondInstruction(currentFunc, condResult, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst);
 
     node->blockInsts.addInst(cond->blockInsts);
     node->blockInsts.addInst(condGotoInst);
@@ -1280,6 +1295,8 @@ bool IRGenerator::ir_while(ast_node * node)
     node->blockInsts.addInst(condLabelInst);
 
     // 处理条件判断
+    Value * condResult = nullptr;
+
     ast_node * cond = ir_visit_ast_node(condNode);
     if (!cond) {
         minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
@@ -1289,6 +1306,29 @@ bool IRGenerator::ir_while(ast_node * node)
     if (!cond->val) {
         minic_log(LOG_ERROR, "while语句的条件表达式值无效");
         return false;
+    }
+    // 检查cond是否是左值节点，如果是，跟0比较
+    if (cond->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果cond是一个单独的lval节点
+        // 这里需要处理lval的值
+        if (!ir_visit_ast_node(cond)) {
+            minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+            return false;
+        }
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              cond->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        condResult = lval_ne_0;
+    } else if (!cond->val->getType()->isInt1Byte()) {
+        // 如果cond是一个关系表达式
+        minic_log(LOG_ERROR, "while语句的条件表达式类型错误");
+        return false;
+    } else {
+        // 直接使用条件表达式的值
+        condResult = cond->val;
     }
 
     node->blockInsts.addInst(cond->blockInsts);
@@ -1301,7 +1341,7 @@ bool IRGenerator::ir_while(ast_node * node)
 
     // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则按顺序进入bodyLabel
     BranchCondInstruction * condGotoInst =
-        new BranchCondInstruction(currentFunc, cond->val, bodyLabelInst, endLabelInst);
+        new BranchCondInstruction(currentFunc, condResult, bodyLabelInst, endLabelInst);
     node->blockInsts.addInst(condGotoInst);
 
     // 添加body分支的Label指令，进入循环体
