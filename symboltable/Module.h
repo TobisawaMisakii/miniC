@@ -132,6 +132,11 @@ public:
     /// @return 指针有效则找到，空指针未找到
     Value * findVarValue(std::string name);
 
+    /// @brief 新建一个数组变量的 Value，并加入到符号表中
+    /// @param type 数组的基础类型（如 int、float）
+    /// @param name 数组的名称
+    /// @param dimensions 数组的维度信息（每一维的大小）
+    /// @return 新建的数组变量 Value，如果失败则返回 nullptr
     Value * newArrayValue(Type * type, std::string name = "", const std::vector<int32_t> & dimensions = {});
 
     /// @brief 清理Module中管理的所有信息资源

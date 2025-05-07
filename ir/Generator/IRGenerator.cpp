@@ -33,6 +33,8 @@
 #include "BinaryInstruction.h"
 #include "MoveInstruction.h"
 #include "GotoInstruction.h"
+#include "BranchConditional.h"
+
 /// @brief 构造函数
 /// @param _root AST的根
 /// @param _module 符号表
@@ -48,8 +50,8 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
     ast2ir_handlers[ast_operator_type::AST_OP_ADD] = &IRGenerator::ir_add;
     ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
-    // ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
-    // ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
+    ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
+    ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
 
     //单目运算符
     // ast2ir_handlers[ast_operator_type::AST_OP_POS] = &IRGenerator::ir_pos;
@@ -57,12 +59,12 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     // ast2ir_handlers[ast_operator_type::AST_OP_NOT] = &IRGenerator::ir_not;
 
     // 关系表达式
-    // ast2ir_handlers[ast_operator_type::AST_OP_EQ] = &IRGenerator::ir_eq;
-    // ast2ir_handlers[ast_operator_type::AST_OP_NE] = &IRGenerator::ir_ne;
-    // ast2ir_handlers[ast_operator_type::AST_OP_LT] = &IRGenerator::ir_lt;
-    // ast2ir_handlers[ast_operator_type::AST_OP_LE] = &IRGenerator::ir_le;
-    // ast2ir_handlers[ast_operator_type::AST_OP_GT] = &IRGenerator::ir_gt;
-    // ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
+    ast2ir_handlers[ast_operator_type::AST_OP_EQ] = &IRGenerator::ir_eq;
+    ast2ir_handlers[ast_operator_type::AST_OP_NE] = &IRGenerator::ir_ne;
+    ast2ir_handlers[ast_operator_type::AST_OP_LT] = &IRGenerator::ir_lt;
+    ast2ir_handlers[ast_operator_type::AST_OP_LE] = &IRGenerator::ir_le;
+    ast2ir_handlers[ast_operator_type::AST_OP_GT] = &IRGenerator::ir_gt;
+    ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
 
     // 逻辑表达式
     // ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
@@ -71,10 +73,11 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
     ast2ir_handlers[ast_operator_type::AST_OP_RETURN] = &IRGenerator::ir_return;
-    // ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
-    // ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
-    // ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
-    // ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
+    ast2ir_handlers[ast_operator_type::AST_OP_BREAK] = &IRGenerator::ir_break;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONTINUE] = &IRGenerator::ir_continue;
+    ast2ir_handlers[ast_operator_type::AST_OP_IF] = &IRGenerator::ir_if;
+    ast2ir_handlers[ast_operator_type::AST_OP_WHILE] = &IRGenerator::ir_while;
+    ast2ir_handlers[ast_operator_type::AST_OP_EMPTY] = &IRGenerator::ir_empty;
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
@@ -87,17 +90,17 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 变量定义语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_DECL_STMT] = &IRGenerator::ir_declare_statment;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
-    // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
-    // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
 
     // 左值
     ast2ir_handlers[ast_operator_type::AST_OP_LVAL] = &IRGenerator::ir_lval;
 
-    // 数组
+    // 数组, 不支持定义时初始化数组，维度处理处理节点还需要维度参数，索引直接在lval处理了，所以都不走visit
     // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_DIMS] = &IRGenerator::ir_array_dims;
     // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
-    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
+    // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
 
     /* 语句块 */
     ast2ir_handlers[ast_operator_type::AST_OP_BLOCK] = &IRGenerator::ir_block;
@@ -231,7 +234,10 @@ bool IRGenerator::ir_function_define(ast_node * node)
     // 获取函数的IR代码列表，用于后面追加指令用，注意这里用的是引用传值
     InterCode & irCode = newFunc->getInterCode();
 
-    // 这里也可增加一个函数入口Label指令，便于后续基本块划分
+    // // 这里也可增加一个函数入口Label指令，便于后续基本块划分
+    // LabelInstruction * entryLabelInst = new LabelInstruction(newFunc);
+    // // 添加函数入口Label指令
+    // irCode.addInst(entryLabelInst);
 
     // 创建并加入Entry入口指令
     irCode.addInst(new EntryInstruction(newFunc));
@@ -586,6 +592,92 @@ bool IRGenerator::ir_mul(ast_node * node)
     return true;
 }
 
+/// @brief 除法AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_div(ast_node * node)
+{
+    // 确保有两个操作数
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "除法运算需要两个操作数");
+        return false;
+    }
+
+    ast_node * left = ir_visit_ast_node(node->sons[0]);
+    ast_node * right = ir_visit_ast_node(node->sons[1]);
+
+    if (!left || !right) {
+        minic_log(LOG_ERROR, "除法操作数解析失败");
+        return false;
+    }
+
+    // 分别处理整数和浮点
+    IRInstOperator op;
+    Type * resultType;
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+        op = IRInstOperator::IRINST_OP_DIV_F; // 浮点除法指令
+        resultType = FloatType::getTypeFloat();
+    } else {
+        op = IRInstOperator::IRINST_OP_DIV_I; // 整数除法指令
+        resultType = IntegerType::getTypeInt();
+    }
+
+    BinaryInstruction * divInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
+
+    // 添加指令到当前块
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(divInst);
+
+    // 设置节点的值
+    node->val = divInst;
+
+    return true;
+}
+
+/// @brief 取模AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_mod(ast_node * node)
+{
+    // 确保有两个操作数
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "取模运算需要两个操作数");
+        return false;
+    }
+
+    ast_node * left = ir_visit_ast_node(node->sons[0]);
+    ast_node * right = ir_visit_ast_node(node->sons[1]);
+
+    if (!left || !right) {
+        minic_log(LOG_ERROR, "取模操作数解析失败");
+        return false;
+    }
+
+    // 取模只支持整数
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        minic_log(LOG_ERROR, "取模运算只支持整数类型");
+        return false;
+    }
+
+    IRInstOperator op = IRInstOperator::IRINST_OP_MOD_I; // 整数取模指令
+    Type * resultType = IntegerType::getTypeInt();
+
+    BinaryInstruction * modInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
+
+    // 添加指令到当前块
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(modInst);
+
+    // 设置节点的值
+    node->val = modInst;
+
+    return true;
+}
+
 /// @brief 赋值AST节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
@@ -860,6 +952,7 @@ bool IRGenerator::ir_return(ast_node * node)
 
     // 设置节点的值
     node->val = right->val;
+    node->val = right->val;
     return true;
 }
 
@@ -947,6 +1040,106 @@ bool IRGenerator::ir_declare_statment(ast_node * node)
     node->blockInsts.addInst(variable_declare_node->blockInsts);
     return result;
 }
+/// @brief 处理单个常量声明节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_const_declare(ast_node * node)
+{
+    if (node->sons.size() < 2) {
+        minic_log(LOG_ERROR, "常量声明节点的子节点数量不足");
+        return false;
+    }
+
+    // 第一个子节点是类型节点
+    ast_node * type_node = node->sons[0];
+    if (!ir_visit_ast_node(type_node)) {
+        minic_log(LOG_ERROR, "常量声明的类型节点无效");
+        return false;
+    }
+
+    // 遍历所有 const_def 节点
+    for (size_t i = 1; i < node->sons.size(); ++i) {
+        ast_node * const_def_node = node->sons[i];
+        if (!ir_visit_ast_node(const_def_node)) {
+            minic_log(LOG_ERROR, "常量定义失败");
+            return false;
+        }
+        node->blockInsts.addInst(const_def_node->blockInsts);
+    }
+
+    return true;
+}
+/// @brief 处理单个常量定义节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_const_define(ast_node * node)
+{
+    if (node->sons.empty()) {
+        minic_log(LOG_ERROR, "常量定义节点没有子节点");
+        return false;
+    }
+
+    if (!node->parent->sons[0]->type) {
+        minic_log(LOG_ERROR, "未指定常量类型");
+        return false;
+    }
+
+    // 第一个子节点是常量名
+    ast_node * const_name_node = node->sons[0];
+    std::string constName = const_name_node->name;
+    Type * constType = node->parent->sons[0]->type;
+
+    if (const_name_node->node_type != ast_operator_type::AST_OP_LEAF_VAR_ID) {
+        minic_log(LOG_ERROR, "常量定义的常量名节点无效");
+        return false;
+    }
+
+    // 检查常量是否已在当前作用域中声明
+    if (module->findVarValue(constName)) {
+        minic_log(LOG_ERROR, "常量(%s)重复声明", constName.c_str());
+        return false;
+    }
+
+    // 创建常量
+    Value * constValue = module->newVarValue(constType, constName);
+    if (!constValue) {
+        minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
+        return false;
+    }
+
+    node->val = constValue;
+    const_name_node->val = constValue;
+
+    // 检查是否有初始化
+    if (node->sons.size() > 1) {
+        // 处理初始化表达式
+        ast_node * init_expr_node = node->sons[1];
+        if (!ir_visit_ast_node(init_expr_node)) {
+            minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+            return false;
+        }
+
+        // 类型转换检查
+        if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
+            minic_log(LOG_ERROR,
+                      "无法将类型%d赋给类型%d",
+                      init_expr_node->val->getType()->getTypeID(),
+                      constType->getTypeID());
+            return false;
+        }
+
+        // 生成赋值指令
+        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
+        // 添加指令到当前块
+        node->blockInsts.addInst(init_expr_node->blockInsts);
+        node->blockInsts.addInst(movInst);
+    } else {
+        minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
+        return false;
+    }
+
+    return true;
+}
 
 /// @brief 处理单个变量声明节点，生成对应的IR。
 /// @param node AST节点
@@ -975,6 +1168,10 @@ bool IRGenerator::ir_variable_declare(ast_node * node)
 
     return true;
 }
+
+/// @brief 处理单个变量定义节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_variable_define(ast_node * node)
 {
     if (node->sons.empty()) {
@@ -1062,15 +1259,6 @@ bool IRGenerator::ir_variable_define(ast_node * node)
     return true;
 }
 
-// bool IRGenerator::ir_const_declare(ast_node * node)
-// {
-//     return false;
-// }
-// bool IRGenerator::ir_const_define(ast_node * node)
-// {
-//     return false;
-// }
-
 bool IRGenerator::ir_array_dims(ast_node * node, std::vector<int32_t> & dimensions)
 {
     for (auto dim_node: node->sons) {
@@ -1148,6 +1336,543 @@ bool IRGenerator::ir_array_init(ast_node * node)
 
         ++index;
     }
+
+    return true;
+}
+
+/// @brief empty stmtAST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_empty(ast_node * node)
+{
+    // 空语句不需要做任何处理
+    return true;
+}
+
+/// @brief if语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_if(ast_node * node)
+{
+    // if语句包含2个或3个子节点
+    // 第一个子节点是条件表达式
+    // 第二个子节点是if语句的语句块
+    // 第三个可选子节点是else语句的语句块
+
+    if (node->sons.size() < 2 || node->sons.size() > 3) {
+        minic_log(LOG_ERROR, "if语句的子节点数量不正确");
+        return false;
+    }
+
+    ast_node * condNode = node->sons[0];                                      // 条件表达式
+    ast_node * thenNode = node->sons[1];                                      // then分支
+    ast_node * elseNode = (node->sons.size() == 3) ? node->sons[2] : nullptr; // 可选的else分支
+
+    // 处理条件表达式
+    ast_node * cond = ir_visit_ast_node(condNode);
+    if (!cond) {
+        minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+        return false;
+    }
+    // 检查条件表达式的值是否有效
+    if (!cond->val) {
+        minic_log(LOG_ERROR, "if语句的条件表达式值无效");
+        return false;
+    }
+    // 检查条件表达式的类型是否为布尔类型
+    if (!cond->val->getType()->isInt1Byte()) {
+        minic_log(LOG_ERROR, "if语句的条件表达式类型错误,不是bool类型");
+        return false;
+    }
+
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        return false;
+    }
+
+    // 标签指令，用于跳转
+    LabelInstruction * elseLabelInst = elseNode ? new LabelInstruction(currentFunc) : nullptr;
+    LabelInstruction * thenLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
+
+    // 创建条件跳转指令，如果cond->val为0，则跳转到elseLabel(如果没有就是endLable)，否则跳转到thenLabel
+    BranchCondInstruction * condGotoInst =
+        new BranchCondInstruction(currentFunc, cond->val, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst);
+
+    node->blockInsts.addInst(cond->blockInsts);
+    node->blockInsts.addInst(condGotoInst);
+
+    // 处理then分支
+    node->blockInsts.addInst(thenLabelInst);
+    if (!ir_visit_ast_node(thenNode)) {
+        minic_log(LOG_ERROR, "if语句的then分支翻译失败");
+        return false;
+    }
+    node->blockInsts.addInst(thenNode->blockInsts);
+    // then 执行完毕后需要跳过else，跳转到end（如果有else）
+    if (elseNode) {
+        node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabelInst));
+    }
+
+    // 添加else分支的Label指令
+    if (elseNode) {
+        node->blockInsts.addInst(elseLabelInst);
+        // 处理else分支
+        if (!ir_visit_ast_node(elseNode)) {
+            minic_log(LOG_ERROR, "if语句的else分支翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(elseNode->blockInsts);
+    }
+
+    // 添加end分支的Label指令
+    node->blockInsts.addInst(endLabelInst);
+
+    return true;
+}
+
+/// @brief while语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_while(ast_node * node)
+{
+    // while语句包含2个子节点
+    // 第一个子节点是条件表达式
+    // 第二个子节点是while语句的语句块
+
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "while语句的子节点数量不正确");
+        return false;
+    }
+    ast_node * condNode = node->sons[0];  // 条件表达式
+    ast_node * blockNode = node->sons[1]; // 语句块
+
+    // 获取当前函数及其IR代码
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        return false;
+    }
+    // InterCode & irCode = currentFunc->getInterCode();
+
+    // 标签指令，用于跳转
+    LabelInstruction * condLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * bodyLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
+
+    // 添加条件判断的Label指令
+    node->blockInsts.addInst(condLabelInst);
+
+    // 处理条件判断
+    ast_node * cond = ir_visit_ast_node(condNode);
+    if (!cond) {
+        minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+        return false;
+    }
+    // 检查条件表达式的值是否有效
+    if (!cond->val) {
+        minic_log(LOG_ERROR, "while语句的条件表达式值无效");
+        return false;
+    }
+
+    node->blockInsts.addInst(cond->blockInsts);
+
+    // ======= 记录loop label目标 =======
+    LoopContext loopContext;
+    loopContext.continueTarget = condLabelInst;
+    loopContext.breakTarget = endLabelInst;
+    loopLabelStack.push(loopContext);
+
+    // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则按顺序进入bodyLabel
+    BranchCondInstruction * condGotoInst =
+        new BranchCondInstruction(currentFunc, cond->val, bodyLabelInst, endLabelInst);
+    node->blockInsts.addInst(condGotoInst);
+
+    // 添加body分支的Label指令，进入循环体
+    node->blockInsts.addInst(bodyLabelInst);
+    // 处理while语句块
+    if (!ir_visit_ast_node(blockNode)) {
+        minic_log(LOG_ERROR, "while语句的语句块翻译失败");
+        loopLabelStack.pop(); // 弹出以防出错造成污染
+        return false;
+    }
+    node->blockInsts.addInst(blockNode->blockInsts);
+    // 回跳条件判断
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, condLabelInst));
+    // 循环结束标签
+    node->blockInsts.addInst(endLabelInst);
+
+    // ======= 循环结束，弹出本循环loop label目标 =======
+    loopLabelStack.pop();
+
+    return true;
+}
+
+/// @brief break语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_break(ast_node * node)
+{
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        minic_log(LOG_ERROR, "break语句不在函数内");
+        return false;
+    }
+
+    // 找到当前循环对应的end label
+    if (loopLabelStack.empty()) {
+        minic_log(LOG_ERROR, "break语句不在循环内");
+        return false;
+    }
+    LabelInstruction * endLabel = loopLabelStack.top().breakTarget;
+
+    // 添加跳转到循环结束的指令
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabel));
+
+    return true;
+}
+
+/// @brief continue语句AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_continue(ast_node * node)
+{
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        minic_log(LOG_ERROR, "continue语句不在函数内");
+        return false;
+    }
+
+    // 获取当前loop的continue entry laebl
+    if (loopLabelStack.empty()) {
+        minic_log(LOG_ERROR, "continue语句不在循环内");
+        return false;
+    }
+    LabelInstruction * continueLabel = loopLabelStack.top().continueTarget;
+
+    // 添加跳转到循环条件判断的指令
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, continueLabel));
+
+    return true;
+}
+
+/// @brief less than节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_lt(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "less than操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "less than操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * ltInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "less than操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        ltInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_LT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        ltInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_LT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(ltInst);
+
+    node->val = ltInst;
+
+    return true;
+}
+
+/// @brief greater than节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_gt(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "greater than操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "greater than操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * gtInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "greater than操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        gtInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_GT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        gtInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_GT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(gtInst);
+
+    node->val = gtInst;
+
+    return true;
+}
+
+/// @brief less than equal节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_le(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "less than equal操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "less than equal操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * leInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "less than equal操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        leInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_LE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        leInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_LE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(leInst);
+
+    node->val = leInst;
+
+    return true;
+}
+
+/// @brief greater than equal节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_ge(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "greater than equal操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "greater than equal操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * geInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "greater than equal操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        geInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_GE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        geInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_GE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(geInst);
+
+    node->val = geInst;
+
+    return true;
+}
+
+/// @brief equal节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_eq(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    // ==节点，（如果允许多个==连接）可能需要考虑结合性
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "equal操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "equal操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * eqInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "equal操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_EQ,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_EQ,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(eqInst);
+
+    node->val = eqInst;
+
+    return true;
+}
+
+/// @brief not equal节点处理
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_ne(ast_node * node)
+{
+    ast_node * src1_node = node->sons[0];
+    ast_node * src2_node = node->sons[1];
+
+    ast_node * left = ir_visit_ast_node(src1_node);
+    ast_node * right = ir_visit_ast_node(src2_node);
+    if (!left || !right || !left->val || !right->val) {
+        minic_log(LOG_ERROR, "not equal操作数解析失败");
+        return false;
+    }
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_ERROR, "not equal操作数类型不一致");
+        return false;
+    }
+
+    BinaryInstruction * neInst = nullptr;
+
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        // 类型转换
+        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
+            minic_log(LOG_ERROR, "not equal操作数类型不一致");
+            return false;
+        }
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        neInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_FCMP_NE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+        neInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_NE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    }
+
+    // 创建临时变量保存IR的值，以及线性IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(neInst);
+
+    node->val = neInst;
 
     return true;
 }

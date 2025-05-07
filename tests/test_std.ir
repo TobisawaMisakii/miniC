@@ -1,0 +1,37 @@
+define i32 @main() {
+	declare i32 %l0
+	declare i32 %l1 ; variable: i
+	declare i1 %t2
+	declare i32 %t3
+	declare i1 %t4
+	declare i1 %t5
+.L1:
+	entry
+	%l1 = 0
+.L3:
+	%t2 = icmp lt %l1, 5
+	bc %t2, label .L4, label .L5
+.L4:
+	%t3 = add %l1, 1
+	%l1 = %t3
+	%t4 = icmp eq %l1, 2
+	bc %t4, label .L6, label .L7
+.L6:
+	br label .L3
+.L7:
+.L8:
+	br label .L5
+.L9:
+	%t5 = icmp ne %l1, 1
+	bc %t5, label .L10, label .L11
+.L10:
+	call void @putint(i32 %l1)
+	br label .L9
+.L11:
+	br label .L3
+.L5:
+	%l0 = %l1
+	br label .L2
+.L2:
+	exit %l0
+}

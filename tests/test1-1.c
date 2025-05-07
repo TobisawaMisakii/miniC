@@ -1,11 +1,12 @@
 
 int main()
 {
-    float a[2],b[2][3],n;
-    a[0] = 1.1;
-    b[1][1] = 1.2;
-    n = b[1][1]-a[0];
-    return 0;
+    int a[2],b[2][3],n;
+    const int c=4;
+    a[0] = 1;
+    b[1][1] = 2;
+    n = c*a[0];
+    return n;
 }
 // int n;
 
