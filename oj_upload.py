@@ -58,6 +58,7 @@ if __name__ == '__main__':
         'thirdparty',
         '.idea',
         'tests',
+        'function-tests',
         'oj_upload.py'
     ]
     create_zip_with_exclusions(source_dir, output_zip, exclude)

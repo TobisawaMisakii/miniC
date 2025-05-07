@@ -210,6 +210,31 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_ne(ast_node * node);
 
+    /// @brief and节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_and(ast_node * node);
+
+    /// @brief or节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_or(ast_node * node);
+
+    /// @brief pos（正号）节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_pos(ast_node * node);
+
+    /// @brief neg（负号）节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_neg(ast_node * node);
+
+    /// @brief not节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_not(ast_node * node);
+
     /// @brief 未知节点类型的节点处理
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败

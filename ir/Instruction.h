@@ -65,6 +65,15 @@ enum class IRInstOperator {
     IRINST_OP_ICMP_NE,
     IRINST_OP_FCMP_NE,
 
+    /// @brief 逻辑与指令，二元运算
+    IRINST_OP_AND,
+    /// @brief 逻辑或指令，二元运算
+    IRINST_OP_OR,
+
+    /// @brief 单目运算
+    IRINST_OP_NEG, //取负指令
+    IRINST_OP_NOT, //取反指令
+
     /// @brief 函数调用，多目运算，个数不限
     IRINST_OP_FUNC_CALL,
 
