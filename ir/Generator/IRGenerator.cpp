@@ -1,5 +1,4 @@
-﻿///
-/// @file IRGenerator.cpp
+﻿/// @file IRGenerator.cpp
 /// @brief AST遍历产生线性IR的源文件
 /// @author zenglj (zenglj@live.com)
 /// @version 1.1
@@ -1095,7 +1094,7 @@ bool IRGenerator::ir_const_define(ast_node * node)
     }
 
     // 检查常量是否已在当前作用域中声明
-    if (module->findVarValue(constName)) {
+    if (module->findCurrentVarValue(constName)) {
         minic_log(LOG_ERROR, "常量(%s)重复声明", constName.c_str());
         return false;
     }
@@ -1192,7 +1191,7 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         return false;
     }
     // 检查变量是否已在当前作用域中声明
-    if (module->findVarValue(varName)) {
+    if (module->findCurrentVarValue(varName)) {
         minic_log(LOG_ERROR, "变量(%s)重复声明", varName.c_str());
         return false;
     }
@@ -1213,32 +1212,27 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         }
         node->val = arrayValue;
         var_name_node->val = arrayValue;
-        //是否初始化
-        if (node->sons.size() == 3) {
-            if (!ir_visit_ast_node(node->sons[2])) {
-                minic_log(LOG_ERROR, "数组(%s)的初始化处理失败", varName.c_str());
-                return false;
-            }
-            return true;
-        }
         return true;
     }
     // 非数组变量处理
-
-    Value * varValue;
-    varValue = module->newVarValue(varType, varName);
-    node->val = varValue;
-    var_name_node->val = varValue;
-    if (!varValue) {
-        minic_log(LOG_ERROR, "变量(%s)创建失败", varName.c_str());
-        return false;
-    }
     // 检查是否有初始化
     if (node->sons.size() > 1) {
         // 处理初始化表达式
         ast_node * init_expr_node = node->sons[1];
         if (!ir_visit_ast_node(init_expr_node)) {
             minic_log(LOG_ERROR, "初始化表达式翻译失败");
+            return false;
+        }
+        Value * varValue;
+        if (!module->getCurrentFunction()) { //全局变量
+            varValue = module->newVarValue(varType, varName, init_expr_node->val);
+        } else { //局部变量
+            varValue = module->newVarValue(varType, varName);
+        }
+        node->val = varValue;
+        var_name_node->val = varValue;
+        if (!varValue) {
+            minic_log(LOG_ERROR, "变量(%s)创建失败", varName.c_str());
             return false;
         }
         // 类型转换检查

@@ -1,54 +1,8 @@
+//test domain of global var define and local define
+int a = 3;
+int b = 5;
 
-int main()
-{
-    int a[2],b[2][3],n;
-    const int c=4;
-    a[0] = 1;
-    b[1][1] = 2;
-    n = c*a[0];
-    return n;
+int main(){
+    int a = 5;
+    return a + b;
 }
-// int n;
-
-// void putint(int k);
-
-// int bubblesort(int arr[])
-// {
-//     int i;
-//     int j;
-//     i =0; 
-//     while(i < n-1){
-//     // Last i elements are already in place
-//         j = 0;
-//         while(j < n-i-1){
-//             if (arr[j] > arr[j+1]) {
-//                 // swap(&arr[j], &arr[j+1]); 
-//                 int tmp;
-//                 tmp = arr[j+1];
-//                 arr[j+1] = arr[j];
-//                 arr[j] = tmp;
-//             }
-//             j = j + 1;
-//         }
-//         i = i + 1;
-//     }
-//     return 0;
-// }
-
-// int main(){
-//     n = 10;
-//     int a[10];
-//     a[0]=4;a[1]=3;a[2]=9;a[3]=2;a[4]=0;
-//     a[5]=1;a[6]=6;a[7]=5;a[8]=7;a[9]=8;
-//     int i;
-//     i = bubblesort(a);
-//     while (i < n) {
-//         int tmp;
-//         tmp = a[i];
-//         putint(tmp);
-//         tmp = 10;
-//         putch(tmp);
-//         i = i + 1;
-//     }
-//     return 0;
-// }

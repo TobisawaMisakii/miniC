@@ -124,13 +124,19 @@ public:
     /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
     /// @param name 变量ID
     /// @param type 变量类型
-    Value * newVarValue(Type * type, std::string name = "");
+    /// @param initValue 初始值，默认nullptr
+    Value * newVarValue(Type * type, std::string name = "", Value * initValue = nullptr);
 
     /// @brief 查找变量（全局变量或局部变量），会根据作用域栈进行逐级查找。
     /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
     /// @param name 变量ID
     /// @return 指针有效则找到，空指针未找到
     Value * findVarValue(std::string name);
+
+    /// @brief 查找当前作用域变量
+    /// @param name 变量ID
+    /// @return 指针有效则找到，空指针未找到
+    Value * findCurrentVarValue(std::string name);
 
     /// @brief 新建一个数组变量的 Value，并加入到符号表中
     /// @param type 数组的基础类型（如 int、float）
@@ -168,7 +174,7 @@ protected:
     /// @param name 名字
     /// @return Value* 全局变量
     ///
-    GlobalVariable * newGlobalVariable(Type * type, std::string name);
+    GlobalVariable * newGlobalVariable(Type * type, std::string name, Value * initValue = nullptr);
 
     /// @brief 根据变量名获取当前符号（只管理全局变量）
     /// \param name 变量名
