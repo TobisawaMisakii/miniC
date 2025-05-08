@@ -1249,6 +1249,9 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         node->blockInsts.addInst(init_expr_node->blockInsts);
         node->blockInsts.addInst(var_name_node->blockInsts);
         node->blockInsts.addInst(movInst);
+    } else { //不初始化直接创建变量就行
+        Value * varValue;
+        varValue = module->newVarValue(varType, varName);
     }
     return true;
 }
