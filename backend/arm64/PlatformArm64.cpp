@@ -62,12 +62,12 @@ RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
 /// @return
 bool PlatformArm64::constExpr(int num)
 {
-    // ARM64支持更复杂的 immediate 生成逻辑
-    // 这里简化处理，实际实现需要更复杂的逻辑
+    // immediate 生成逻辑
+
     return true;
 }
 
-/// @brief 判定是否是合法的偏移，ARM64支持更大的偏移范围
+/// @brief 判定是否是合法的偏移
 /// @param num
 /// @return
 bool PlatformArm64::isDisp(int num)
@@ -84,6 +84,6 @@ bool PlatformArm64::isReg(std::string name)
            name == "x6" || name == "x7" || name == "x8" || name == "x9" || name == "x10" || name == "x11" ||
            name == "x12" || name == "x13" || name == "x14" || name == "x15" || name == "x16" || name == "x17" ||
            name == "x18" || name == "x19" || name == "x20" || name == "x21" || name == "x22" || name == "x23" ||
-           name == "x24" || name == "x25" || name == "x26" || name == "x27" || name == "x28" || name == "x29" ||
-           name == "x30" || name == "x31";
+           name == "x24" || name == "x25" || name == "x26" || name == "x27" || name == "x28" || name == "sp" ||
+           name == "lr" || name == "fp";
 }
