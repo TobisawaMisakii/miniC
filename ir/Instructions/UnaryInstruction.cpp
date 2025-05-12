@@ -7,8 +7,8 @@
 /// @param op 操作符
 /// @param srcVal1 源操作数
 /// @param result 结果值
-UnaryInstruction::UnaryInstruction(Function * _func, IRInstOperator _op, Value * _srcVal1, Value * _result)
-    : Instruction(_func, _op, _result->getType()), srcVal1(_srcVal1), result(_result), op(_op)
+UnaryInstruction::UnaryInstruction(Function * _func, IRInstOperator _op, Value * _srcVal1)
+    : Instruction(_func, _op, _srcVal1->getType()), srcVal1(_srcVal1), op(_op)
 {
     addOperand(_srcVal1);
 }

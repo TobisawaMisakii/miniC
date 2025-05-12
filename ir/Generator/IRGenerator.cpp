@@ -2068,18 +2068,15 @@ bool IRGenerator::ir_neg(ast_node * node)
         return false;
     }
 
-    // 创建临时变量保存最终结果
-    Value * result = module->newVarValue(left->val->getType());
-
     // 创建IR指令
-    UnaryInstruction * negInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NEG, left->val, result);
+    UnaryInstruction * negInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NEG, left->val);
 
     // 添加IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(negInst);
 
     // 保存结果
-    node->val = result;
+    node->val = negInst;
 
     return true;
 }
@@ -2105,18 +2102,15 @@ bool IRGenerator::ir_not(ast_node * node)
         return false;
     }
 
-    // 创建临时变量保存最终结果
-    Value * result = module->newVarValue(IntegerType::getTypeBool());
-
     // 创建IR指令
-    UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val, result);
+    UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val);
 
     // 添加IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(notInst);
 
     // 保存结果
-    node->val = result;
+    node->val = notInst;
 
     return true;
 }

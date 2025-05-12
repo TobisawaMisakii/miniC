@@ -88,8 +88,8 @@ define i32 @main()
 	declare i32 %l0
 	declare i32 %t1
 	entry
-	%t1 = call i32 @ifElseIf(i32 %t1)
-	call void @putint(i32 %t1)
+	%t1 = call i32 @ifElseIf()
+	call void @putint()
 	%l0 = 0
 	br label .L2
 .L2:

@@ -133,11 +133,11 @@ HexadecimalDigit: [0-9a-fA-F];
 
 // 浮点型常量（简化版，完整实现需参考C99标准）
 FloatConst:
-	Digit+ '.' Digit* ExponentPart?
-	| '.' Digit+ ExponentPart?
+	Digit* '.' Digit+ ExponentPart?
+	| Digit+ '.' ExponentPart?
 	| Digit+ ExponentPart;
 
-ExponentPart: [eE] [+-]? Digit+;
+fragment ExponentPart: [eE] [+-]? Digit+;
 
 WS: [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
