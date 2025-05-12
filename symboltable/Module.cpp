@@ -164,7 +164,7 @@ void Module::insertGlobalValueDirectly(GlobalVariable * val)
     globalVariableVector.push_back(val);
 }
 
-/// @brief Value直接插入到符号表中的全局变量中
+/// @brief Value直接插入到符号表中的常数中
 /// @param name Value的名称
 /// @param val Value信息
 void Module::insertConstIntDirectly(ConstInt * val)
@@ -172,7 +172,7 @@ void Module::insertConstIntDirectly(ConstInt * val)
     constIntMap.emplace(val->getVal(), val);
 }
 
-/// @brief 新建一个整型数值的Value，并加入到符号表，用于后续释放空间
+/// @brief 新建一个整型数值，并加入到符号表，用于后续释放空间
 /// @param intVal 整数值
 /// @return 常量Value
 ConstInt * Module::newConstInt(int32_t intVal)
@@ -241,7 +241,7 @@ ConstFloat * Module::findConstFloat(float val)
 /// @param type 变量类型
 /// @param name 变量ID 局部变量时可以为空，目的为了SSA时创建临时的局部变量，
 /// @return nullptr则说明变量已存在，否则为新建的变量
-Value * Module::newVarValue(Type * type, std::string name)
+Value * Module::newVarValue(Type * type, std::string name, Value * initValue)
 {
     Value * retVal;
     std::string varName;
@@ -274,7 +274,7 @@ Value * Module::newVarValue(Type * type, std::string name)
 
     } else {
         printf("创建全局变量%s\n", name.c_str());
-        retVal = newGlobalVariable(type, name);
+        retVal = newGlobalVariable(type, name, initValue);
     }
 
     // 增加做作用域中
@@ -285,14 +285,19 @@ Value * Module::newVarValue(Type * type, std::string name)
 
 /// @brief 查找变量，会根据作用域栈进行逐级查找。
 /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
-///
 /// @param name 变量ID
 /// @return 指针有效则找到，空指针未找到
 Value * Module::findVarValue(std::string name)
 {
     // 逐层级作用域查找
     Value * tempValue = scopeStack->findAllScope(name);
+    return tempValue;
+}
 
+Value * Module::findCurrentVarValue(std::string name)
+{
+    // 逐层级作用域查找
+    Value * tempValue = scopeStack->findCurrentScope(name);
     return tempValue;
 }
 
@@ -352,10 +357,17 @@ Value * Module::newArrayValue(Type * type, std::string name, const std::vector<i
 /// @param name 名字
 /// @return Value* 全局变量
 ///
-GlobalVariable * Module::newGlobalVariable(Type * type, std::string name)
+GlobalVariable * Module::newGlobalVariable(Type * type, std::string name, Value * initValue)
 {
     GlobalVariable * val = new GlobalVariable(type, name);
-
+    if (initValue) {
+        if (!Type::canConvert(initValue->getType(), type)) {
+            minic_log(LOG_ERROR, "全局变量(%s)的初始化值类型不匹配", name.c_str());
+            delete val;
+            return nullptr;
+        }
+        val->setInitialValue(initValue);
+    }
     insertGlobalValueDirectly(val);
 
     return val;

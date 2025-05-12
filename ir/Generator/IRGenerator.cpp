@@ -51,8 +51,8 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_SUB] = &IRGenerator::ir_sub;
     ast2ir_handlers[ast_operator_type::AST_OP_ADD] = &IRGenerator::ir_add;
     ast2ir_handlers[ast_operator_type::AST_OP_MUL] = &IRGenerator::ir_mul;
-    // ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
-    // ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
+    ast2ir_handlers[ast_operator_type::AST_OP_DIV] = &IRGenerator::ir_div;
+    ast2ir_handlers[ast_operator_type::AST_OP_MOD] = &IRGenerator::ir_mod;
 
     //单目运算符
     ast2ir_handlers[ast_operator_type::AST_OP_POS] = &IRGenerator::ir_pos;
@@ -93,7 +93,7 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DECL] = &IRGenerator::ir_variable_declare;
     // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DECL] = &IRGenerator::ir_const_declare;
     ast2ir_handlers[ast_operator_type::AST_OP_VAR_DEF] = &IRGenerator::ir_variable_define;
-    // ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
+    ast2ir_handlers[ast_operator_type::AST_OP_CONST_DEF] = &IRGenerator::ir_const_define;
 
     // 左值
     ast2ir_handlers[ast_operator_type::AST_OP_LVAL] = &IRGenerator::ir_lval;
@@ -807,6 +807,92 @@ bool IRGenerator::ir_lval(ast_node * node)
     return true;
 }
 
+/// @brief 除法AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_div(ast_node * node)
+{
+    // 确保有两个操作数
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "除法运算需要两个操作数");
+        return false;
+    }
+
+    ast_node * left = ir_visit_ast_node(node->sons[0]);
+    ast_node * right = ir_visit_ast_node(node->sons[1]);
+
+    if (!left || !right) {
+        minic_log(LOG_ERROR, "除法操作数解析失败");
+        return false;
+    }
+
+    // 分别处理整数和浮点
+    IRInstOperator op;
+    Type * resultType;
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+        op = IRInstOperator::IRINST_OP_DIV_F; // 浮点除法指令
+        resultType = FloatType::getTypeFloat();
+    } else {
+        op = IRInstOperator::IRINST_OP_DIV_I; // 整数除法指令
+        resultType = IntegerType::getTypeInt();
+    }
+
+    BinaryInstruction * divInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
+
+    // 添加指令到当前块
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(divInst);
+
+    // 设置节点的值
+    node->val = divInst;
+
+    return true;
+}
+
+/// @brief 取模AST节点翻译成线性中间IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_mod(ast_node * node)
+{
+    // 确保有两个操作数
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "取模运算需要两个操作数");
+        return false;
+    }
+
+    ast_node * left = ir_visit_ast_node(node->sons[0]);
+    ast_node * right = ir_visit_ast_node(node->sons[1]);
+
+    if (!left || !right) {
+        minic_log(LOG_ERROR, "取模操作数解析失败");
+        return false;
+    }
+
+    // 取模只支持整数
+    if (!left->val->getType()->isIntegerType() || !right->val->getType()->isIntegerType()) {
+        minic_log(LOG_ERROR, "取模运算只支持整数类型");
+        return false;
+    }
+
+    IRInstOperator op = IRInstOperator::IRINST_OP_MOD_I; // 整数取模指令
+    Type * resultType = IntegerType::getTypeInt();
+
+    BinaryInstruction * modInst =
+        new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
+
+    // 添加指令到当前块
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(modInst);
+
+    // 设置节点的值
+    node->val = modInst;
+
+    return true;
+}
+
 /// @brief return节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
@@ -1067,6 +1153,9 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         node->blockInsts.addInst(init_expr_node->blockInsts);
         node->blockInsts.addInst(var_name_node->blockInsts);
         node->blockInsts.addInst(movInst);
+    } else { //不初始化直接创建变量就行
+        Value * varValue;
+        varValue = module->newVarValue(varType, varName);
     }
     return true;
 }
@@ -2000,43 +2089,136 @@ bool IRGenerator::ir_neg(ast_node * node)
 /// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_not(ast_node * node)
 {
-	ast_node * src1_node = node->sons[0];
+    ast_node * src1_node = node->sons[0];
 
-	// 获取当前函数
-	Function * currentFunc = module->getCurrentFunction();
-	if (!currentFunc) {
-		minic_log(LOG_ERROR, "not操作不在函数内");
-		return false;
-	}
+    // 获取当前函数
+    Function * currentFunc = module->getCurrentFunction();
+    if (!currentFunc) {
+        minic_log(LOG_ERROR, "not操作不在函数内");
+        return false;
+    }
 
-	// 处理操作数
-	ast_node * left = ir_visit_ast_node(src1_node);
-	if (!left || !left->val) {
-		minic_log(LOG_ERROR, "not操作数解析失败");
-		return false;
-	}
+    // 处理操作数
+    ast_node * left = ir_visit_ast_node(src1_node);
+    if (!left || !left->val) {
+        minic_log(LOG_ERROR, "not操作数解析失败");
+        return false;
+    }
 
-	// 创建临时变量保存最终结果
-	Value * result = module->newVarValue(IntegerType::getTypeBool());
+    // 创建临时变量保存最终结果
+    Value * result = module->newVarValue(IntegerType::getTypeBool());
 
-	// 创建IR指令
-	UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val, result);
+    // 创建IR指令
+    UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val, result);
 
-	// 添加IR指令
-	node->blockInsts.addInst(left->blockInsts);
-	node->blockInsts.addInst(notInst);
+    // 添加IR指令
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(notInst);
 
-	// 保存结果
-	node->val = result;
+    // 保存结果
+    node->val = result;
 
-	return true;
+    return true;
 }
 
-// bool IRGenerator::ir_const_declare(ast_node * node)
-// {
-//     return false;
-// }
-// bool IRGenerator::ir_const_define(ast_node * node)
-// {
-//     return false;
-// }
+/// @brief 处理单个常量声明节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_const_declare(ast_node * node)
+{
+    if (node->sons.size() < 2) {
+        minic_log(LOG_ERROR, "常量声明节点的子节点数量不足");
+        return false;
+    }
+
+    // 第一个子节点是类型节点
+    ast_node * type_node = node->sons[0];
+    if (!ir_visit_ast_node(type_node)) {
+        minic_log(LOG_ERROR, "常量声明的类型节点无效");
+        return false;
+    }
+
+    // 遍历所有 const_def 节点
+    for (size_t i = 1; i < node->sons.size(); ++i) {
+        ast_node * const_def_node = node->sons[i];
+        if (!ir_visit_ast_node(const_def_node)) {
+            minic_log(LOG_ERROR, "常量定义失败");
+            return false;
+        }
+        node->blockInsts.addInst(const_def_node->blockInsts);
+    }
+
+    return true;
+}
+
+/// @brief 处理单个常量定义节点，生成对应的IR。
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_const_define(ast_node * node)
+{
+    if (node->sons.empty()) {
+        minic_log(LOG_ERROR, "常量定义节点没有子节点");
+        return false;
+    }
+
+    if (!node->parent->sons[0]->type) {
+        minic_log(LOG_ERROR, "未指定常量类型");
+        return false;
+    }
+
+    // 第一个子节点是常量名
+    ast_node * const_name_node = node->sons[0];
+    std::string constName = const_name_node->name;
+    Type * constType = node->parent->sons[0]->type;
+
+    if (const_name_node->node_type != ast_operator_type::AST_OP_LEAF_VAR_ID) {
+        minic_log(LOG_ERROR, "常量定义的常量名节点无效");
+        return false;
+    }
+
+    // 检查常量是否已在当前作用域中声明
+    if (module->findCurrentVarValue(constName)) {
+        minic_log(LOG_ERROR, "常量(%s)重复声明", constName.c_str());
+        return false;
+    }
+
+    // 创建常量
+    Value * constValue = module->newVarValue(constType, constName);
+    if (!constValue) {
+        minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
+        return false;
+    }
+
+    node->val = constValue;
+    const_name_node->val = constValue;
+
+    // 检查是否有初始化
+    if (node->sons.size() > 1) {
+        // 处理初始化表达式
+        ast_node * init_expr_node = node->sons[1];
+        if (!ir_visit_ast_node(init_expr_node)) {
+            minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+            return false;
+        }
+
+        // 类型转换检查
+        if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
+            minic_log(LOG_ERROR,
+                      "无法将类型%d赋给类型%d",
+                      init_expr_node->val->getType()->getTypeID(),
+                      constType->getTypeID());
+            return false;
+        }
+
+        // 生成赋值指令
+        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
+        // 添加指令到当前块
+        node->blockInsts.addInst(init_expr_node->blockInsts);
+        node->blockInsts.addInst(movInst);
+    } else {
+        minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
+        return false;
+    }
+
+    return true;
+}

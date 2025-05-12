@@ -1,0 +1,41 @@
+define i32 @main()
+{
+	declare i32 %l0
+	declare i32 %l1 ; 1:a
+	declare i1 %l2
+	declare i1 %l3
+	declare i1 %l4
+	declare i1 %l5
+	declare i1 %l6
+	declare i32 %l7
+	declare i32 %l8
+	declare i32 %l9
+	declare i1 %t10
+	declare i1 %t11
+	declare i1 %t12
+	declare i1 %t13
+	declare i32 %t15
+	declare i32 %t16
+	declare i32 %t17
+	entry
+	%l1 = 10
+	%t10 = not %l1
+	%t11 = not %l2
+	%t12 = not %l3
+	%t13 = neg %l4
+	%l6 = %l5
+	bc %l6, label .L14, label .L18
+.L14:
+	%t15 = neg 1
+	%t16 = neg %l7
+	%t17 = neg %l8
+	%l1 = %l9
+	br label .L19
+.L18:
+	%l1 = 0
+.L19:
+	%l0 = %l1
+	br label .L20
+.L20:
+	exit %l0
+}

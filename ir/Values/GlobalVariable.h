@@ -18,6 +18,7 @@
 
 #include "GlobalValue.h"
 #include "IRConstant.h"
+#include "ArrayType.h"
 
 ///
 /// @brief 全局变量，寻址时通过符号名或变量名来寻址
@@ -83,16 +84,48 @@ public:
         this->loadRegNo = regId;
     }
 
+    void setInitialValue(Value * value)
+    {
+        initialValue = value;
+    }
+
+    Value * getInitialValue() const
+    {
+        return initialValue;
+    }
+
     ///
     /// @brief Declare指令IR显示
     /// @param str
     ///
     void toDeclareString(std::string & str)
     {
-        str = "declare " + getType()->toString() + " " + getIRName();
+        if (getType()->isArrayType()) {
+            // 获取类型字符串
+            std::string typeStr = getType()->getBaseType()->toString();
+            str = "declare " + getType()->getBaseType()->toString() + " " + getIRName();
+            // 获取数组维度
+            const ArrayType * arrayType = dynamic_cast<const ArrayType *>(getType());
+            if (arrayType) {
+                for (int dim: arrayType->getDimensions()) {
+                    str += "[" + std::to_string(dim) + "]";
+                }
+            }
+        } else {
+            // 非数组类型的处理
+            if (getInitialValue()) {
+                str = "declare " + getType()->toString() + " " + getIRName() + " = " + getInitialValue()->getIRName();
+                ;
+            } else {
+                str = "declare " + getType()->toString() + " " + getIRName();
+            }
+        }
     }
 
 private:
+    /// @brief 初始值
+    Value * initialValue = nullptr;
+
     ///
     /// @brief 变量加载到寄存器中时对应的寄存器编号
     ///

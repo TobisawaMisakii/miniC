@@ -64,6 +64,22 @@ void BinaryInstruction::toString(std::string & str)
             // 浮点数乘法指令
             str = getIRName() + " = fmul " + src1->getIRName() + "," + src2->getIRName();
             break;
+        case IRInstOperator::IRINST_OP_DIV_I:
+            // 整数除法指令
+            str = getIRName() + " = div " + src1->getIRName() + ", " + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_DIV_F:
+            // 浮点数除法指令
+            str = getIRName() + " = fdiv " + src1->getIRName() + ", " + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_MOD_I:
+            // 整数取模指令
+            str = getIRName() + " = mod " + src1->getIRName() + ", " + src2->getIRName();
+            break;
+        case IRInstOperator::IRINST_OP_MOD_F:
+            // 浮点数取模指令
+            str = getIRName() + " = fmod " + src1->getIRName() + ", " + src2->getIRName();
+            break;
         case IRInstOperator::IRINST_OP_ICMP_LT:
             // 小于比较指令，指令格式为：<result> = icmp <cond> <ty> <op1>, <op2>
             str = getIRName() + " = icmp lt " + src1->getIRName() + ", " + src2->getIRName();
