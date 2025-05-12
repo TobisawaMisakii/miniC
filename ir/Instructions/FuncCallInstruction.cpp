@@ -63,7 +63,7 @@ void FuncCallInstruction::toString(std::string & str)
         str = getIRName() + " = call " + type->toString() + " " + calledFunction->getIRName() + "(";
     }
 
-    if (argCount == 0) {
+    if (argCount != 0) {
 
         // 如果没有arg指令，则输出函数的实参
         for (int32_t k = 0; k < operandsNum; ++k) {
