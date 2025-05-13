@@ -1,0 +1,82 @@
+declare i32 @a
+declare i32 @b
+declare i32 @c
+declare i32 @d
+declare i32 @e
+define i32 @main()
+{
+	declare i32 %l0
+	declare i32 %l1 ; 1:flag
+	declare i1 %l2
+	declare i1 %l3
+	declare i32 %t4
+	declare i32 %t5
+	declare i32 %t6
+	declare i32 %t7
+	declare i32 %t8
+	declare i32 %t9
+	declare i32 %t10
+	declare i32 %t11
+	declare i32 %t12
+	declare i1 %t13
+	declare i32 %t15
+	declare i32 %t16
+	declare i32 %t17
+	declare i1 %t18
+	declare i32 %t23
+	declare i32 %t24
+	declare i32 %t25
+	declare i1 %t26
+	entry
+	%t4 = call i32 @getint()
+	@a = %t4
+	%t5 = call i32 @getint()
+	@b = %t5
+	%t6 = call i32 @getint()
+	@c = %t6
+	%t7 = call i32 @getint()
+	@d = %t7
+	%t8 = call i32 @getint()
+	@e = %t8
+	%l1 = 0
+	%t9 = mul @b,@c
+	%t10 = sub @a,%t9
+	%t11 = div @a, @c
+	%t12 = sub @d,%t11
+	%t13 = icmp ne %t10, %t12
+	bc %t13, label .L19, label .L14
+.L14:
+	%t15 = mul @a,@b
+	%t16 = div %t15, @c
+	%t17 = add @e,@d
+	%t18 = icmp eq %t16, %t17
+	bc %t18, label .L19, label .L20
+.L19:
+	%l2 = 1
+	br label .L21
+.L20:
+	%l2 = 0
+.L21:
+	bc %l2, label .L27, label .L22
+.L22:
+	%t23 = add @a,@b
+	%t24 = add %t23,@c
+	%t25 = add @d,@e
+	%t26 = icmp eq %t24, %t25
+	bc %t26, label .L27, label .L28
+.L27:
+	%l3 = 1
+	br label .L29
+.L28:
+	%l3 = 0
+.L29:
+	bc %l3, label .L30, label .L31
+.L30:
+	%l1 = 1
+	br label .L31
+.L31:
+	%l0 = %l1
+	br label .L32
+.L32:
+	exit %l0
+}

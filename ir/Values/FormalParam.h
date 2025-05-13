@@ -31,12 +31,12 @@ public:
         this->name = _name;
     };
 
-    // /// @brief 输出字符串
-    // /// @param str
-    // std::string toString() override
-    // {
-    //     return type->toString() + " " + IRName;
-    // }
+    /// @brief 输出字符串
+    /// @param str
+    std::string toString()
+    {
+        return type->toString() + " " + IRName;
+    }
 
     ///
     /// @brief 获得分配的寄存器编号或ID

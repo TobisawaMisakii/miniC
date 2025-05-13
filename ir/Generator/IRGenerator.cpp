@@ -35,6 +35,7 @@
 #include "GotoInstruction.h"
 #include "BranchConditional.h"
 #include "UnaryInstruction.h"
+#include "ArgInstruction.h"
 
 /// @brief 构造函数
 /// @param _root AST的根
@@ -68,8 +69,8 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     ast2ir_handlers[ast_operator_type::AST_OP_GE] = &IRGenerator::ir_ge;
 
     // 逻辑表达式
-    ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
-    ast2ir_handlers[ast_operator_type::AST_OP_OR] = &IRGenerator::ir_or;
+    // ast2ir_handlers[ast_operator_type::AST_OP_AND] = &IRGenerator::ir_and;
+    // ast2ir_handlers[ast_operator_type::AST_OP_OR] = &IRGenerator::ir_or;
 
     /* 语句 */
     ast2ir_handlers[ast_operator_type::AST_OP_ASSIGN] = &IRGenerator::ir_assign;
@@ -82,7 +83,8 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
-    // ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
+    // ir_function_real_params不用，直接用lval节点处理函数就行
+    //  ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
 
     /* 函数定义 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_DEF] = &IRGenerator::ir_function_define;
@@ -333,17 +335,23 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
         Type * paramType = son->sons[0]->type;
         std::string paramName = son->sons[1]->name;
 
+        // 创建 FormalParam 对象并添加到函数的形参列表中
+        FormalParam * formalParam = new FormalParam(paramType, paramName);
+        currentFunc->addParam(formalParam);
+
         // 创建真实的形参局部变量
-        LocalVariable * realParam = currentFunc->newLocalVarValue(paramType, paramName);
+        // LocalVariable * realParam = currentFunc->newLocalVarValue(paramType, paramName);
+        Value * realParam = module->newVarValue(paramType, paramName);
 
         // 创建临时变量用于表达实参传递的值
-        LocalVariable * tempParam = currentFunc->newLocalVarValue(paramType);
+        // LocalVariable * tempParam = currentFunc->newLocalVarValue(paramType);
+        // Value * tempParam = module->newVarValue(paramType);
 
         // 产生赋值指令，将临时变量的值拷贝到形参局部变量上
-        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, tempParam);
+        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, currentFunc->getParams().back());
 
         // 将赋值指令插入到Entry指令之后
-        irCode.getInsts().insert(entryIter, movInst);
+        irCode.getInsts().push_back(movInst);
     }
 
     return true;
@@ -378,9 +386,9 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
     // 当前函数存在函数调用
     currentFunc->setExistFuncCall(true);
-
+    currentFunc->realArgCountReset(); // 重置计数
+    printf("函数调用%s\n", funcName.c_str());
     // 如果没有孩子，也认为是没有参数
-    // if (!paramsNode->sons.empty()) {
     if (nullptr != paramsNode) {
 
         int32_t argsCount = (int32_t) paramsNode->sons.size();
@@ -397,10 +405,12 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
             // 遍历Block的每个语句，进行显示或者运算
             ast_node * temp = ir_visit_ast_node(son);
-            if (!temp) {
+            if (!temp || !temp->val) {
+                minic_log(LOG_ERROR, "实参翻译失败");
                 return false;
             }
-
+            // 生成参数传递的IR指令
+            // currentFunc->realArgCountInc();
             realParams.push_back(temp->val);
             node->blockInsts.addInst(temp->blockInsts);
         }
@@ -423,7 +433,6 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
     // 函数调用结果Value保存到node中，可能为空，上层节点可利用这个值
     node->val = funcCallInst;
-
     return true;
 }
 
@@ -1090,7 +1099,7 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         return false;
     }
     // 检查变量是否已在当前作用域中声明
-    if (module->findVarValue(varName)) {
+    if (module->findCurrentVarValue(varName)) {
         minic_log(LOG_ERROR, "变量(%s)重复声明", varName.c_str());
         return false;
     }
@@ -1111,32 +1120,27 @@ bool IRGenerator::ir_variable_define(ast_node * node)
         }
         node->val = arrayValue;
         var_name_node->val = arrayValue;
-        //是否初始化
-        if (node->sons.size() == 3) {
-            if (!ir_visit_ast_node(node->sons[2])) {
-                minic_log(LOG_ERROR, "数组(%s)的初始化处理失败", varName.c_str());
-                return false;
-            }
-            return true;
-        }
         return true;
     }
     // 非数组变量处理
-
-    Value * varValue;
-    varValue = module->newVarValue(varType, varName);
-    node->val = varValue;
-    var_name_node->val = varValue;
-    if (!varValue) {
-        minic_log(LOG_ERROR, "变量(%s)创建失败", varName.c_str());
-        return false;
-    }
     // 检查是否有初始化
     if (node->sons.size() > 1) {
         // 处理初始化表达式
         ast_node * init_expr_node = node->sons[1];
         if (!ir_visit_ast_node(init_expr_node)) {
             minic_log(LOG_ERROR, "初始化表达式翻译失败");
+            return false;
+        }
+        Value * varValue;
+        if (!module->getCurrentFunction()) { //全局变量
+            varValue = module->newVarValue(varType, varName, init_expr_node->val);
+        } else { //局部变量
+            varValue = module->newVarValue(varType, varName);
+        }
+        node->val = varValue;
+        var_name_node->val = varValue;
+        if (!varValue) {
+            minic_log(LOG_ERROR, "变量(%s)创建失败", varName.c_str());
             return false;
         }
         // 类型转换检查
@@ -1156,6 +1160,8 @@ bool IRGenerator::ir_variable_define(ast_node * node)
     } else { //不初始化直接创建变量就行
         Value * varValue;
         varValue = module->newVarValue(varType, varName);
+        if (!varValue)
+            minic_log(LOG_INFO, "变量(%s)创建失败", varName.c_str());
     }
     return true;
 }
@@ -1269,60 +1275,77 @@ bool IRGenerator::ir_if(ast_node * node)
     ast_node * thenNode = node->sons[1];                                      // then分支
     ast_node * elseNode = (node->sons.size() == 3) ? node->sons[2] : nullptr; // 可选的else分支
 
-    // 处理条件表达式
-    Value * condResult = nullptr;
-
-    ast_node * cond = ir_visit_ast_node(condNode);
-    if (!cond) {
-        minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
-        return false;
-    }
-    // 检查条件表达式的值是否有效
-    if (!cond->val) {
-        minic_log(LOG_ERROR, "if语句的条件表达式值无效");
-        return false;
-    }
-
-    if (cond->node_type == ast_operator_type::AST_OP_LVAL) {
-        // 如果cond是一个单独的lval节点
-        // 这里需要处理lval的值
-        if (!ir_visit_ast_node(cond)) {
-            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
-            return false;
-        }
-        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
-                                                              IRInstOperator::IRINST_OP_ICMP_NE,
-                                                              cond->val,
-                                                              module->newConstInt(0),
-                                                              IntegerType::getTypeBool());
-        node->blockInsts.addInst(lval_ne_0);
-        condResult = lval_ne_0;
-    } else if (!cond->val->getType()->isInt1Byte()) {
-        // 如果cond是一个关系表达式
-        minic_log(LOG_ERROR, "if语句的条件表达式类型错误");
-        return false;
-    } else {
-        // 直接使用条件表达式的值
-        condResult = cond->val;
-    }
-
     // 获取当前函数
     Function * currentFunc = module->getCurrentFunction();
     if (!currentFunc) {
         return false;
     }
 
-    // 标签指令，用于跳转
-    LabelInstruction * elseLabelInst = elseNode ? new LabelInstruction(currentFunc) : nullptr;
     LabelInstruction * thenLabelInst = new LabelInstruction(currentFunc);
+    LabelInstruction * elseLabelInst = elseNode ? new LabelInstruction(currentFunc) : nullptr;
     LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
 
-    // 创建条件跳转指令，如果cond->val为0，则跳转到elseLabel(如果没有就是endLable)，否则跳转到thenLabel
-    BranchCondInstruction * condGotoInst =
-        new BranchCondInstruction(currentFunc, condResult, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst);
+    // 处理条件表达式
+    // 1. 左值节点
+    // 2. 关系表达式 (==, !=, <, >, <=, >=)
+    // 3. 逻辑表达式 (and or)
 
-    node->blockInsts.addInst(cond->blockInsts);
-    node->blockInsts.addInst(condGotoInst);
+    if (condNode->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果cond是一个单独的lval节点，与0比较
+        if (!ir_visit_ast_node(condNode)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              condNode->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        // 根据条件表达式的值，跳转到thenLabel或elseLabel(如果没有elseLabel，则跳转到endLabel)
+        condNode->val = lval_ne_0;
+        BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
+                                                                         lval_ne_0,
+                                                                         thenLabelInst,
+                                                                         elseLabelInst ? elseLabelInst : endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_AND) {
+        // 处理逻辑与表达式
+        if (!ir_and(condNode, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_OR) {
+        // 处理逻辑或表达式
+        if (!ir_or(condNode, thenLabelInst, elseLabelInst ? elseLabelInst : endLabelInst)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_EQ ||
+               condNode->node_type == ast_operator_type::AST_OP_NE ||
+               condNode->node_type == ast_operator_type::AST_OP_LT ||
+               condNode->node_type == ast_operator_type::AST_OP_GT ||
+               condNode->node_type == ast_operator_type::AST_OP_LE ||
+               condNode->node_type == ast_operator_type::AST_OP_GE) {
+        // 处理关系表达式
+        if (!ir_visit_ast_node(condNode)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+        // 根据条件表达式的值，跳转到thenLabel或elseLabel(如果没有elseLabel，则跳转到endLabel)
+        BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
+                                                                         condNode->val,
+                                                                         thenLabelInst,
+                                                                         elseLabelInst ? elseLabelInst : endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
+    } else {
+        minic_log(LOG_ERROR, "不支持的条件表达式类型: %d", static_cast<int>(condNode->node_type));
+        return false;
+    }
 
     // 处理then分支
     node->blockInsts.addInst(thenLabelInst);
@@ -1372,7 +1395,6 @@ bool IRGenerator::ir_while(ast_node * node)
     if (!currentFunc) {
         return false;
     }
-    // InterCode & irCode = currentFunc->getInterCode();
 
     // 标签指令，用于跳转
     LabelInstruction * condLabelInst = new LabelInstruction(currentFunc);
@@ -1383,54 +1405,65 @@ bool IRGenerator::ir_while(ast_node * node)
     node->blockInsts.addInst(condLabelInst);
 
     // 处理条件判断
-    Value * condResult = nullptr;
-
-    ast_node * cond = ir_visit_ast_node(condNode);
-    if (!cond) {
-        minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
-        return false;
-    }
-    // 检查条件表达式的值是否有效
-    if (!cond->val) {
-        minic_log(LOG_ERROR, "while语句的条件表达式值无效");
-        return false;
-    }
     // 检查cond是否是左值节点，如果是，跟0比较
-    if (cond->node_type == ast_operator_type::AST_OP_LVAL) {
+    if (condNode->node_type == ast_operator_type::AST_OP_LVAL) {
         // 如果cond是一个单独的lval节点
         // 这里需要处理lval的值
-        if (!ir_visit_ast_node(cond)) {
+        if (!ir_visit_ast_node(condNode)) {
             minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
             return false;
         }
+        node->blockInsts.addInst(condNode->blockInsts);
         BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
                                                               IRInstOperator::IRINST_OP_ICMP_NE,
-                                                              cond->val,
+                                                              condNode->val,
                                                               module->newConstInt(0),
                                                               IntegerType::getTypeBool());
         node->blockInsts.addInst(lval_ne_0);
-        condResult = lval_ne_0;
-    } else if (!cond->val->getType()->isInt1Byte()) {
-        // 如果cond是一个关系表达式
-        minic_log(LOG_ERROR, "while语句的条件表达式类型错误");
-        return false;
+        // 根据条件表达式的值，跳转到bodyLabel或endLabel
+        BranchCondInstruction * condGotoInst =
+            new BranchCondInstruction(currentFunc, lval_ne_0, bodyLabelInst, endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_AND) {
+        if (!ir_and(condNode, bodyLabelInst, endLabelInst)) {
+            minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_OR) {
+        if (!ir_or(condNode, bodyLabelInst, endLabelInst)) {
+            minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
     } else {
-        // 直接使用条件表达式的值
-        condResult = cond->val;
+        // 如果cond是一个关系表达式
+        if (!ir_visit_ast_node(condNode)) {
+            minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+            return false;
+        }
+        // 检查条件表达式的值是否有效
+        if (!condNode->val) {
+            minic_log(LOG_ERROR, "while语句的条件表达式值无效");
+            return false;
+        }
+        // 检查条件表达式的类型是否正确
+        if (!condNode->val->getType()->isInt1Byte()) {
+            minic_log(LOG_ERROR, "while语句的条件表达式类型错误");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+        // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则按顺序进入bodyLabel
+        BranchCondInstruction * condGotoInst =
+            new BranchCondInstruction(currentFunc, condNode->val, bodyLabelInst, endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
     }
-
-    node->blockInsts.addInst(cond->blockInsts);
 
     // ======= 记录loop label目标 =======
     LoopContext loopContext;
     loopContext.continueTarget = condLabelInst;
     loopContext.breakTarget = endLabelInst;
     loopLabelStack.push(loopContext);
-
-    // 创建条件跳转指令，如果cond->val为0，则跳转到endLabel，否则按顺序进入bodyLabel
-    BranchCondInstruction * condGotoInst =
-        new BranchCondInstruction(currentFunc, condResult, bodyLabelInst, endLabelInst);
-    node->blockInsts.addInst(condGotoInst);
 
     // 添加body分支的Label指令，进入循环体
     node->blockInsts.addInst(bodyLabelInst);
@@ -1822,189 +1855,265 @@ bool IRGenerator::ir_ne(ast_node * node)
 }
 
 /// @brief and节点，生成对应的IR。
-/// @param node AST节点
+/// @param node AST节点，真/假 出口标签指令
 /// @return 翻译是否成功，true：成功，false：失败
-bool IRGenerator::ir_and(ast_node * node)
+bool IRGenerator::ir_and(ast_node * node, LabelInstruction * trueLabel, LabelInstruction * falseLabel)
 {
-    ast_node * src1_node = node->sons[0];
-    ast_node * src2_node = node->sons[1];
+    // and节点，生成对应的IR。
+    // 处理逻辑与操作符
+    // leftJudgeLabel: 左操作数判断
+    // 1. 处理左操作数
+    // 2. 如果左操作数为假，跳转到假标签
+    // rightJudgeLabel: 右操作数判断
+    // 3. 处理右操作数
+    // 4. 如果右操作数为假，跳转到假标签
+    // 5. 否则，跳转到真标签
 
-    // 获取当前函数
-    Function * currentFunc = module->getCurrentFunction();
-    if (!currentFunc) {
-        minic_log(LOG_ERROR, "and操作不在函数内");
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "and操作的子节点数量不正确");
         return false;
     }
+    LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
+    LabelInstruction * rightJudgeInst = new LabelInstruction(module->getCurrentFunction());
 
+    // 获取左操作数和右操作数
+    ast_node * left = node->sons[0];
+    ast_node * right = node->sons[1];
     // 处理左操作数
-    ast_node * left = ir_visit_ast_node(src1_node);
-    if (!left || !left->val) {
-        minic_log(LOG_ERROR, "and操作左操作数解析失败");
-        return false;
+    // 根据操作数类型不同，走lval和逻辑判断语句两条路
+    node->blockInsts.addInst(leftJudgeInst);
+    if (left->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果左操作数是一个lval节点，与0比较
+        if (!ir_visit_ast_node(left)) {
+            minic_log(LOG_ERROR, "and操作数解析失败");
+            return false;
+        }
+        // 检查左操作数的值是否有效
+        if (!left->val) {
+            minic_log(LOG_ERROR, "and操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              left->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        // 左节点短路跳转
+        BranchCondInstruction * leftGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), lval_ne_0, rightJudgeInst, falseLabel);
+        node->blockInsts.addInst(leftGotoInst);
+    } else {
+        // 如果左操作数是一个逻辑表达式
+        if (!ir_visit_ast_node(left)) {
+            minic_log(LOG_ERROR, "and操作数解析失败");
+            return false;
+        }
+        // 检查左操作数的值是否有效
+        if (!left->val) {
+            minic_log(LOG_ERROR, "and操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+        // 左节点短路跳转
+        BranchCondInstruction * leftGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), left->val, rightJudgeInst, falseLabel);
+        node->blockInsts.addInst(leftGotoInst);
     }
 
     // 处理右操作数
-    ast_node * right = ir_visit_ast_node(src2_node);
-    if (!right || !right->val) {
-        minic_log(LOG_ERROR, "and操作右操作数解析失败");
-        return false;
-    }
-
-    // 创建标签指令
-    LabelInstruction * leftTrueLabel = new LabelInstruction(currentFunc); // 左操作数为真时的标签
-    LabelInstruction * falseLabel = new LabelInstruction(currentFunc);    // 整个表达式为假时的标签
-    LabelInstruction * trueLabel = new LabelInstruction(currentFunc);     // 整个表达式为真时的标签
-    LabelInstruction * endLabel = new LabelInstruction(currentFunc);      // 判定结束的标签
-
-    // 创建临时变量保存最终结果
-    Value * result = module->newVarValue(IntegerType::getTypeBool());
-
-    // 检查左操作数是否为真
-    Value * leftCond = left->val;
-    if (left->node_type == ast_operator_type::AST_OP_LVAL) {
-        // 如果是左值节点，与0比较
-        BinaryInstruction * leftNeZero = new BinaryInstruction(currentFunc,
-                                                               IRInstOperator::IRINST_OP_ICMP_NE,
-                                                               left->val,
-                                                               module->newConstInt(0),
-                                                               IntegerType::getTypeBool());
-        node->blockInsts.addInst(leftNeZero);
-        leftCond = leftNeZero;
-    }
-
-    // 添加左操作数的IR指令
-    node->blockInsts.addInst(left->blockInsts);
-
-    // 条件跳转：如果左操作数为假，跳转到falseLabel；否则继续判断右操作数
-    BranchCondInstruction * leftBranch = new BranchCondInstruction(currentFunc, leftCond, leftTrueLabel, falseLabel);
-    node->blockInsts.addInst(leftBranch);
-
-    // 左操作数为真时，继续判断右操作数
-    node->blockInsts.addInst(leftTrueLabel);
-    Value * rightCond = right->val;
+    node->blockInsts.addInst(rightJudgeInst);
     if (right->node_type == ast_operator_type::AST_OP_LVAL) {
-        // 如果是左值节点，与0比较
-        BinaryInstruction * rightNeZero = new BinaryInstruction(currentFunc,
-                                                                IRInstOperator::IRINST_OP_ICMP_NE,
-                                                                right->val,
-                                                                module->newConstInt(0),
-                                                                IntegerType::getTypeBool());
-        node->blockInsts.addInst(rightNeZero);
-        rightCond = rightNeZero;
+        // 如果右操作数是一个lval节点，与0比较
+        if (!ir_visit_ast_node(right)) {
+            minic_log(LOG_ERROR, "and操作数解析失败");
+            return false;
+        }
+        // 检查右操作数的值是否有效
+        if (!right->val) {
+            minic_log(LOG_ERROR, "and操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              right->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        // 右节点短路跳转
+        BranchCondInstruction * rightGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), lval_ne_0, trueLabel, falseLabel);
+        node->blockInsts.addInst(rightGotoInst);
+    } else {
+        // 如果右操作数是一个逻辑表达式
+        if (!ir_visit_ast_node(right)) {
+            minic_log(LOG_ERROR, "and操作数解析失败");
+            return false;
+        }
+        // 检查右操作数的值是否有效
+        if (!right->val) {
+            minic_log(LOG_ERROR, "and操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+        // 右节点短路跳转
+        BranchCondInstruction * rightGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), right->val, trueLabel, falseLabel);
+        node->blockInsts.addInst(rightGotoInst);
     }
-
-    // 添加右操作数的IR指令
-    node->blockInsts.addInst(right->blockInsts);
-
-    // 条件跳转：如果右操作数为真，跳转到trueLabel；否则跳转到falseLabel
-    BranchCondInstruction * rightBranch = new BranchCondInstruction(currentFunc, rightCond, trueLabel, falseLabel);
-    node->blockInsts.addInst(rightBranch);
-
-    // 整个表达式为假时，设置结果为0
-    node->blockInsts.addInst(falseLabel);
-    MoveInstruction * setFalse = new MoveInstruction(currentFunc, result, module->newConstInt(0));
-    node->blockInsts.addInst(setFalse);
-    node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabel));
-
-    // 整个表达式为真时，设置结果为1
-    node->blockInsts.addInst(trueLabel);
-    MoveInstruction * setTrue = new MoveInstruction(currentFunc, result, module->newConstInt(1));
-    node->blockInsts.addInst(setTrue);
-    node->blockInsts.addInst(endLabel);
-
-    // 保存结果
-    node->val = result;
 
     return true;
 }
 
 /// @brief or节点，生成对应的IR。
-/// @param node AST节点
+/// @param node AST节点，真/假 出口标签指令
 /// @return 翻译是否成功，true：成功，false：失败
-bool IRGenerator::ir_or(ast_node * node)
+bool IRGenerator::ir_or(ast_node * node, LabelInstruction * trueLabel, LabelInstruction * falseLabel)
 {
-    ast_node * src1_node = node->sons[0];
-    ast_node * src2_node = node->sons[1];
+    // or节点，生成对应的IR。
+    // 处理逻辑或操作符
+    // leftJudgeLabel: 左操作数判断
+    // 1. 处理左操作数
+    // 2. 如果左操作数为真，跳转到真标签
+    // rightJudgeLabel: 右操作数判断
+    // 3. 处理右操作数
+    // 4. 如果右操作数为真，跳转到真标签
+    // 5. 否则，跳转到假标签
 
-    // 获取当前函数
-    Function * currentFunc = module->getCurrentFunction();
-    if (!currentFunc) {
-        minic_log(LOG_ERROR, "or操作不在函数内");
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "or操作的子节点数量不正确");
         return false;
     }
+    LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
+    LabelInstruction * rightJudgeInst = new LabelInstruction(module->getCurrentFunction());
+
+    // 获取左操作数和右操作数
+    ast_node * left = node->sons[0];
+    ast_node * right = node->sons[1];
 
     // 处理左操作数
-    ast_node * left = ir_visit_ast_node(src1_node);
-    if (!left || !left->val) {
-        minic_log(LOG_ERROR, "or操作左操作数解析失败");
+    // 1. lval
+    // 2. 逻辑表达式 (&&, ||)
+    // 3. 关系表达式 (==, !=, <, >, <=, >=)
+    node->blockInsts.addInst(leftJudgeInst);
+    if (left->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果左操作数是一个lval节点，与0比较
+        if (!ir_visit_ast_node(left)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        // 检查左操作数的值是否有效
+        if (!left->val) {
+            minic_log(LOG_ERROR, "or操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              left->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        // 左节点短路跳转
+        BranchCondInstruction * leftGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), lval_ne_0, trueLabel, rightJudgeInst);
+        node->blockInsts.addInst(leftGotoInst);
+    } else if (left->node_type == ast_operator_type::AST_OP_EQ || left->node_type == ast_operator_type::AST_OP_NE ||
+               left->node_type == ast_operator_type::AST_OP_LE || left->node_type == ast_operator_type::AST_OP_GE ||
+               left->node_type == ast_operator_type::AST_OP_LT || left->node_type == ast_operator_type::AST_OP_GT) {
+        // 如果左操作数是一个关系表达式
+        if (!ir_visit_ast_node(left)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        // 检查左操作数的值是否有效
+        if (!left->val) {
+            minic_log(LOG_ERROR, "or操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+        // 左节点短路跳转
+        BranchCondInstruction * leftGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), left->val, trueLabel, rightJudgeInst);
+        node->blockInsts.addInst(leftGotoInst);
+    } else if (left->node_type == ast_operator_type::AST_OP_AND) {
+        if (!ir_and(left, trueLabel, rightJudgeInst)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+    } else if (left->node_type == ast_operator_type::AST_OP_OR) {
+        if (!ir_or(left, trueLabel, rightJudgeInst)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        node->blockInsts.addInst(left->blockInsts);
+    } else {
+        minic_log(LOG_ERROR, "or操作数类型错误");
         return false;
     }
 
     // 处理右操作数
-    ast_node * right = ir_visit_ast_node(src2_node);
-    if (!right || !right->val) {
-        minic_log(LOG_ERROR, "or操作右操作数解析失败");
+    node->blockInsts.addInst(rightJudgeInst);
+    if (right->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果右操作数是一个lval节点，与0比较
+        if (!ir_visit_ast_node(right)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        // 检查右操作数的值是否有效
+        if (!right->val) {
+            minic_log(LOG_ERROR, "or操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+        BinaryInstruction * lval_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                              IRInstOperator::IRINST_OP_ICMP_NE,
+                                                              right->val,
+                                                              module->newConstInt(0),
+                                                              IntegerType::getTypeBool());
+        node->blockInsts.addInst(lval_ne_0);
+        // 右节点跳转
+        BranchCondInstruction * rightGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), lval_ne_0, trueLabel, falseLabel);
+        node->blockInsts.addInst(rightGotoInst);
+    } else if (right->node_type == ast_operator_type::AST_OP_EQ || right->node_type == ast_operator_type::AST_OP_NE ||
+               right->node_type == ast_operator_type::AST_OP_LE || right->node_type == ast_operator_type::AST_OP_GE ||
+               right->node_type == ast_operator_type::AST_OP_LT || right->node_type == ast_operator_type::AST_OP_GT) {
+        // 如果右操作数是一个关系表达式
+        if (!ir_visit_ast_node(right)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        // 检查右操作数的值是否有效
+        if (!right->val) {
+            minic_log(LOG_ERROR, "or操作数值无效");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+        // 右节点跳转
+        BranchCondInstruction * rightGotoInst =
+            new BranchCondInstruction(module->getCurrentFunction(), right->val, trueLabel, falseLabel);
+        node->blockInsts.addInst(rightGotoInst);
+    } else if (right->node_type == ast_operator_type::AST_OP_AND) {
+        if (!ir_and(right, trueLabel, falseLabel)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+    } else if (right->node_type == ast_operator_type::AST_OP_OR) {
+        if (!ir_or(right, trueLabel, falseLabel)) {
+            minic_log(LOG_ERROR, "or操作数解析失败");
+            return false;
+        }
+        node->blockInsts.addInst(right->blockInsts);
+    } else {
+        minic_log(LOG_ERROR, "or操作数类型错误");
         return false;
     }
 
-    // 创建标签指令
-    LabelInstruction * leftFalseLabel = new LabelInstruction(currentFunc); // 左操作数为假时的标签
-    LabelInstruction * trueLabel = new LabelInstruction(currentFunc);      // 整个表达式为真时的标签
-    LabelInstruction * falseLabel = new LabelInstruction(currentFunc);     // 整个表达式为假时的标签
-    LabelInstruction * endLabel = new LabelInstruction(currentFunc);       // 判定结束的标签
-
-    // 创建临时变量保存最终结果
-    Value * result = module->newVarValue(IntegerType::getTypeBool());
-
-    // 检查左操作数是否为假
-    Value * leftCond = left->val;
-    if (left->node_type == ast_operator_type::AST_OP_LVAL) {
-        // 如果是左值节点，与0比较
-        BinaryInstruction * leftEqZero = new BinaryInstruction(currentFunc,
-                                                               IRInstOperator::IRINST_OP_ICMP_EQ,
-                                                               left->val,
-                                                               module->newConstInt(0),
-                                                               IntegerType::getTypeBool());
-        node->blockInsts.addInst(leftEqZero);
-        leftCond = leftEqZero;
-    }
-
-    // 添加左操作数的IR指令
-    node->blockInsts.addInst(left->blockInsts);
-
-    // 条件跳转：如果左操作数为真，跳转到trueLabel；否则继续判断右操作数
-    BranchCondInstruction * leftBranch = new BranchCondInstruction(currentFunc, leftCond, trueLabel, leftFalseLabel);
-    node->blockInsts.addInst(leftBranch);
-    // 左操作数为假时，继续判断右操作数
-    node->blockInsts.addInst(leftFalseLabel);
-    Value * rightCond = right->val;
-    if (right->node_type == ast_operator_type::AST_OP_LVAL) {
-        // 如果是左值节点，与0比较
-        BinaryInstruction * rightEqZero = new BinaryInstruction(currentFunc,
-                                                                IRInstOperator::IRINST_OP_ICMP_EQ,
-                                                                right->val,
-                                                                module->newConstInt(0),
-                                                                IntegerType::getTypeBool());
-        node->blockInsts.addInst(rightEqZero);
-        rightCond = rightEqZero;
-    }
-    // 添加右操作数的IR指令
-    node->blockInsts.addInst(right->blockInsts);
-    // 条件跳转：如果右操作数为假，跳转到falseLabel；否则跳转到trueLabel
-    BranchCondInstruction * rightBranch = new BranchCondInstruction(currentFunc, rightCond, trueLabel, falseLabel);
-    node->blockInsts.addInst(rightBranch);
-    // 整个表达式为真时，设置结果为1
-    node->blockInsts.addInst(trueLabel);
-    MoveInstruction * setTrue = new MoveInstruction(currentFunc, result, module->newConstInt(1));
-    node->blockInsts.addInst(setTrue);
-    node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabel));
-    // 整个表达式为假时，设置结果为0
-    node->blockInsts.addInst(falseLabel);
-    MoveInstruction * setFalse = new MoveInstruction(currentFunc, result, module->newConstInt(0));
-    node->blockInsts.addInst(setFalse);
-    node->blockInsts.addInst(endLabel);
-    // 保存结果
-    node->val = result;
     return true;
 }
 
