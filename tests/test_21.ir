@@ -1,0 +1,97 @@
+define i32 @ifElseIf()
+{
+	declare i32 %l0
+	declare i32 %l1 ; 1:a
+	declare i32 %l2 ; 1:b
+	declare i1 %l3
+	declare i1 %l4
+	declare i32 %l5
+	declare i1 %l6
+	declare i32 %l7
+	declare i32 %l8
+	declare i1 %t9
+	declare i1 %t11
+	declare i1 %t17
+	declare i1 %t19
+	declare i1 %t25
+	declare i32 %t27
+	declare i1 %t28
+	declare i32 %t33
+	declare i32 %t35
+	entry
+	%l1 = 5
+	%l2 = 10
+	%t9 = icmp eq %l1, 6
+	bc %t9, label .L12, label .L10
+.L10:
+	%t11 = icmp eq %l2, 11
+	bc %t11, label .L12, label .L13
+.L12:
+	%l3 = 1
+	br label .L14
+.L13:
+	%l3 = 0
+.L14:
+	bc %l3, label .L15, label .L16
+.L15:
+	%l0 = %l1
+	br label .L39
+	br label .L38
+.L16:
+	%t17 = icmp eq %l2, 10
+	bc %t17, label .L18, label .L20
+.L18:
+	%t19 = icmp eq %l1, 1
+	bc %t19, label .L21, label .L20
+.L20:
+	%l4 = 0
+	br label .L22
+.L21:
+	%l4 = 1
+.L22:
+	bc %l4, label .L23, label .L24
+.L23:
+	%l1 = 25
+	br label .L37
+.L24:
+	%t25 = icmp eq %l2, 10
+	bc %t25, label .L26, label .L29
+.L26:
+	%t27 = neg 5
+	%t28 = icmp eq %l1, %l5
+	bc %t28, label .L30, label .L29
+.L29:
+	%l6 = 0
+	br label .L31
+.L30:
+	%l6 = 1
+.L31:
+	bc %l6, label .L32, label .L34
+.L32:
+	%t33 = add %l1,15
+	%l1 = %t33
+	br label .L36
+.L34:
+	%l7 = %l1
+	%t35 = neg %l7
+	%l1 = %l8
+.L36:
+.L37:
+.L38:
+	%l0 = %l1
+	br label .L39
+.L39:
+	exit %l0
+}
+define i32 @main()
+{
+	declare i32 %l0
+	declare i32 %t1
+	entry
+	%t1 = call i32 @ifElseIf()
+	call void @putint()
+	%l0 = 0
+	br label .L2
+.L2:
+	exit %l0
+}

@@ -1,27 +1,33 @@
-int main()
-{
-    int i = 0;
-	while (i < 5)
-	{
-		i = i + 1;
-		if (i == 2)
-		{
-			continue;
-		}
-		break;
-		while (i != 1)
-		{
-			putint(i);
-		}
-		
-	}
-    return i;
-}
+// int a = 1;
+// int b = 0;
+// int c = 1;
+// int d = 2;
+// int e = 4;
 // int main()
 // {
-//     float a[2], b[2][3], n;
-//     a[0] = 1.1;
-//     b[1][1] = 1.2;
-//     n = b[1][1]-a[0];
-//     return 0;
+// 	int flag=0;
+// 	if(a * b / c == e + d && a * (a + b) + c <= d + e || a - (b * c) == d - a / c)
+// 	{
+// 		flag=1;
+// 	}
+// 	putint(flag);
+// 	return flag;
 // }
+
+int add(int a,int b)
+{
+    return a+b;
+}
+int sub()
+{
+    return 1;
+}
+int main()
+{
+    int a[10];
+    int b[2][2];
+    // const int c = 1;
+    a[1] = 1;
+    b[0][0]=2;
+    return sub()+add(a[1], b[0][0]);//add(a[1], b[0][0])
+}

@@ -19,8 +19,8 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, Ident = 34, IntConst = 35, DecimalConst = 36, OctalConst = 37, 
     HexadecimalConst = 38, HexadecimalPrefix = 39, NonzeroDigit = 40, Digit = 41, 
-    OctalDigit = 42, HexadecimalDigit = 43, FloatConst = 44, ExponentPart = 45, 
-    WS = 46, COMMENT = 47, BLOCK_COMMENT = 48
+    OctalDigit = 42, HexadecimalDigit = 43, FloatConst = 44, WS = 45, COMMENT = 46, 
+    BLOCK_COMMENT = 47
   };
 
   explicit SysYLexer(antlr4::CharStream *input);

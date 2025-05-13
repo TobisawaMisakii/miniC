@@ -9,7 +9,7 @@ public:
     /// @param func 所属函数
     /// @param cond 条件值
     /// @param target 跳转目标
-    BranchCondInstruction(Function * _func, Value * _cond, Instruction * _target_0, Instruction * _target_1);
+    BranchCondInstruction(Function * _func, Value * _cond, Instruction * _target_1, Instruction * _target_0);
 
     /// @brief 转换成字符串
     void toString(std::string & str) override;
@@ -26,11 +26,11 @@ private:
     /// @brief 条件值
     Value * cond;
 
-    /// @brief cond不成立时跳转的目标Label指令
-    /// @details 这个指令的目标是一个LabelInstruction
-    LabelInstruction * target_0;
-
     /// @brief cond成立时跳转的目标Label指令
     /// @details 这个指令的目标是一个LabelInstruction
     LabelInstruction * target_1;
+
+    /// @brief cond不成立时跳转的目标Label指令
+    /// @details 这个指令的目标是一个LabelInstruction
+    LabelInstruction * target_0;
 };
