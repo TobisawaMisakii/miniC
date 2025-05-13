@@ -2,13 +2,21 @@ define i32 @main() {
 	declare i32 %l0
 	declare i32 %l1 ; variable: a
 	declare i1 %t2
-	declare float %t3
+	declare i1 %t3
 .L1:
 	entry
-	%l1 = 5
-	%t2 = icmp eq %l1, 0
-	%t3 = itof %t2
-	%l0 = %t3
+	%l1 = 10
+	%t2 = icmp eq 1, 0
+	%l1 = %t2
+	%t3 = icmp eq 5, 0
+	bc %t3, label .L3, label .L4
+.L3:
+	%l1 = -1
+	br label .L5
+.L4:
+	%l1 = 0
+.L5:
+	%l0 = %l1
 	br label .L2
 .L2:
 	exit %l0

@@ -1282,7 +1282,7 @@ bool IRGenerator::ir_if(ast_node * node)
     LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
 
     // 处理条件表达式
-    // 1. 左值节点
+    // 1. 左值节点 或 一元表达式(! + -)
     // 2. 关系表达式 (==, !=, <, >, <=, >=)
     // 3. 逻辑表达式 (and or)
 
@@ -1303,6 +1303,21 @@ bool IRGenerator::ir_if(ast_node * node)
         condNode->val = lval_ne_0;
         BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
                                                                          lval_ne_0,
+                                                                         thenLabelInst,
+                                                                         elseLabelInst ? elseLabelInst : endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_POS ||
+               condNode->node_type == ast_operator_type::AST_OP_NEG ||
+               condNode->node_type == ast_operator_type::AST_OP_NOT) {
+        // 处理一元表达式
+        if (!ir_visit_ast_node(condNode)) {
+            minic_log(LOG_ERROR, "if语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+        // 根据条件表达式的值，跳转到thenLabel或elseLabel(如果没有elseLabel，则跳转到endLabel)
+        BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
+                                                                         condNode->val,
                                                                          thenLabelInst,
                                                                          elseLabelInst ? elseLabelInst : endLabelInst);
         node->blockInsts.addInst(condGotoInst);
@@ -1419,6 +1434,19 @@ bool IRGenerator::ir_while(ast_node * node)
         // 根据条件表达式的值，跳转到bodyLabel或endLabel
         BranchCondInstruction * condGotoInst =
             new BranchCondInstruction(currentFunc, lval_ne_0, bodyLabelInst, endLabelInst);
+        node->blockInsts.addInst(condGotoInst);
+    } else if (condNode->node_type == ast_operator_type::AST_OP_POS ||
+               condNode->node_type == ast_operator_type::AST_OP_NEG ||
+               condNode->node_type == ast_operator_type::AST_OP_NOT) {
+        // 如果cond是一个一元表达式
+        if (!ir_visit_ast_node(condNode)) {
+            minic_log(LOG_ERROR, "while语句的条件表达式翻译失败");
+            return false;
+        }
+        node->blockInsts.addInst(condNode->blockInsts);
+        // 根据条件表达式的值，跳转到bodyLabel或endLabel
+        BranchCondInstruction * condGotoInst =
+            new BranchCondInstruction(currentFunc, condNode->val, bodyLabelInst, endLabelInst);
         node->blockInsts.addInst(condGotoInst);
     } else if (condNode->node_type == ast_operator_type::AST_OP_AND) {
         if (!ir_and(condNode, bodyLabelInst, endLabelInst)) {
