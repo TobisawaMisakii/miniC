@@ -371,7 +371,7 @@ bool IRGenerator::ir_function_call(ast_node * node)
     // 第二个节点：实参列表节点
 
     std::string funcName = node->sons[0]->name;
-    int64_t lineno = node->sons[0]->line_no;
+    // int64_t lineno = node->sons[0]->line_no;
 
     ast_node * paramsNode = node->sons[1];
 
@@ -400,33 +400,32 @@ bool IRGenerator::ir_function_call(ast_node * node)
         // 遍历参数列表，孩子是表达式
         // 这里自左往右计算表达式
         for (auto son: paramsNode->sons) {
-
+            printf("有参数\n");
             // 遍历Block的每个语句，进行显示或者运算
             ast_node * temp = ir_visit_ast_node(son);
             if (!temp || !temp->val) {
                 minic_log(LOG_ERROR, "实参翻译失败");
-                if (!temp || !temp->val) {
-                    minic_log(LOG_ERROR, "实参翻译失败");
-                    return false;
-                }
-                // 生成参数传递的IR指令
-                // calledFunction->realArgCountInc();
-                realParams.push_back(temp->val);
-                node->blockInsts.addInst(temp->blockInsts);
+                return false;
             }
+            // 生成参数传递的IR指令
+            // calledFunction->realArgCountInc();
+            realParams.push_back(temp->val);
+            node->blockInsts.addInst(temp->blockInsts);
         }
     }
 
     // TODO 这里请追加函数调用的语义错误检查，这里只进行了函数参数的个数检查等，其它请自行追加。
-    if (realParams.size() != calledFunction->getParams().size()) {
-        // 函数参数的个数不一致，语义错误
-        minic_log(LOG_ERROR, "第%lld行的被调用函数(%s)未定义或声明", (long long) lineno, funcName.c_str());
-        return false;
-    }
+    // if (realParams.size() != calledFunction->getParams().size()) {
+    //     // 函数参数的个数不一致，语义错误
+    //     printf("realParams.size():%d, calledFunction->getParams().size:%d\n",
+    //            int(realParams.size()),
+    //            int(calledFunction->getParams().size()));
+    //     minic_log(LOG_ERROR, "第%lld行的被调用函数(%s)未定义或声明", (long long) lineno, funcName.c_str());
+    //     return false;
+    // }
 
     // 返回调用有返回值，则需要分配临时变量，用于保存函数调用的返回值
     Type * type = calledFunction->getReturnType();
-
     FuncCallInstruction * funcCallInst = new FuncCallInstruction(currentFunc, calledFunction, realParams, type);
 
     // 创建函数调用指令
