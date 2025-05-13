@@ -95,8 +95,18 @@ void Function::toString(std::string & str)
         } else {
             str += ", ";
         }
-        std::string param_str = param->getType()->toString() + " " + param->getIRName();
-        str += param_str;
+        // std::string param_str = param->getType()->toString() + " " + param->getIRName();
+        // str += param_str;
+        // 对数组类型特殊处理
+        if (param->getType()->isArrayType()) {
+            ArrayType * arrType = dynamic_cast<ArrayType *>(param->getType());
+            str += arrType->getBaseType()->toString() + " " + param->getIRName();
+            for (int32_t dim: arrType->getDimensions()) {
+                str += "[" + std::to_string(dim) + "]";
+            }
+        } else {
+            str += param->getType()->toString() + " " + param->getIRName();
+        }
     }
 
     str += ")\n";

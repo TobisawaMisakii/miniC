@@ -1,74 +1,34 @@
-define i32 @add(i32 %t0, i32 %t1) {
-	declare i32 %l2 ; variable: a
-	declare i32 %l3 ; variable: b
-	declare i32 %l4
-	declare i32 %t5
+define void @add(i32 %t0) {
+	declare i32 %l1 ; variable: a
 .L1:
 	entry
-	%l2 = %t0
-	%l3 = %t1
-	%t5 = add %l2, %l3
-	%l4 = %t5
-	br label .L2
+	%l1 = %t0
+	%l1 = 1
 .L2:
-	exit %l4
+	exit
 }
-define i32 @sub() {
-	declare i32 %l0
+define i32 @sub(i32 %t0) {
+	declare i32 %l1 ; variable: a
+	declare i32 %l2
 .L1:
 	entry
-	%l0 = 1
+	%l1 = %t0
+	%l2 = 1
 	br label .L2
 .L2:
-	exit %l0
+	exit %l2
 }
 define i32 @main() {
 	declare i32 %l0
-	declare i32 %l1[10] ; variable: a
-	declare i32 %l2[2][2] ; variable: b
-	declare i32* %t3
-	declare i32 %t4
-	declare i32 %t5
-	declare i32 %t6
-	declare i32 %t7
-	declare i32* %t8
-	declare i32 %t9
-	declare i32 %t10
-	declare i32 %t11
-	declare i32* %t12
-	declare i32 %t13
-	declare i32 %t14
-	declare i32 %t15
-	declare i32 %t16
-	declare i32* %t17
-	declare i32 %t18
-	declare i32 %t19
-	declare i32 %t20
-	declare i32 %t21
-	declare i32 %t22
-	declare i32 %t23
+	declare i32 %l1 ; variable: flag
+	declare i32 %t2
 .L1:
 	entry
-	%t4 = mul 1, 4
-	%t3 = add %l1, %t4
-	*%t3 = 1
-	%t6 = mul 0, 2
-	%t7 = add %t6, 0
-	%t9 = mul %t7, 4
-	%t8 = add %l2, %t9
-	*%t8 = 2
-	%t11 = call i32 @sub()
-	%t13 = mul 1, 4
-	%t12 = add %l1, %t13
-	%t15 = mul 0, 2
-	%t16 = add %t15, 0
-	%t18 = mul %t16, 4
-	%t17 = add %l2, %t18
-	%t20 = *%t12
-	%t21 = *%t17
-	%t22 = call i32 @add(i32 %t20,i32 %t21)
-	%t23 = add %t11, %t22
-	%l0 = %t23
+	%l1 = 0
+	call void @add(i32 %l1)
+	%t2 = call i32 @sub(i32 %l1)
+	%l1 = %t2
+	%l0 = %l1
 	br label .L2
 .L2:
 	exit %l0

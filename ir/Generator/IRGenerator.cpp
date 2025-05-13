@@ -331,7 +331,6 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
         return false;
     }
     ++entryIter;
-
     // 遍历形参列表
     for (auto son: node->sons) {
 
@@ -357,7 +356,6 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
         // 将赋值指令插入到Entry指令之后
         irCode.getInsts().push_back(movInst);
     }
-
     return true;
 }
 
@@ -387,11 +385,9 @@ bool IRGenerator::ir_function_call(ast_node * node)
         minic_log(LOG_ERROR, "函数(%s)未定义或声明", funcName.c_str());
         return false;
     }
-
     // 当前函数存在函数调用
     currentFunc->setExistFuncCall(true);
-    currentFunc->realArgCountReset(); // 重置计数
-    printf("函数调用%s\n", funcName.c_str());
+
     // 如果没有孩子，也认为是没有参数
     if (nullptr != paramsNode) {
 
@@ -414,7 +410,7 @@ bool IRGenerator::ir_function_call(ast_node * node)
                 return false;
             }
             // 生成参数传递的IR指令
-            // currentFunc->realArgCountInc();
+            // calledFunction->realArgCountInc();
             realParams.push_back(temp->val);
             node->blockInsts.addInst(temp->blockInsts);
         }
