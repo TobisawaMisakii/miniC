@@ -1331,10 +1331,8 @@ bool IRGenerator::ir_if(ast_node * node)
         return false;
     }
     node->blockInsts.addInst(thenNode->blockInsts);
-    // then 执行完毕后需要跳过else，跳转到end（如果有else）
-    if (elseNode) {
-        node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabelInst));
-    }
+    // then 执行完毕后需要跳过else和最终cond成立与否的设置，跳转到end
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabelInst));
 
     // 添加else分支的Label指令
     if (elseNode) {
