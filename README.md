@@ -95,3 +95,17 @@ bt  # 崩溃时查看调用栈
 ![alt text](figs/README-image-6.png)
 ![alt text](figs/README-image-4.png)
 ![alt text](figs/README-image-5.png)
+
+## 增加带参函数
+
+**函数调用：**
+
+ArgInstruction这个没用，生成arg指令，但我们不用生成这个指令，dragonir也不推荐使用这个来生成函数调用的参数。
+
+realArgCount是所有函数公用的，FuncCallInstruction里使用这个最为函数参数数量不合理，直接删去相关使用
+
+OperandsNum是每条指令自己的参数列表，使用这个每次调用才正确。注意不能遍历所有操作符，因为里面还有返回值，返回值在最后一个，所以生成ir时略过最后一个就行。
+
+**函数定义的形参处理：**
+
+增加addParam方法，把形参存入向量，之前是newLocalVarValue生成临时变量保存输入的值，改用newVarValue更好，作用域更准确

@@ -33,7 +33,7 @@
 #include "MoveInstruction.h"
 #include "GotoInstruction.h"
 #include "BranchConditional.h"
-
+#include "ArgInstruction.h"
 /// @brief 构造函数
 /// @param _root AST的根
 /// @param _module 符号表
@@ -80,7 +80,9 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
 
     /* 函数调用 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_CALL] = &IRGenerator::ir_function_call;
-    // ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
+
+    // ir_function_real_params不用，直接用lval节点处理函数就行
+    //  ast2ir_handlers[ast_operator_type::AST_OP_FUNC_REAL_PARAMS] = &IRGenerator::ir_function_real_params;
 
     /* 函数定义 */
     ast2ir_handlers[ast_operator_type::AST_OP_FUNC_DEF] = &IRGenerator::ir_function_define;
@@ -304,6 +306,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
 /// @brief 形式参数AST节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
+
 bool IRGenerator::ir_function_formal_params(ast_node * node)
 {
     // TODO 目前形参还不支持，直接返回true
@@ -336,17 +339,23 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
         Type * paramType = son->sons[0]->type;
         std::string paramName = son->sons[1]->name;
 
+        // 创建 FormalParam 对象并添加到函数的形参列表中
+        FormalParam * formalParam = new FormalParam(paramType, paramName);
+        currentFunc->addParam(formalParam);
+
         // 创建真实的形参局部变量
-        LocalVariable * realParam = currentFunc->newLocalVarValue(paramType, paramName);
+        // LocalVariable * realParam = currentFunc->newLocalVarValue(paramType, paramName);
+        Value * realParam = module->newVarValue(paramType, paramName);
 
         // 创建临时变量用于表达实参传递的值
-        LocalVariable * tempParam = currentFunc->newLocalVarValue(paramType);
+        // LocalVariable * tempParam = currentFunc->newLocalVarValue(paramType);
+        // Value * tempParam = module->newVarValue(paramType);
 
         // 产生赋值指令，将临时变量的值拷贝到形参局部变量上
-        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, tempParam);
+        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, currentFunc->getParams().back());
 
         // 将赋值指令插入到Entry指令之后
-        irCode.getInsts().insert(entryIter, movInst);
+        irCode.getInsts().push_back(movInst);
     }
 
     return true;
@@ -381,9 +390,9 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
     // 当前函数存在函数调用
     currentFunc->setExistFuncCall(true);
-
+    currentFunc->realArgCountReset(); // 重置计数
+    printf("函数调用%s\n", funcName.c_str());
     // 如果没有孩子，也认为是没有参数
-    // if (!paramsNode->sons.empty()) {
     if (nullptr != paramsNode) {
 
         int32_t argsCount = (int32_t) paramsNode->sons.size();
@@ -400,10 +409,12 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
             // 遍历Block的每个语句，进行显示或者运算
             ast_node * temp = ir_visit_ast_node(son);
-            if (!temp) {
+            if (!temp || !temp->val) {
+                minic_log(LOG_ERROR, "实参翻译失败");
                 return false;
             }
-
+            // 生成参数传递的IR指令
+            // currentFunc->realArgCountInc();
             realParams.push_back(temp->val);
             node->blockInsts.addInst(temp->blockInsts);
         }
@@ -426,7 +437,6 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
     // 函数调用结果Value保存到node中，可能为空，上层节点可利用这个值
     node->val = funcCallInst;
-
     return true;
 }
 
@@ -1252,6 +1262,8 @@ bool IRGenerator::ir_variable_define(ast_node * node)
     } else { //不初始化直接创建变量就行
         Value * varValue;
         varValue = module->newVarValue(varType, varName);
+        if (!varValue)
+            minic_log(LOG_INFO, "变量(%s)创建失败", varName.c_str());
     }
     return true;
 }

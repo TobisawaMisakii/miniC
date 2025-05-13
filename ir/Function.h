@@ -51,6 +51,10 @@ public:
     /// @return 形参列表
     std::vector<FormalParam *> & getParams();
 
+    /// @brief 添加一个形参到函数的形参列表
+    /// @param param 形参
+    void addParam(FormalParam * param);
+
     /// @brief 获取函数内的IR指令代码
     /// @return IR指令代码
     InterCode & getInterCode();

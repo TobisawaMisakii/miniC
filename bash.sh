@@ -2,7 +2,7 @@
 # 生成ANTLR解析器
 java -jar $HOME/miniC/thirdparty/antlr4/antlr-4.12.0-complete.jar -Dlanguage=Cpp -visitor -no-listener /home/code/miniC/frontend/antlr4/MiniC.g4
 # 配置和构建项目
-rm -rf build
+# rm -rf build
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
 cmake --build build --parallel
 # 生成AST图
