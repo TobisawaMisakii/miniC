@@ -18,7 +18,8 @@
 
 #include "Value.h"
 #include "IRConstant.h"
-
+#include "ArrayType.h"
+#include "PointerType.h"
 /// @brief 描述函数形参类
 class FormalParam : public Value {
 
@@ -35,6 +36,33 @@ public:
     /// @param str
     std::string toString()
     {
+        // 多维数组参数（如 float a[][2]），第一个维度为0
+        if (type->isArrayType()) {
+            const ArrayType * arrType = dynamic_cast<const ArrayType *>(type);
+            std::string res = arrType->getBaseType()->toString() + " " + IRName;
+            for (auto dim: arrType->getDimensions()) {
+                res += "[" + std::to_string(dim) + "]";
+            }
+            return res;
+        }
+        // 指针类型（如 float *b 或 float a[][2] 退化为 float*）
+        if (type->isPointerType()) {
+            // 检查是否是数组退化的指针（如 float (*)[2]）
+            const PointerType * ptrType = dynamic_cast<const PointerType *>(type);
+            if (ptrType && ptrType->getPointeeType()->isArrayType()) {
+                // 退化自多维数组，输出 float %t0[0][2] 形式
+                const ArrayType * arrType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
+                std::string res = arrType->getBaseType()->toString() + " " + IRName;
+                res += "[0]"; // 第一个维度未知
+                for (auto dim: arrType->getDimensions()) {
+                    res += "[" + std::to_string(dim) + "]";
+                }
+                return res;
+            }
+            // 普通指针
+            return type->toString() + " " + IRName;
+        }
+        // 普通类型
         return type->toString() + " " + IRName;
     }
 

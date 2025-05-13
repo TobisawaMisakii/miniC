@@ -1,51 +1,12 @@
-define float @add(float %t0, float %t1[0]) {
-	declare float %l2 ; variable: a
-	declare float %l3[0] ; variable: b
-	declare float %l4
-	declare float* %t5
-	declare i32 %t6
-	declare float %t7
-	declare float %t8
-	declare float %t9
-.L1:
-	entry
-	%l2 = %t0
-	%l3 = %t1
-	%t6 = mul 0, 4
-	%t5 = add %l3, %t6
-	%t8 = *%t5
-	%t9 = fadd %l2, %t8
-	%l4 = %t9
-	br label .L2
-.L2:
-	exit %l4
-}
+declare i32 @a = 1
+declare i32 @b = 2
 define i32 @main() {
 	declare i32 %l0
-	declare float %l1 ; variable: a
-	declare float %l2[2][2] ; variable: b
-	declare i32 %t3
-	declare i32 %t4
-	declare float* %t5
-	declare i32 %t6
-	declare float %t7
-	declare i32 %t8
-	declare float %t9[2]
-	declare i32 %t10
-	declare float %t11
+	declare i32 %t1
 .L1:
 	entry
-	%t3 = mul 0, 2
-	%t4 = add %t3, 0
-	%t6 = mul %t4, 4
-	%t5 = add %l2, %t6
-	*%t5 = 0x1p+1
-	%t8 = mul 0, 2
-	%t10 = mul %t8, 4
-	%t9 = add %l2, %t10
-	%t11 = call float @add(float 0x1.99999ap-4,float %t9[2])
-	%l1 = %t11
-	%l0 = 2
+	%t1 = add 1, @b
+	%l0 = %t1
 	br label .L2
 .L2:
 	exit %l0

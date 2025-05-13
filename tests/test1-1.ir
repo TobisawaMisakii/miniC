@@ -1,35 +1,13 @@
-define void @add(i32 %t0)
-{
-	declare i32 %l1 ; 1:a
-	entry
-	%l1 = %t0
-	%l1 = 1
-.L2:
-	exit
-}
-define i32 @sub(i32 %t0)
-{
-	declare i32 %l1 ; 1:a
-	declare i32 %l2
-	entry
-	%l1 = %t0
-	%l2 = 1
-	br label .L3
-.L3:
-	exit %l2
-}
+declare i32 @a = 1
+declare i32 @b = 2
 define i32 @main()
 {
 	declare i32 %l0
-	declare i32 %l1 ; 1:flag
-	declare i32 %t2
+	declare i32 %t1
 	entry
-	%l1 = 0
-	call void @add(i32 %l1)
-	%t2 = call i32 @sub(i32 %l1)
-	%l1 = %t2
-	%l0 = %l1
-	br label .L3
-.L3:
+	%t1 = add @a, @b
+	%l0 = %t1
+	br label .L2
+.L2:
 	exit %l0
 }

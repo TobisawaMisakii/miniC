@@ -2281,12 +2281,51 @@ bool IRGenerator::ir_const_define(ast_node * node)
     }
 
     // 创建常量
-    Value * constValue = module->newVarValue(constType, constName);
-    if (!constValue) {
-        minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
-        return false;
+    Value * constValue;
+    if (!module->getCurrentFunction()) { // 全局常量
+        // 处理初始化表达式
+        if (node->sons.size() > 1) {
+            ast_node * init_expr_node = node->sons[1];
+            if (!ir_visit_ast_node(init_expr_node)) {
+                minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+                return false;
+            }
+            constValue = module->newVarValue(constType, constName, init_expr_node->val);
+        } else {
+            minic_log(LOG_ERROR, "全局常量(%s)必须初始化", constName.c_str());
+            return false;
+        }
+    } else { // 局部常量
+        constValue = module->newVarValue(constType, constName);
+        if (!constValue) {
+            minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
+            return false;
+        }
+        // 处理初始化表达式
+        if (node->sons.size() > 1) {
+            ast_node * init_expr_node = node->sons[1];
+            if (!ir_visit_ast_node(init_expr_node)) {
+                minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+                return false;
+            }
+            // 类型转换检查
+            if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
+                minic_log(LOG_ERROR,
+                          "无法将类型%d赋给类型%d",
+                          init_expr_node->val->getType()->getTypeID(),
+                          constType->getTypeID());
+                return false;
+            }
+            // 生成赋值指令
+            MoveInstruction * movInst =
+                new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
+            node->blockInsts.addInst(init_expr_node->blockInsts);
+            node->blockInsts.addInst(movInst);
+        } else {
+            minic_log(LOG_ERROR, "局部常量(%s)必须初始化", constName.c_str());
+            return false;
+        }
     }
-
     node->val = constValue;
     const_name_node->val = constValue;
 
