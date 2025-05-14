@@ -1367,6 +1367,14 @@ bool IRGenerator::ir_if(ast_node * node)
             return false;
         }
         node->blockInsts.addInst(condNode->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   condNode->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        condNode->val = func_call_ne_0;
         // 根据条件表达式的值，跳转到thenLabel或elseLabel(如果没有elseLabel，则跳转到endLabel)
         BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
                                                                          condNode->val,
@@ -1487,6 +1495,14 @@ bool IRGenerator::ir_while(ast_node * node)
             return false;
         }
         node->blockInsts.addInst(condNode->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(currentFunc,
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   condNode->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        condNode->val = func_call_ne_0;
         // 根据条件表达式的值，跳转到bodyLabel或endLabel
         BranchCondInstruction * condGotoInst =
             new BranchCondInstruction(currentFunc, condNode->val, bodyLabelInst, endLabelInst);
@@ -1973,6 +1989,14 @@ bool IRGenerator::ir_and(ast_node * node, LabelInstruction * trueLabel, LabelIns
             return false;
         }
         node->blockInsts.addInst(left->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   left->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        left->val = func_call_ne_0;
         // 左节点短路跳转
         BranchCondInstruction * leftGotoInst =
             new BranchCondInstruction(module->getCurrentFunction(), left->val, rightJudgeInst, falseLabel);
@@ -2031,6 +2055,14 @@ bool IRGenerator::ir_and(ast_node * node, LabelInstruction * trueLabel, LabelIns
             return false;
         }
         node->blockInsts.addInst(right->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   right->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        right->val = func_call_ne_0;
         // 右节点短路跳转
         BranchCondInstruction * rightGotoInst =
             new BranchCondInstruction(module->getCurrentFunction(), right->val, trueLabel, falseLabel);
@@ -2152,6 +2184,14 @@ bool IRGenerator::ir_or(ast_node * node, LabelInstruction * trueLabel, LabelInst
             return false;
         }
         node->blockInsts.addInst(left->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   left->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        left->val = func_call_ne_0;
         // 左节点短路跳转
         BranchCondInstruction * leftGotoInst =
             new BranchCondInstruction(module->getCurrentFunction(), left->val, trueLabel, rightJudgeInst);
@@ -2227,6 +2267,14 @@ bool IRGenerator::ir_or(ast_node * node, LabelInstruction * trueLabel, LabelInst
             return false;
         }
         node->blockInsts.addInst(right->blockInsts);
+        // 与0比较
+        BinaryInstruction * func_call_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   right->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(func_call_ne_0);
+        right->val = func_call_ne_0;
         // 右节点跳转
         BranchCondInstruction * rightGotoInst =
             new BranchCondInstruction(module->getCurrentFunction(), right->val, trueLabel, falseLabel);
