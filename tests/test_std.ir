@@ -1,22 +1,116 @@
-define i32 @main() {
-	declare i32 %l0
-	declare i32 %l1 ; variable: a
-	declare i1 %t2
-	declare i1 %t3
+declare i32 @g = 0
+define i32 @func(i32 %t0) {
+	declare i32 %l1 ; variable: n
+	declare i32 %l2
+	declare i32 %t3
 .L1:
 	entry
-	%l1 = 10
-	%t2 = icmp eq 1, 0
+	%l1 = %t0
+	%t3 = add @g, %l1
+	@g = %t3
+	call void @putint(i32 @g)
+	%l2 = @g
+	br label .L2
+.L2:
+	exit %l2
+}
+define i32 @main() {
+	declare i32 %l0
+	declare i32 %l1 ; variable: i
+	declare i32 %t2
+	declare i1 %t3
+	declare i32 %t4
+	declare i1 %t5
+	declare i32 %t6
+	declare i1 %t7
+	declare i32 %t8
+	declare i1 %t9
+	declare i32 %t10
+	declare i1 %t11
+	declare i32 %t12
+	declare i1 %t13
+	declare i32 %t14
+	declare i1 %t15
+	declare i32 %t16
+	declare i1 %t17
+	declare i32 %t18
+	declare i1 %t19
+	declare i1 %t20
+	declare i32 %t21
+	declare i1 %t22
+.L1:
+	entry
+	%t2 = call i32 @getint()
 	%l1 = %t2
-	%t3 = icmp eq 5, 0
-	bc %t3, label .L3, label .L4
+	%t3 = icmp gt %l1, 10
+	bc %t3, label .L6, label .L4
+.L6:
+	%t4 = call i32 @func(i32 %l1)
+	%t5 = icmp ne %t4, 0
+	bc %t5, label .L3, label .L4
 .L3:
-	%l1 = -1
+	%l1 = 1
 	br label .L5
 .L4:
 	%l1 = 0
 .L5:
-	%l0 = %l1
+	%t6 = call i32 @getint()
+	%l1 = %t6
+	%t7 = icmp gt %l1, 11
+	bc %t7, label .L10, label .L8
+.L10:
+	%t8 = call i32 @func(i32 %l1)
+	%t9 = icmp ne %t8, 0
+	bc %t9, label .L7, label .L8
+.L7:
+	%l1 = 1
+	br label .L9
+.L8:
+	%l1 = 0
+.L9:
+	%t10 = call i32 @getint()
+	%l1 = %t10
+	%t11 = icmp le %l1, 99
+	bc %t11, label .L11, label .L14
+.L14:
+	%t12 = call i32 @func(i32 %l1)
+	%t13 = icmp ne %t12, 0
+	bc %t13, label .L11, label .L12
+.L11:
+	%l1 = 1
+	br label .L13
+.L12:
+	%l1 = 0
+.L13:
+	%t14 = call i32 @getint()
+	%l1 = %t14
+	%t15 = icmp le %l1, 100
+	bc %t15, label .L15, label .L18
+.L18:
+	%t16 = call i32 @func(i32 %l1)
+	%t17 = icmp ne %t16, 0
+	bc %t17, label .L15, label .L16
+.L15:
+	%l1 = 1
+	br label .L17
+.L16:
+	%l1 = 0
+.L17:
+	%t18 = call i32 @func(i32 99)
+	%t19 = icmp eq %t18, 0
+	%t20 = icmp ne %t19, 0
+	bc %t20, label .L22, label .L20
+.L22:
+	%t21 = call i32 @func(i32 100)
+	%t22 = icmp ne %t21, 0
+	bc %t22, label .L19, label .L20
+.L19:
+	%l1 = 1
+	br label .L21
+.L20:
+	%l1 = 0
+.L21:
+	%l0 = 0
 	br label .L2
 .L2:
 	exit %l0

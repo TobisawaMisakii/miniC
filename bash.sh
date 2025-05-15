@@ -6,13 +6,13 @@ java -jar $HOME/miniC/thirdparty/antlr4/antlr-4.12.0-complete.jar -Dlanguage=Cpp
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
 cmake --build build --parallel
 # 生成AST图
-./build/minic -S -T -A -o ./tests/test-AST.png ./tests/test1-1.c
+./build/minic -S -T -A -o ./tests/test-AST.png ./tests/test.c
 # 生成标准ir
-tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test1-1_standard.ir tests/test1-1.c 
+# tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -I -o tests/test_std.ir tests/test.c 
 # 用自己的编译器生成ir
-./build/minic -S -A -I -o tests/test1-1.ir tests/test1-1.c
+./build/minic -S -A -I -o tests/test.ir tests/test.c
 # 用ircompiler运行自己的ir测试准确性
-tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test1-1.ir
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ir
 # 查看返回值
 echo $?  
 

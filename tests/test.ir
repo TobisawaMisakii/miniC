@@ -1,110 +1,32 @@
-declare i32 @g = 0
-define i32 @func(i32 %t0)
-{
-	declare i32 %l1 ; 1:n
-	declare i32 %l2
-	declare i32 %t3
-	entry
-	%l1 = %t0
-	%t3 = add @g, %l1
-	@g = %t3
-	call void @putint(i32 @g)
-	%l2 = @g
-	br label .L4
-.L4:
-	exit %l2
-}
+declare i32 @a = 1
 define i32 @main()
 {
 	declare i32 %l0
-	declare i32 %l1 ; 1:i
-	declare i32 %t2
-	declare i1 %t4
+	declare i32 %l1 ; 1:b
+	declare i32 %l2[1][2] ;  1:array
+	declare i32 %l3
+	declare i32 %t4
+	declare i32 %t5
 	declare i32 %t6
+	declare i32* %t7
+	declare i32 %t8
+	declare i32 %t9
 	declare i32 %t10
-	declare i1 %t12
-	declare i32 %t14
-	declare i32 %t18
-	declare i1 %t20
-	declare i32 %t22
-	declare i32 %t26
-	declare i1 %t28
-	declare i32 %t30
-	declare i32 %t35
-	declare i32 %t36
-	declare i32 %t38
+	declare i32* %t11
 	entry
-	%t2 = call i32 @getint()
-	%l1 = %t2
-.L3:
-	%t4 = icmp gt %l1, 10
-	bc %t4, label .L5, label .L8
-.L5:
-	%t6 = call i32 @func(i32 %l1)
-	bc %t6, label .L7, label .L8
-.L7:
-	%l1 = 1
-	br label .L9
-.L8:
-	%l1 = 0
-.L9:
-	%t10 = call i32 @getint()
-	%l1 = %t10
-.L11:
-	%t12 = icmp gt %l1, 11
-	bc %t12, label .L13, label .L16
-.L13:
-	%t14 = call i32 @func(i32 %l1)
-	bc %t14, label .L15, label .L16
-.L15:
-	%l1 = 1
-	br label .L17
-.L16:
-	%l1 = 0
-.L17:
-	%t18 = call i32 @getint()
-	%l1 = %t18
-.L19:
-	%t20 = icmp le %l1, 99
-	bc %t20, label .L23, label .L21
-.L21:
-	%t22 = call i32 @func(i32 %l1)
-	bc %t22, label .L23, label .L24
-.L23:
-	%l1 = 1
-	br label .L25
-.L24:
-	%l1 = 0
-.L25:
-	%t26 = call i32 @getint()
-	%l1 = %t26
-.L27:
-	%t28 = icmp le %l1, 100
-	bc %t28, label .L31, label .L29
-.L29:
-	%t30 = call i32 @func(i32 %l1)
-	bc %t30, label .L31, label .L32
-.L31:
-	%l1 = 1
-	br label .L33
-.L32:
-	%l1 = 0
-.L33:
-.L34:
-	%t35 = call i32 @func(i32 99)
-	%t36 = not %t35
-	bc %t36, label .L37, label .L40
-.L37:
-	%t38 = call i32 @func(i32 100)
-	bc %t38, label .L39, label .L40
-.L39:
-	%l1 = 1
-	br label .L41
-.L40:
-	%l1 = 0
-.L41:
-	%l0 = 0
-	br label .L42
-.L42:
+	%l1 = 2
+	%t4 = mul 0, 2
+	%t5 = add %t4, 0
+	%t6 = mul %t5, 4
+	%t7 = add %l2, %t6
+	*%t7 = 2
+	%t8 = mul 0, 2
+	%t9 = add %t8, 0
+	%t10 = mul %t9, 4
+	%t11 = add %l2, %t10
+	%l3 = *%t11
+	%l0 = %l3
+	br label .L12
+.L12:
 	exit %l0
 }

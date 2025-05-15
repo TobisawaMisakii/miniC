@@ -985,6 +985,14 @@ bool IRGenerator::ir_leaf_node_var_id(ast_node * node)
         minic_log(LOG_ERROR, "变量(%s)未定义", node->name.c_str());
         return false;
     }
+    //如果是常量且有初值，直接返回初值
+    if (val->isConst()) {
+        val = val->getConstValue();
+        if (!val) {
+            minic_log(LOG_ERROR, "常量(%s)未定义", node->name.c_str());
+            return false;
+        }
+    }
     node->val = val;
     return true;
 }
@@ -2445,10 +2453,10 @@ bool IRGenerator::ir_const_define(ast_node * node)
 
     // 创建常量
     Value * constValue;
+    ast_node * init_expr_node = node->sons[1];
     if (!module->getCurrentFunction()) { // 全局常量
         // 处理初始化表达式
         if (node->sons.size() > 1) {
-            ast_node * init_expr_node = node->sons[1];
             if (!ir_visit_ast_node(init_expr_node)) {
                 minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
                 return false;
@@ -2466,7 +2474,6 @@ bool IRGenerator::ir_const_define(ast_node * node)
         }
         // 处理初始化表达式
         if (node->sons.size() > 1) {
-            ast_node * init_expr_node = node->sons[1];
             if (!ir_visit_ast_node(init_expr_node)) {
                 minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
                 return false;
@@ -2489,36 +2496,39 @@ bool IRGenerator::ir_const_define(ast_node * node)
             return false;
         }
     }
+    constValue->setConst(true);
+    constValue->setConstValue(init_expr_node->val);
     node->val = constValue;
     const_name_node->val = constValue;
 
-    // 检查是否有初始化
-    if (node->sons.size() > 1) {
-        // 处理初始化表达式
-        ast_node * init_expr_node = node->sons[1];
-        if (!ir_visit_ast_node(init_expr_node)) {
-            minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
-            return false;
-        }
+    // // 检查是否有初始化
+    // if (node->sons.size() > 1) {
+    //     // 处理初始化表达式
+    //     ast_node * init_expr_node = node->sons[1];
+    //     if (!ir_visit_ast_node(init_expr_node)) {
+    //         minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+    //         return false;
+    //     }
 
-        // 类型转换检查
-        if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
-            minic_log(LOG_ERROR,
-                      "无法将类型%d赋给类型%d",
-                      init_expr_node->val->getType()->getTypeID(),
-                      constType->getTypeID());
-            return false;
-        }
+    //     // 类型转换检查
+    //     if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
+    //         minic_log(LOG_ERROR,
+    //                   "无法将类型%d赋给类型%d",
+    //                   init_expr_node->val->getType()->getTypeID(),
+    //                   constType->getTypeID());
+    //         return false;
+    //     }
 
-        // 生成赋值指令
-        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
-        // 添加指令到当前块
-        node->blockInsts.addInst(init_expr_node->blockInsts);
-        node->blockInsts.addInst(movInst);
-    } else {
-        minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
-        return false;
-    }
+    //     // 生成赋值指令
+    //     MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue,
+    //     init_expr_node->val);
+    //     // 添加指令到当前块
+    //     node->blockInsts.addInst(init_expr_node->blockInsts);
+    //     node->blockInsts.addInst(movInst);
+    // } else {
+    //     minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
+    //     return false;
+    // }
 
     return true;
 }
