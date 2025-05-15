@@ -34,6 +34,7 @@ Module::Module(std::string _name) : name(_name)
     // 注册内置函数
     (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
     (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
+    (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
 
     (void) newFunction("getarray",
                        IntegerType::getTypeInt(),
@@ -46,6 +47,7 @@ Module::Module(std::string _name) : name(_name)
 
     (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
     (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
+    (void) newFunction("putch", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
 
     (void) newFunction("putarray",
                        VoidType::getType(),
@@ -57,6 +59,12 @@ Module::Module(std::string _name) : name(_name)
                        VoidType::getType(),
                        {new FormalParam{IntegerType::getTypeInt(), ""},
                         new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    // 输出字符数组 char []
+    (void) newFunction("putf",
+                       VoidType::getType(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
                        true);
 
     // 用户调用无需参数，在IR生成阶段展开，插入line_no

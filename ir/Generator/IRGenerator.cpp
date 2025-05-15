@@ -1854,7 +1854,7 @@ bool IRGenerator::ir_eq(ast_node * node)
                                        left->val,
                                        right->val,
                                        IntegerType::getTypeBool());
-    } else if (left->val->getType()->isIntegerType() || right->val->getType()->isIntegerType()) {
+    } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
         eqInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_EQ,
                                        left->val,
@@ -2296,10 +2296,6 @@ bool IRGenerator::ir_pos(ast_node * node)
 
     // 获取当前函数
     Function * currentFunc = module->getCurrentFunction();
-    if (!currentFunc) {
-        minic_log(LOG_ERROR, "pos操作不在函数内");
-        return false;
-    }
 
     // 处理操作数
     ast_node * left = ir_visit_ast_node(src1_node);
@@ -2333,10 +2329,6 @@ bool IRGenerator::ir_neg(ast_node * node)
 
     // 获取当前函数
     Function * currentFunc = module->getCurrentFunction();
-    if (!currentFunc) {
-        minic_log(LOG_ERROR, "neg操作不在函数内");
-        return false;
-    }
 
     // 处理操作数
     ast_node * left = ir_visit_ast_node(src1_node);
@@ -2367,10 +2359,6 @@ bool IRGenerator::ir_not(ast_node * node)
 
     // 获取当前函数
     Function * currentFunc = module->getCurrentFunction();
-    if (!currentFunc) {
-        minic_log(LOG_ERROR, "not操作不在函数内");
-        return false;
-    }
 
     // 处理操作数
     ast_node * left = ir_visit_ast_node(src1_node);
@@ -2379,13 +2367,15 @@ bool IRGenerator::ir_not(ast_node * node)
         return false;
     }
 
-    // 创建IR指令
-    UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val);
-
+    // 用icmp eq 0代替not指令
+    BinaryInstruction * notInst = new BinaryInstruction(currentFunc,
+                                                        IRInstOperator::IRINST_OP_ICMP_EQ,
+                                                        left->val,
+                                                        module->newConstInt(0),
+                                                        IntegerType::getTypeBool());
     // 添加IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(notInst);
-
     // 保存结果
     node->val = notInst;
 

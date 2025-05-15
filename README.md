@@ -9,7 +9,7 @@
 
 ##  进度 & TODO
 
-- TODO：ir_neg/pos/not 实现有问题，考虑直接加入优化，舍去unary inst
+- TODO：加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition stmt应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
 
 ## BUG RECORD
 
@@ -20,7 +20,7 @@
 - (fixed)var_decl 和 var_def 节点的关系错误，一个decl应该对应一个type + 多个def
 - (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
 - (fixed)minic_log在哪？直接输出到命令行
-- unary op 测评平台未通过
+- (fixed)unary op 测评平台未通过
 
 ## 一、前端理解及配置
 
