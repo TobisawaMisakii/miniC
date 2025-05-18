@@ -1731,6 +1731,16 @@ bool IRGenerator::ir_lt(ast_node * node)
                                        left->val,
                                        right->val,
                                        IntegerType::getTypeBool());
+    } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isInt1Byte()) {
+        // 这里需要处理int1byte类型的比较
+        // 这里可以进行类型转换
+        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, IntegerType::getTypeInt1Byte());
+        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, IntegerType::getTypeInt1Byte());
+        ltInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_LT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
     } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
         ltInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_LT,
