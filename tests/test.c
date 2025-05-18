@@ -1,29 +1,47 @@
+int buf[2][100];
 
-int a = -1, b = 1;
+// sort [l, r)
+void merge_sort(int l, int r)
+{
+    if (l + 1 >= r)
+        return;
 
-// int inc_a()
-// {
-//     int b = a;
-//     b = b + 1;
-//     a = b;
-//     return a;
-// }
+    int mid = (l + r) / 2;
+    merge_sort(l, mid);
+    merge_sort(mid, r);
+
+    int i = l, j = mid, k = l;
+    while (i < mid && j < r) {
+        if (buf[0][i] < buf[0][j]) {
+            buf[1][k] = buf[0][i];
+            i = i + 1;
+        } else {
+            buf[1][k] = buf[0][j];
+            j = j + 1;
+        }
+        k = k + 1;
+    }
+    while (i < mid) {
+        buf[1][k] = buf[0][i];
+        i = i + 1;
+        k = k + 1;
+    }
+    while (j < r) {
+        buf[1][k] = buf[0][j];
+        j = j + 1;
+        k = k + 1;
+    }
+
+    while (l < r) {
+        buf[0][l] = buf[1][l];
+        l = l + 1;
+    }
+}
 
 int main()
 {
-    // int k = 5;
-    // while (k >= 0) {
-    //     if (inc_a() && inc_a() && inc_a()) {
-    //         putint(a); putch(32); putint(b); putch(10);
-    //     }
-    //     if (inc_a() < 14 || inc_a() && inc_a() - inc_a() + 1) {
-    //         putint(a); putch(10);
-    //         b = b * 2;
-    //     } else {
-    //         inc_a();
-    //     }
-    //     k = k - 1;
-    // }
-    // putint(a); putch(32); putint(b); putch(10);
-    return a;
+    int n = getarray(buf[0]);
+    merge_sort(0, n);
+    putarray(n, buf[0]);
+    return 0;
 }

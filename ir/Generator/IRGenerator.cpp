@@ -954,8 +954,10 @@ bool IRGenerator::ir_return(ast_node * node)
     node->blockInsts.addInst(new GotoInstruction(currentFunc, currentFunc->getExitLabel()));
 
     // 设置节点的值
-    node->val = right->val;
-    node->val = right->val;
+    if (right) {
+        node->val = right->val;
+        node->val = right->val;
+    }
     return true;
 }
 
