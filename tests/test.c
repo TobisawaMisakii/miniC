@@ -1,12 +1,6 @@
-//test comment
-int main(){
-    int a;
-    a = 5;
-    //int b = 4;
-    //a = b + a;
-    /*/*
-        b = 1;
-        // b = 2
-    */
+
+int main()
+{
+    const int a = 1;
     return a;
 }

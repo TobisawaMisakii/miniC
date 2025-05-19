@@ -129,7 +129,7 @@ lb_check:
                 gShowAST = true;
                 break;
             case 'L':
-                // 产生中间IR
+                // 产生中间IR(llvm)
                 gShowLineIR = true;
                 break;
             case 'A':

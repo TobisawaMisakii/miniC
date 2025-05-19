@@ -1,11 +1,26 @@
 define i32 @main() {
 	%l0 = alloca i32, align 4
 	%l1 = alloca i32, align 4 ; variable: a
-	store i32 5, i32* %l1, align 4
-	%t2 = load i32, i32* %l1, align 4
-	store i32 %t2, i32* %l0, align 4
-	%t3 = load i32, i32* %l0, align 4
-	ret i32 %t3
+	store i32 1, i32* %l1, align 4
+	%t4 = load i32, i32* %l1, align 4
+	%t2 = icmp eq i32 %t4, 1
+	br i1 %t2, label %.L3, label %.L4
+.L3:
+	store i32 1, i32* %l0, align 4
+	br label %.L2
+.L4:
+	%t5 = load i32, i32* %l1, align 4
+	%t3 = icmp eq i32 %t5, 0
+	br i1 %t3, label %.L6, label %.L7
+.L6:
+	store i32 0, i32* %l0, align 4
+	br label %.L2
+.L7:
+	store i32 -1, i32* %l0, align 4
+	br label %.L2
+.L2:
+	%t6 = load i32, i32* %l0, align 4
+	ret i32 %t6
 }
 declare i32 @getint(...);
 declare i32 @getch(...);

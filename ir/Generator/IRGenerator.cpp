@@ -259,10 +259,11 @@ bool IRGenerator::ir_function_define(ast_node * node)
     node->blockInsts.addInst(param_node->blockInsts);
 
     // 新建一个Value，用于保存函数的返回值，如果没有返回值可不用申请
-    LocalVariable * retValue = nullptr;
+    Value * retValue = nullptr;
     if (!type_node->type->isVoidType()) {
 
-        // 保存函数返回值变量到函数信息中，在return语句翻译时需要设置值到这个变量中
+        // 保存函数返回值变量到函数信息中，在函数定义结尾，需要设置值到这个变量中(首先从%l0中load出返回值，存到一个临时变量中，再return这个临时变量)
+
         retValue = static_cast<LocalVariable *>(module->newVarValue(type_node->type));
     }
     newFunc->setReturnValue(retValue);
@@ -290,8 +291,17 @@ bool IRGenerator::ir_function_define(ast_node * node)
     // 添加函数出口Label指令，主要用于return语句跳转到这里进行函数的退出
     irCode.addInst(exitLabelInst);
 
+    //在函数定义的结尾，首先从%l0中load出返回值，存到一个临时变量中，再在函数出口返回这个临时变量
+    if (retValue) {
+        // 如果函数有返回值，则需要设置返回值
+        // 这里的retValue是函数内的局部变量，不能是临时变量
+        LoadInstruction * loadInst = new LoadInstruction(newFunc, retValue);
+        irCode.addInst(loadInst);
+        retValue = loadInst;
+    }
+
     // 函数出口指令
-    irCode.addInst(new ExitInstruction(newFunc, newFunc->getReturnValue()));
+    irCode.addInst(new ExitInstruction(newFunc, retValue));
 
     // 恢复成外部函数
     module->setCurrentFunction(nullptr);
@@ -933,16 +943,16 @@ bool IRGenerator::ir_return(ast_node * node)
         node->blockInsts.addInst(right->blockInsts);
 
         // 如果有返回值变量（非void函数），生成赋值指令
-        if (currentFunc->getReturnType() != VoidType::getType()) {
+        if (currentFunc->getReturnValue()) {
             // node->blockInsts.addInst(new MoveInstruction(currentFunc, currentFunc->getReturnValue(), returnValue));
             StoreInstruction * store1 =
                 new StoreInstruction(module->getCurrentFunction(), currentFunc->getReturnValue(), returnValue);
-            LoadInstruction * loadInst =
-                new LoadInstruction(module->getCurrentFunction(), currentFunc->getReturnValue());
+            // LoadInstruction * loadInst =
+            //     new LoadInstruction(module->getCurrentFunction(), currentFunc->getReturnValue());
             node->blockInsts.addInst(store1);
-            node->blockInsts.addInst(loadInst);
-            // loadInst->getIRName();
-            module->getCurrentFunction()->setReturnValue(static_cast<Value *>(loadInst));
+            // node->blockInsts.addInst(loadInst);
+            // // loadInst->getIRName();
+            // module->getCurrentFunction()->setReturnValue(static_cast<Value *>(loadInst));
         }
     }
     // 无返回值的处理
@@ -2543,8 +2553,8 @@ bool IRGenerator::ir_const_define(ast_node * node)
                 return false;
             }
             // 生成赋值指令
-            MoveInstruction * movInst =
-                new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
+            StoreInstruction * movInst =
+                new StoreInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
             node->blockInsts.addInst(init_expr_node->blockInsts);
             node->blockInsts.addInst(movInst);
         } else {
@@ -2554,34 +2564,6 @@ bool IRGenerator::ir_const_define(ast_node * node)
     }
     node->val = constValue;
     const_name_node->val = constValue;
-
-    // 检查是否有初始化
-    if (node->sons.size() > 1) {
-        // 处理初始化表达式
-        ast_node * init_expr_node = node->sons[1];
-        if (!ir_visit_ast_node(init_expr_node)) {
-            minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
-            return false;
-        }
-
-        // 类型转换检查
-        if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
-            minic_log(LOG_ERROR,
-                      "无法将类型%d赋给类型%d",
-                      init_expr_node->val->getType()->getTypeID(),
-                      constType->getTypeID());
-            return false;
-        }
-
-        // 生成赋值指令
-        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue, init_expr_node->val);
-        // 添加指令到当前块
-        node->blockInsts.addInst(init_expr_node->blockInsts);
-        node->blockInsts.addInst(movInst);
-    } else {
-        minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
-        return false;
-    }
 
     return true;
 }
