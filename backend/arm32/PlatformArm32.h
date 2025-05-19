@@ -20,7 +20,7 @@
 #include "RegVariable.h"
 
 // 在操作过程中临时借助的寄存器为ARM32_TMP_REG_NO
-#define ARM32_TMP_REG_NO 10
+#define ARM32_TMP_REG_NO 8
 
 // 栈寄存器SP和FP
 #define ARM32_SP_REG_NO 13

@@ -18,9 +18,8 @@
 #include "IntegerType.h"
 
 const std::string PlatformArm64::regName[PlatformArm64::maxRegNum] = {
-    "x0",  "x1",  "x2",  "x3",  "x4",  "x5",  "x6",  "x7",  "x8",  "x9",  "x10", "x11", "x12", "x13", "x14", "x15",
-    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "fp",  "lr",  "sp",
-};
+    "x0",  "x1",  "x2", "x3",  "x4",  "x5",  "x6",  "x7",  "xr",  "x9",  "x10", "x11", "x12", "x13", "x14", "x15",
+    "ip0", "ip1", "pr", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "fp",  "lp"};
 
 RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[0], 0),
@@ -53,9 +52,7 @@ RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[27], 27),
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[28], 28),
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[29], 29),
-    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[30], 30),
-    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[31], 31),
-};
+    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[30], 30)};
 
 /// @brief 判断是否是常数表达式，ARM64支持更复杂的立即数生成
 /// @param num
@@ -81,9 +78,8 @@ bool PlatformArm64::isDisp(int num)
 bool PlatformArm64::isReg(std::string name)
 {
     return name == "x0" || name == "x1" || name == "x2" || name == "x3" || name == "x4" || name == "x5" ||
-           name == "x6" || name == "x7" || name == "x8" || name == "x9" || name == "x10" || name == "x11" ||
-           name == "x12" || name == "x13" || name == "x14" || name == "x15" || name == "x16" || name == "x17" ||
-           name == "x18" || name == "x19" || name == "x20" || name == "x21" || name == "x22" || name == "x23" ||
-           name == "x24" || name == "x25" || name == "x26" || name == "x27" || name == "x28" || name == "sp" ||
-           name == "lr" || name == "fp";
+           name == "x6" || name == "x7" || name == "xr" || name == "x9" || name == "x10" || name == "x11" ||
+           name == "x12" || name == "x13" || name == "x14" || name == "x15" || name == "ip0" || name == "ip1" ||
+           name == "pr" || name == "x19" || name == "x20" || name == "x21" || name == "x22" || name == "x23" ||
+           name == "x24" || name == "x25" || name == "x26" || name == "x27" || name == "lp" || name == "fp";
 }

@@ -22,9 +22,9 @@
 #include "Module.h"
 #include "PlatformArm64.h"
 #include "CodeGeneratorArm64.h"
-// #include "InstSelectorArm64.h"
+#include "InstSelectorArm64.h"
 #include "LinearScanRegisterAllocator.h"
-// #include "ILocArm64.h"
+#include "ILocArm64.h"
 #include "RegVariable.h"
 #include "FuncCallInstruction.h"
 #include "ArgInstruction.h"
@@ -135,7 +135,7 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
     ILocArm64 iloc(module);
 
     // 指令选择生成汇编指令
-    InstSelectorArm64 instSelector(IrInsts, iloc, func, simpleRegisterAllocator//改成线性扫描);
+    InstSelectorArm64 instSelector(IrInsts, iloc, func, LinearScanRegisterAllocator);
     instSelector.run();
 
     // 删除无用的Label指令
@@ -192,10 +192,10 @@ void CodeGeneratorArm64::registerAllocation(Function * func)
     //  (3) R10寄存器用于立即数过大时要通过寄存器寻址，这里简化处理进行预留
 
     std::vector<int32_t> & protectedRegNo = func->getProtectedReg();
-    protectedRegNo.push_back(ARM32_TMP_REG_NO);
-    protectedRegNo.push_back(ARM32_FP_REG_NO);
+    protectedRegNo.push_back(ARM64_XR_REG_NO);
+    protectedRegNo.push_back(ARM64_FP_REG_NO);
     if (func->getExistFuncCall()) {
-        protectedRegNo.push_back(ARM32_LX_REG_NO);
+        protectedRegNo.push_back(ARM64_IP0_REG_NO);
     }
 
     // 调整函数调用指令，主要是前四个寄存器传值，后面用栈传递
@@ -243,7 +243,7 @@ void CodeGeneratorArm64::adjustFormalParamInsts(Function * func)
 
         // 目前假定变量大小都是4字节。实际要根据类型来计算
 
-        params[k]->setMemoryAddr(ARM32_FP_REG_NO, fp_esp);
+        params[k]->setMemoryAddr(ARM64_FP_REG_NO, fp_esp);
 
         // 增加4字节
         fp_esp += 4;
@@ -275,7 +275,7 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
 
                 // 新建一个内存变量，用于栈传值到形参变量中
                 LocalVariable * newVal = func->newLocalVarValue(IntegerType::getTypeInt());
-                newVal->setMemoryAddr(ARM32_SP_REG_NO, esp);
+                newVal->setMemoryAddr(ARM64_XR_REG_NO, esp);
                 esp += 4;
 
                 Instruction * assignInst = new MoveInstruction(func, newVal, arg);
@@ -378,7 +378,7 @@ void CodeGeneratorArm64::stackAlloc(Function * func)
             // 之后需要对所有使用到该Value的指令在寄存器分配前要变换。
 
             // 局部变量偏移设置
-            var->setMemoryAddr(ARM32_FP_REG_NO, sp_esp);
+            var->setMemoryAddr(ARM64_FP_REG_NO, sp_esp);
 
             // 累计当前作用域大小
             sp_esp += size;
@@ -402,7 +402,7 @@ void CodeGeneratorArm64::stackAlloc(Function * func)
             // 之后需要对所有使用到该Value的指令在寄存器分配前要变换。
 
             // 局部变量偏移设置
-            inst->setMemoryAddr(ARM32_FP_REG_NO, sp_esp);
+            inst->setMemoryAddr(ARM64_FP_REG_NO, sp_esp);
 
             // 累计当前作用域大小
             sp_esp += size;

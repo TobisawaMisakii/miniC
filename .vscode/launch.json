@@ -111,17 +111,17 @@
 		},
 		{
 			// 可采用GCC或者Clang编译器
-			"name": "Debug Backend ARM32",
+			"name": "Debug Backend ARM64",
 			"type": "lldb",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/minic",
-			"args": ["-S", "-A", "-o", "tests/test2-2.s", "tests/test2-2.c"],
+			"args": ["-S", "-A", "-o", "tests/test2-1.s", "tests/test2-1.c"],
 			"cwd": "${workspaceFolder}",
 			// 不需要编译时可注释掉
 			"preLaunchTask": "CMake: build"
 		},
 		{
-			"name": "Qemu Debug ARM32",
+			"name": "Qemu Debug ARM64",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/tests/test2-2",

@@ -15,7 +15,6 @@
 ///
 #include <cstdint>
 #include <vector>
-
 ///
 /// @brief 非类型模板参数，容量N个字节
 /// @tparam N 容量N个字节
@@ -48,7 +47,7 @@ public:
         _bits[i] |= 1 << j;
     }
 
-    //复位函数，将指定位设置为0
+    // 复位函数，将指定位设置为0
     void reset(std::size_t x)
     {
         // x/8 表明i是在vector中的哪一个字节当中
