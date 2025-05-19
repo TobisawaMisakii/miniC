@@ -22,24 +22,24 @@
 #include "PlatformArm64.h"
 #include "Module.h"
 
-ArmInst::ArmInst(std::string _opcode,
-                 std::string _result,
-                 std::string _arg1,
-                 std::string _arg2,
-                 std::string _cond,
-                 std::string _addition)
+ArmInst64::ArmInst64(std::string _opcode,
+                     std::string _result,
+                     std::string _arg1,
+                     std::string _arg2,
+                     std::string _cond,
+                     std::string _addition)
     : opcode(_opcode), cond(_cond), result(_result), arg1(_arg1), arg2(_arg2), addition(_addition), dead(false)
 {}
 
 /*
     指令内容替换
 */
-void ArmInst::replace(std::string _opcode,
-                      std::string _result,
-                      std::string _arg1,
-                      std::string _arg2,
-                      std::string _cond,
-                      std::string _addition)
+void ArmInst64::replace(std::string _opcode,
+                        std::string _result,
+                        std::string _arg1,
+                        std::string _arg2,
+                        std::string _cond,
+                        std::string _addition)
 {
     opcode = _opcode;
     result = _result;
@@ -59,7 +59,7 @@ void ArmInst::replace(std::string _opcode,
 /*
     设置为无效指令
 */
-void ArmInst::setDead()
+void ArmInst64::setDead()
 {
     dead = true;
 }
@@ -67,7 +67,7 @@ void ArmInst::setDead()
 /*
     输出函数
 */
-std::string ArmInst::outPut()
+std::string ArmInst64::outPut()
 {
     // 无用代码，什么都不输出
     if (dead) {
@@ -112,7 +112,7 @@ std::string ArmInst::outPut()
     return ret;
 }
 
-#define emit(...) code.push_back(new ArmInst(__VA_ARGS__))
+#define emit(...) code.push_back(new ArmInst64(__VA_ARGS__))
 
 /// @brief 构造函数
 /// @param _module 符号表
@@ -124,7 +124,7 @@ ILocArm64::ILocArm64(Module * _module)
 /// @brief 析构函数
 ILocArm64::~ILocArm64()
 {
-    std::list<ArmInst *>::iterator pIter;
+    std::list<ArmInst64 *>::iterator pIter;
 
     for (pIter = code.begin(); pIter != code.end(); ++pIter) {
         delete (*pIter);
@@ -134,17 +134,17 @@ ILocArm64::~ILocArm64()
 /// @brief 删除无用的Label指令
 void ILocArm64::deleteUsedLabel()
 {
-    std::list<ArmInst *> labelInsts;
-    for (ArmInst * arm: code) {
+    std::list<ArmInst64 *> labelInsts;
+    for (ArmInst64 * arm: code) {
         if ((!arm->dead) && (arm->opcode[0] == '.') && (arm->result == ":")) {
             labelInsts.push_back(arm);
         }
     }
 
-    for (ArmInst * labelArm: labelInsts) {
+    for (ArmInst64 * labelArm: labelInsts) {
         bool labelUsed = false;
 
-        for (ArmInst * arm: code) {
+        for (ArmInst64 * arm: code) {
             // TODO 转移语句的指令标识符根据定义修改判断
             if ((!arm->dead) && (arm->opcode[0] == 'b') && (arm->result == labelArm->opcode)) {
                 labelUsed = true;
@@ -183,7 +183,7 @@ void ILocArm64::outPut(FILE * file, bool outputEmpty)
 
 /// @brief 获取当前的代码序列
 /// @return 代码序列
-std::list<ArmInst *> & ILocArm64::getCode()
+std::list<ArmInst64 *> & ILocArm64::getCode()
 {
     return code;
 }

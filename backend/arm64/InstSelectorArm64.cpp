@@ -1,16 +1,16 @@
 ///
 /// @file InstSelectorArm64.cpp
-/// @brief Ö¸ÁîÑ¡ÔñÆ÷-ARM64µÄÊµÏÖ
+/// @brief æŒ‡ä»¤é€‰æ‹©å™¨-ARM64çš„å®ç°
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #include <cstdio>
@@ -30,14 +30,14 @@
 #include "MoveInstruction.h"
 
 ///
-/// @brief ÒıÓÃmain.cµÄÈ«¾Ö±äÁ¿£¬ÎªÁË±ãÓÚ¿ØÖÆ
+/// @brief å¼•ç”¨main.cçš„å…¨å±€å˜é‡ï¼Œä¸ºäº†ä¾¿äºæ§åˆ¶
 ///
 extern bool gAsmAlsoShowIR;
 
-/// @brief ¹¹Ôìº¯Êı
-/// @param _irCode Ö¸Áî
+/// @brief æ„é€ å‡½æ•°
+/// @param _irCode æŒ‡ä»¤
 /// @param _iloc ILoc
-/// @param _func º¯Êı
+/// @param _func å‡½æ•°
 InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
                                      ILocArm64 & _iloc,
                                      Function * _func,
@@ -60,39 +60,39 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
 }
 
 ///
-/// @brief Îö¹¹º¯Êı
+/// @brief ææ„å‡½æ•°
 ///
 InstSelectorArm64::~InstSelectorArm64()
 {}
 
-/// @brief Ö¸ÁîÑ¡ÔñÖ´ĞĞ
+/// @brief æŒ‡ä»¤é€‰æ‹©æ‰§è¡Œ
 void InstSelectorArm64::run()
 {
     for (auto inst: ir) {
 
-        // Öğ¸öÖ¸Áî½øĞĞ·­Òë
+        // é€ä¸ªæŒ‡ä»¤è¿›è¡Œç¿»è¯‘
         if (!inst->isDead()) {
             translate(inst);
         }
     }
 }
 
-/// @brief Ö¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate(Instruction * inst)
 {
-    // ²Ù×÷·û
+    // æ“ä½œç¬¦
     IRInstOperator op = inst->getOp();
 
     map<IRInstOperator, translate_handler>::const_iterator pIter;
     pIter = translator_handlers.find(op);
     if (pIter == translator_handlers.end()) {
-        // Ã»ÓĞÕÒµ½£¬ÔòËµÃ÷µ±Ç°²»Ö§³Ö
+        // æ²¡æœ‰æ‰¾åˆ°ï¼Œåˆ™è¯´æ˜å½“å‰ä¸æ”¯æŒ
         printf("Translate: Operator(%d) not support", (int) op);
         return;
     }
 
-    // ¿ªÆôÊ±Êä³öIRÖ¸Áî×÷Îª×¢ÊÍ
+    // å¼€å¯æ—¶è¾“å‡ºIRæŒ‡ä»¤ä½œä¸ºæ³¨é‡Š
     if (gAsmAlsoShowIR) {
         outputIRInstruction(inst);
     }
@@ -101,7 +101,7 @@ void InstSelectorArm64::translate(Instruction * inst)
 }
 
 ///
-/// @brief Êä³öIRÖ¸Áî
+/// @brief è¾“å‡ºIRæŒ‡ä»¤
 ///
 void InstSelectorArm64::outputIRInstruction(Instruction * inst)
 {
@@ -112,16 +112,16 @@ void InstSelectorArm64::outputIRInstruction(Instruction * inst)
     }
 }
 
-/// @brief NOP·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief NOPç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_nop(Instruction * inst)
 {
     (void) inst;
     iloc.nop();
 }
 
-/// @brief LabelÖ¸ÁîÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief LabelæŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_label(Instruction * inst)
 {
     Instanceof(labelInst, LabelInstruction *, inst);
@@ -129,21 +129,21 @@ void InstSelectorArm64::translate_label(Instruction * inst)
     iloc.label(labelInst->getName());
 }
 
-/// @brief gotoÖ¸ÁîÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief gotoæŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_goto(Instruction * inst)
 {
     Instanceof(gotoInst, GotoInstruction *, inst);
 
-    // ÎŞÌõ¼şÌø×ª
+    // æ— æ¡ä»¶è·³è½¬
     iloc.jump(gotoInst->getTarget()->getName());
 }
 
-/// @brief º¯ÊıÈë¿ÚÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief å‡½æ•°å…¥å£æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_entry(Instruction * inst)
 {
-    // ²é¿´±£»¤µÄ¼Ä´æÆ÷
+    // æŸ¥çœ‹ä¿æŠ¤çš„å¯„å­˜å™¨
     auto & protectedRegNo = func->getProtectedReg();
     auto & protectedRegStr = func->getProtectedRegStr();
 
@@ -161,25 +161,25 @@ void InstSelectorArm64::translate_entry(Instruction * inst)
         iloc.inst("push", "{" + protectedRegStr + "}");
     }
 
-    // Îªfun·ÖÅäÕ»Ö¡£¬º¬¾Ö²¿±äÁ¿¡¢º¯Êıµ÷ÓÃÖµ´«µİµÄ¿Õ¼äµÈ
+    // ä¸ºfunåˆ†é…æ ˆå¸§ï¼Œå«å±€éƒ¨å˜é‡ã€å‡½æ•°è°ƒç”¨å€¼ä¼ é€’çš„ç©ºé—´ç­‰
     iloc.allocStack(func, ARM64_XR_REG_NO);
 }
 
-/// @brief º¯Êı³ö¿ÚÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief å‡½æ•°å‡ºå£æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_exit(Instruction * inst)
 {
     if (inst->getOperandsNum()) {
-        // ´æÔÚ·µ»ØÖµ
+        // å­˜åœ¨è¿”å›å€¼
         Value * retVal = inst->getOperand(0);
 
-        // ¸³Öµ¸ø¼Ä´æÆ÷R0
+        // èµ‹å€¼ç»™å¯„å­˜å™¨R0
         iloc.load_var(0, retVal);
     }
 
     auto & protectedRegStr = func->getProtectedRegStr();
 
-    // »Ö¸´Õ»¿Õ¼ä
+    // æ¢å¤æ ˆç©ºé—´
     iloc.inst("add",
               PlatformArm64::regName[ARM64_FP_REG_NO],
               PlatformArm64::regName[ARM64_FP_REG_NO],
@@ -187,7 +187,7 @@ void InstSelectorArm64::translate_exit(Instruction * inst)
 
     iloc.inst("mov", "sp", PlatformArm64::regName[ARM64_FP_REG_NO]);
 
-    // ±£»¤¼Ä´æÆ÷µÄ»Ö¸´
+    // ä¿æŠ¤å¯„å­˜å™¨çš„æ¢å¤
     if (!protectedRegStr.empty()) {
         iloc.inst("pop", "{" + protectedRegStr + "}");
     }
@@ -195,8 +195,8 @@ void InstSelectorArm64::translate_exit(Instruction * inst)
     iloc.inst("bx", "lr");
 }
 
-/// @brief ¸³ÖµÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief èµ‹å€¼æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_assign(Instruction * inst)
 {
     Value * result = inst->getOperand(0);
@@ -206,36 +206,36 @@ void InstSelectorArm64::translate_assign(Instruction * inst)
     int64_t result_regId = result->getRegId();
 
     if (arg1_regId != -1) {
-        // ¼Ä´æÆ÷ => ÄÚ´æ
-        // ¼Ä´æÆ÷ => ¼Ä´æÆ÷
+        // å¯„å­˜å™¨ => å†…å­˜
+        // å¯„å­˜å™¨ => å¯„å­˜å™¨
 
-        // r8 -> rs ¿ÉÄÜÓÃµ½r9
+        // r8 -> rs å¯èƒ½ç”¨åˆ°r9
         iloc.store_var(arg1_regId, result, ARM64_IP0_REG_NO);
     } else if (result_regId != -1) {
-        // ÄÚ´æ±äÁ¿ => ¼Ä´æÆ÷
+        // å†…å­˜å˜é‡ => å¯„å­˜å™¨
 
         iloc.load_var(result_regId, arg1);
     } else {
-        // ÄÚ´æ±äÁ¿ => ÄÚ´æ±äÁ¿
+        // å†…å­˜å˜é‡ => å†…å­˜å˜é‡
 
         int64_t temp_regno = linearScanRegisterAllocator.Allocate();
 
         // arg1 -> r8
         iloc.load_var(temp_regno, arg1);
 
-        // r8 -> rs ¿ÉÄÜÓÃµ½r9
+        // r8 -> rs å¯èƒ½ç”¨åˆ°r9
         iloc.store_var(temp_regno, result, ARM64_IP0_REG_NO);
 
         linearScanRegisterAllocator.free(temp_regno);
     }
 }
 
-/// @brief ¶şÔª²Ù×÷Ö¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
-/// @param operator_name ²Ù×÷Âë
-/// @param rs_reg_no ½á¹û¼Ä´æÆ÷ºÅ
-/// @param op1_reg_no Ô´²Ù×÷Êı1¼Ä´æÆ÷ºÅ
-/// @param op2_reg_no Ô´²Ù×÷Êı2¼Ä´æÆ÷ºÅ
+/// @brief äºŒå…ƒæ“ä½œæŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
+/// @param operator_name æ“ä½œç 
+/// @param rs_reg_no ç»“æœå¯„å­˜å™¨å·
+/// @param op1_reg_no æºæ“ä½œæ•°1å¯„å­˜å™¨å·
+/// @param op2_reg_no æºæ“ä½œæ•°2å¯„å­˜å™¨å·
 void InstSelectorArm64::translate_two_operator(Instruction * inst, string operator_name)
 {
     Value * result = inst;
@@ -247,22 +247,22 @@ void InstSelectorArm64::translate_two_operator(Instruction * inst, string operat
     int32_t result_reg_no = inst->getRegId();
     int32_t load_result_reg_no, load_arg1_reg_no, load_arg2_reg_no;
 
-    // ¿´arg1ÊÇ·ñÊÇ¼Ä´æÆ÷£¬ÈôÊÇÔò¼Ä´æÆ÷Ñ°Ö·£¬·ñÔòÒªload±äÁ¿µ½¼Ä´æÆ÷ÖĞ
+    // çœ‹arg1æ˜¯å¦æ˜¯å¯„å­˜å™¨ï¼Œè‹¥æ˜¯åˆ™å¯„å­˜å™¨å¯»å€ï¼Œå¦åˆ™è¦loadå˜é‡åˆ°å¯„å­˜å™¨ä¸­
     if (arg1_reg_no == -1) {
 
-        // ·ÖÅäÒ»¸ö¼Ä´æÆ÷r8
+        // åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨r8
         load_arg1_reg_no = linearScanRegisterAllocator.Allocate(arg1);
 
-        // arg1 -> r8£¬ÕâÀï¿ÉÄÜÓÉÓÚÆ«ÒÆ²»Âú×ãÖ¸ÁîµÄÒªÇó£¬ĞèÒª¶îÍâ·ÖÅä¼Ä´æÆ÷
+        // arg1 -> r8ï¼Œè¿™é‡Œå¯èƒ½ç”±äºåç§»ä¸æ»¡è¶³æŒ‡ä»¤çš„è¦æ±‚ï¼Œéœ€è¦é¢å¤–åˆ†é…å¯„å­˜å™¨
         iloc.load_var(load_arg1_reg_no, arg1);
     } else {
         load_arg1_reg_no = arg1_reg_no;
     }
 
-    // ¿´arg2ÊÇ·ñÊÇ¼Ä´æÆ÷£¬ÈôÊÇÔò¼Ä´æÆ÷Ñ°Ö·£¬·ñÔòÒªload±äÁ¿µ½¼Ä´æÆ÷ÖĞ
+    // çœ‹arg2æ˜¯å¦æ˜¯å¯„å­˜å™¨ï¼Œè‹¥æ˜¯åˆ™å¯„å­˜å™¨å¯»å€ï¼Œå¦åˆ™è¦loadå˜é‡åˆ°å¯„å­˜å™¨ä¸­
     if (arg2_reg_no == -1) {
 
-        // ·ÖÅäÒ»¸ö¼Ä´æÆ÷r9
+        // åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨r9
         load_arg2_reg_no = linearScanRegisterAllocator.Allocate(arg2);
 
         // arg2 -> r9
@@ -271,9 +271,9 @@ void InstSelectorArm64::translate_two_operator(Instruction * inst, string operat
         load_arg2_reg_no = arg2_reg_no;
     }
 
-    // ¿´½á¹û±äÁ¿ÊÇ·ñÊÇ¼Ä´æÆ÷£¬Èô²»ÊÇÔòĞèÒª·ÖÅäÒ»¸öĞÂµÄ¼Ä´æÆ÷À´±£´æÔËËãµÄ½á¹û
+    // çœ‹ç»“æœå˜é‡æ˜¯å¦æ˜¯å¯„å­˜å™¨ï¼Œè‹¥ä¸æ˜¯åˆ™éœ€è¦åˆ†é…ä¸€ä¸ªæ–°çš„å¯„å­˜å™¨æ¥ä¿å­˜è¿ç®—çš„ç»“æœ
     if (result_reg_no == -1) {
-        // ·ÖÅäÒ»¸ö¼Ä´æÆ÷r10£¬ÓÃÓÚÔİ´æ½á¹û
+        // åˆ†é…ä¸€ä¸ªå¯„å­˜å™¨r10ï¼Œç”¨äºæš‚å­˜ç»“æœ
         load_result_reg_no = linearScanRegisterAllocator.Allocate(result);
     } else {
         load_result_reg_no = result_reg_no;
@@ -285,37 +285,37 @@ void InstSelectorArm64::translate_two_operator(Instruction * inst, string operat
               PlatformArm64::regName[load_arg1_reg_no],
               PlatformArm64::regName[load_arg2_reg_no]);
 
-    // ½á¹û²»ÊÇ¼Ä´æÆ÷£¬ÔòĞèÒª°Ñrs_reg_name±£´æµ½½á¹û±äÁ¿ÖĞ
+    // ç»“æœä¸æ˜¯å¯„å­˜å™¨ï¼Œåˆ™éœ€è¦æŠŠrs_reg_nameä¿å­˜åˆ°ç»“æœå˜é‡ä¸­
     if (result_reg_no == -1) {
 
-        // ÕâÀïÊ¹ÓÃÔ¤ÁôµÄÁÙÊ±¼Ä´æÆ÷£¬ÒòÎªÁ¢¼´Êı¿ÉÄÜ¹ı´ó£¬±ØĞë½èÖú¼Ä´æÆ÷²Å¿É²Ù×÷¡£
+        // è¿™é‡Œä½¿ç”¨é¢„ç•™çš„ä¸´æ—¶å¯„å­˜å™¨ï¼Œå› ä¸ºç«‹å³æ•°å¯èƒ½è¿‡å¤§ï¼Œå¿…é¡»å€ŸåŠ©å¯„å­˜å™¨æ‰å¯æ“ä½œã€‚
 
         // r10 -> result
         iloc.store_var(load_result_reg_no, result, ARM64_IP0_REG_NO);
     }
 
-    // ÊÍ·Å¼Ä´æÆ÷
+    // é‡Šæ”¾å¯„å­˜å™¨
     linearScanRegisterAllocator.free(arg1);
     linearScanRegisterAllocator.free(arg2);
     linearScanRegisterAllocator.free(result);
 }
 
-/// @brief ÕûÊı¼Ó·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief æ•´æ•°åŠ æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_add_int64(Instruction * inst)
 {
     translate_two_operator(inst, "add");
 }
 
-/// @brief ÕûÊı¼õ·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief æ•´æ•°å‡æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_sub_int64(Instruction * inst)
 {
     translate_two_operator(inst, "sub");
 }
 
-/// @brief º¯Êıµ÷ÓÃÖ¸Áî·­Òë³ÉARM64»ã±à
-/// @param inst IRÖ¸Áî
+/// @brief å‡½æ•°è°ƒç”¨æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+/// @param inst IRæŒ‡ä»¤
 void InstSelectorArm64::translate_call(Instruction * inst)
 {
     FuncCallInstruction * callInst = dynamic_cast<FuncCallInstruction *>(inst);
@@ -324,35 +324,35 @@ void InstSelectorArm64::translate_call(Instruction * inst)
 
     if (operandNum != realArgCount) {
 
-        // Á½Õß²»Ò»ÖÂ Ò²¿ÉÄÜÃ»ÓĞARGÖ¸Áî£¬Õı³£
+        // ä¸¤è€…ä¸ä¸€è‡´ ä¹Ÿå¯èƒ½æ²¡æœ‰ARGæŒ‡ä»¤ï¼Œæ­£å¸¸
         if (realArgCount != 0) {
 
-            minic_log(LOG_ERROR, "ARGÖ¸ÁîµÄ¸öÊıÓëµ÷ÓÃº¯Êı¸öÊı²»Ò»ÖÂ");
+            minic_log(LOG_ERROR, "ARGæŒ‡ä»¤çš„ä¸ªæ•°ä¸è°ƒç”¨å‡½æ•°ä¸ªæ•°ä¸ä¸€è‡´");
         }
     }
 
     if (operandNum) {
 
-        // Ç¿ÖÆÕ¼ÓÃÕâ¼¸¸ö¼Ä´æÆ÷²ÎÊı´«µİµÄ¼Ä´æÆ÷
+        // å¼ºåˆ¶å ç”¨è¿™å‡ ä¸ªå¯„å­˜å™¨å‚æ•°ä¼ é€’çš„å¯„å­˜å™¨
         linearScanRegisterAllocator.Allocate(0);
         linearScanRegisterAllocator.Allocate(1);
         linearScanRegisterAllocator.Allocate(2);
         linearScanRegisterAllocator.Allocate(3);
 
-        // Ç°ËÄ¸öµÄºóÃæ²ÎÊı²ÉÓÃÕ»´«µİ
+        // å‰å››ä¸ªçš„åé¢å‚æ•°é‡‡ç”¨æ ˆä¼ é€’
         int esp = 0;
         for (int32_t k = 4; k < operandNum; k++) {
 
             auto arg = callInst->getOperand(k);
 
-            // ĞÂ½¨Ò»¸öÄÚ´æ±äÁ¿£¬ÓÃÓÚÕ»´«Öµµ½ĞÎ²Î±äÁ¿ÖĞ
+            // æ–°å»ºä¸€ä¸ªå†…å­˜å˜é‡ï¼Œç”¨äºæ ˆä¼ å€¼åˆ°å½¢å‚å˜é‡ä¸­
             MemVariable * newVal = func->newMemVariable((Type *) PointerType::get(arg->getType()));
             newVal->setMemoryAddr(ARM64_FP_REG_NO, esp);
             esp += 4;
 
             Instruction * assignInst = new MoveInstruction(func, newVal, arg);
 
-            // ·­Òë¸³ÖµÖ¸Áî
+            // ç¿»è¯‘èµ‹å€¼æŒ‡ä»¤
             translate_assign(assignInst);
 
             delete assignInst;
@@ -362,13 +362,13 @@ void InstSelectorArm64::translate_call(Instruction * inst)
 
             auto arg = callInst->getOperand(k);
 
-            // ¼ì²éÊµ²ÎµÄÀàĞÍÊÇ·ñÊÇÁÙÊ±±äÁ¿¡£
-            // Èç¹ûÊÇÁÙÊ±±äÁ¿£¬¸Ã±äÁ¿¿É¸ü¸ÄÎª¼Ä´æÆ÷±äÁ¿¼´¿É£¬»òÕßÉèÖÃ¼Ä´æÆ÷ºÅ
-            // Èç¹û²»ÊÇ£¬Ôò±ØĞë¿ª±ÙÒ»¸ö¼Ä´æÆ÷±äÁ¿£¬È»ºó¸³Öµ¼´¿É
+            // æ£€æŸ¥å®å‚çš„ç±»å‹æ˜¯å¦æ˜¯ä¸´æ—¶å˜é‡ã€‚
+            // å¦‚æœæ˜¯ä¸´æ—¶å˜é‡ï¼Œè¯¥å˜é‡å¯æ›´æ”¹ä¸ºå¯„å­˜å™¨å˜é‡å³å¯ï¼Œæˆ–è€…è®¾ç½®å¯„å­˜å™¨å·
+            // å¦‚æœä¸æ˜¯ï¼Œåˆ™å¿…é¡»å¼€è¾Ÿä¸€ä¸ªå¯„å­˜å™¨å˜é‡ï¼Œç„¶åèµ‹å€¼å³å¯
 
             Instruction * assignInst = new MoveInstruction(func, PlatformArm64::intRegVal[k], arg);
 
-            // ·­Òë¸³ÖµÖ¸Áî
+            // ç¿»è¯‘èµ‹å€¼æŒ‡ä»¤
             translate_assign(assignInst);
 
             delete assignInst;
@@ -384,51 +384,51 @@ void InstSelectorArm64::translate_call(Instruction * inst)
         linearScanRegisterAllocator.free(3);
     }
 
-    // ¸³ÖµÖ¸Áî
+    // èµ‹å€¼æŒ‡ä»¤
     if (callInst->hasResultValue()) {
 
-        // ĞÂ½¨Ò»¸ö¸³Öµ²Ù×÷
+        // æ–°å»ºä¸€ä¸ªèµ‹å€¼æ“ä½œ
         Instruction * assignInst = new MoveInstruction(func, callInst, PlatformArm64::intRegVal[0]);
 
-        // ·­Òë¸³ÖµÖ¸Áî
+        // ç¿»è¯‘èµ‹å€¼æŒ‡ä»¤
         translate_assign(assignInst);
 
         delete assignInst;
     }
 
-    // º¯Êıµ÷ÓÃºóÇåÁã£¬Ê¹µÃÏÂ´Î¿ÉÕı³£Í³¼Æ
+    // å‡½æ•°è°ƒç”¨åæ¸…é›¶ï¼Œä½¿å¾—ä¸‹æ¬¡å¯æ­£å¸¸ç»Ÿè®¡
     realArgCount = 0;
 }
 
 ///
-/// @brief Êµ²ÎÖ¸Áî·­Òë³ÉARM64»ã±à
+/// @brief å®å‚æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
 /// @param inst
 ///
 void InstSelectorArm64::translate_arg(Instruction * inst)
 {
-    // ·­ÒëÖ®Ç°±ØĞëÈ·±£Ô´²Ù×÷ÊıÒªÃ´ÊÇ¼Ä´æÆ÷£¬ÒªÃ´ÊÇÄÚ´æ£¬·ñÔò³ö´í¡£
+    // ç¿»è¯‘ä¹‹å‰å¿…é¡»ç¡®ä¿æºæ“ä½œæ•°è¦ä¹ˆæ˜¯å¯„å­˜å™¨ï¼Œè¦ä¹ˆæ˜¯å†…å­˜ï¼Œå¦åˆ™å‡ºé”™ã€‚
     Value * src = inst->getOperand(0);
 
-    // µ±Ç°Í³¼ÆµÄARGÖ¸Áî¸öÊı
+    // å½“å‰ç»Ÿè®¡çš„ARGæŒ‡ä»¤ä¸ªæ•°
     int32_t regId = src->getRegId();
 
     if (realArgCount < 4) {
-        // Ç°ËÄ¸ö²ÎÊı
+        // å‰å››ä¸ªå‚æ•°
         if (regId != -1) {
             if (regId != realArgCount) {
-                // ¿Ï¶¨¼Ä´æÆ÷·ÖÅäÓĞÎó
-                minic_log(LOG_ERROR, "µÚ%d¸öARGÖ¸Áî¶ÔÏó¼Ä´æÆ÷·ÖÅäÓĞÎó: %d", argCount + 1, regId);
+                // è‚¯å®šå¯„å­˜å™¨åˆ†é…æœ‰è¯¯
+                minic_log(LOG_ERROR, "ç¬¬%dä¸ªARGæŒ‡ä»¤å¯¹è±¡å¯„å­˜å™¨åˆ†é…æœ‰è¯¯: %d", argCount + 1, regId);
             }
         } else {
-            minic_log(LOG_ERROR, "µÚ%d¸öARGÖ¸Áî¶ÔÏó²»ÊÇ¼Ä´æÆ÷", argCount + 1);
+            minic_log(LOG_ERROR, "ç¬¬%dä¸ªARGæŒ‡ä»¤å¯¹è±¡ä¸æ˜¯å¯„å­˜å™¨", argCount + 1);
         }
     } else {
-        // ±ØĞëÊÇÄÚ´æ·ÖÅä£¬Èô²»ÊÇÔò³ö´í
+        // å¿…é¡»æ˜¯å†…å­˜åˆ†é…ï¼Œè‹¥ä¸æ˜¯åˆ™å‡ºé”™
         int32_t baseRegId;
         bool result = src->getMemoryAddr(&baseRegId);
         if ((!result) || (baseRegId != ARM64_FP_REG_NO)) {
 
-            minic_log(LOG_ERROR, "µÚ%d¸öARGÖ¸Áî¶ÔÏó²»ÊÇSP¼Ä´æÆ÷Ñ°Ö·", argCount + 1);
+            minic_log(LOG_ERROR, "ç¬¬%dä¸ªARGæŒ‡ä»¤å¯¹è±¡ä¸æ˜¯SPå¯„å­˜å™¨å¯»å€", argCount + 1);
         }
     }
 

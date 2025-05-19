@@ -21,6 +21,7 @@
 #include "Antlr4Executor.h"
 #include "CodeGenerator.h"
 #include "CodeGeneratorArm32.h"
+#include "CodeGeneratorArm64.h"
 // #include "FlexBisonExecutor.h"
 #include "FrontEndExecutor.h"
 #include "Graph.h"
@@ -78,7 +79,7 @@ bool gAsmAlsoShowIR = false;
 int gOptLevel = 0;
 
 /// @brief 指定CPU目标架构，这里默认为ARM32
-std::string gCPUTarget = "ARM32";
+std::string gCPUTarget = "ARM64";
 
 /// @brief 输入源文件
 std::string gInputFile;
@@ -331,8 +332,12 @@ int compile(std::string inputFile, std::string outputFile)
                 // 输出面向ARM32的汇编指令
                 generator = new CodeGeneratorArm32(module);
                 generator->run(outputFile);
-            } else {
-                // 不支持指定的CPU架构
+            } else if (gCPUTarget == "ARM64") {
+                generator = new CodeGeneratorArm64(module);
+                generator->run(outputFile);
+            }
+            // 不支持指定的CPU架构
+            else {
                 minic_log(LOG_ERROR, "指定的目标CPU架构(%s)不支持", gCPUTarget.c_str());
                 break;
             }

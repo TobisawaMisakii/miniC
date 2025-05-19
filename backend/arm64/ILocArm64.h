@@ -24,7 +24,7 @@
 #define Instanceof(res, type, var) auto res = dynamic_cast<type>(var)
 
 /// @brief 底层汇编指令：ARM32
-struct ArmInst {
+struct ArmInst64 {
 
     /// @brief 操作码
     std::string opcode;
@@ -53,12 +53,12 @@ struct ArmInst {
     /// @param s1
     /// @param s2
     /// @param add
-    ArmInst(std::string op,
-            std::string rs = "",
-            std::string s1 = "",
-            std::string s2 = "",
-            std::string cond = "",
-            std::string extra = "");
+    ArmInst64(std::string op,
+              std::string rs = "",
+              std::string s1 = "",
+              std::string s2 = "",
+              std::string cond = "",
+              std::string extra = "");
 
     /// @brief 指令更新
     /// @param op
@@ -85,7 +85,7 @@ struct ArmInst {
 class ILocArm64 {
 
     /// @brief ARM汇编序列
-    std::list<ArmInst *> code;
+    std::list<ArmInst64 *> code;
 
     /// @brief 符号表
     Module * module;
@@ -130,7 +130,7 @@ public:
 
     /// @brief 获取当前的代码序列
     /// @return 代码序列
-    std::list<ArmInst *> & getCode();
+    std::list<ArmInst64 *> & getCode();
 
     /// @brief Load指令，基址寻址 ldr r0,[fp,#100]
     /// @param rs_reg_no 结果寄存器

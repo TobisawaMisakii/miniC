@@ -61,7 +61,7 @@ protected:
 
 private:
     ///
-    /// @brief 简单的朴素寄存器分配方法
+    /// @brief 线性扫描寄存器分配方法
     ///
-    LinearScanRegisterAllocator LinearScanRegisterAllocator;
+    LinearScanRegisterAllocator linearScanRegisterAllocator;
 };

@@ -135,7 +135,7 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
     ILocArm64 iloc(module);
 
     // 指令选择生成汇编指令
-    InstSelectorArm64 instSelector(IrInsts, iloc, func, LinearScanRegisterAllocator);
+    InstSelectorArm64 instSelector(IrInsts, iloc, func, linearScanRegisterAllocator);
     instSelector.run();
 
     // 删除无用的Label指令
