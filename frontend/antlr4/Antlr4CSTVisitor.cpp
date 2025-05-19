@@ -79,13 +79,16 @@ std::any SysYCSTVisitor::visitConstDecl(SysYParser::ConstDeclContext * ctx)
 {
     // 识别产生式 constDecl: 'const' basicType constDef (',' constDef)* ';';
     ast_node * stmt_node = create_contain_node(ast_operator_type::AST_OP_DECL_STMT);
+    ast_node * const_decl_node = ast_node::New(ast_operator_type::AST_OP_CONST_DECL, nullptr);
+    stmt_node->insert_son_node(const_decl_node);
+
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
+    ast_node * type_node = create_type_node(typeAttr);
+    const_decl_node->insert_son_node(type_node);
 
     for (auto constDef: ctx->constDef()) {
         auto defNode = std::any_cast<ast_node *>(visitConstDef(constDef));
-        ast_node * type_node = create_type_node(typeAttr);
-        ast_node * decl_node = ast_node::New(ast_operator_type::AST_OP_CONST_DECL, type_node, defNode, nullptr);
-        stmt_node->insert_son_node(decl_node);
+        const_decl_node->insert_son_node(defNode);
     }
 
     return stmt_node;
