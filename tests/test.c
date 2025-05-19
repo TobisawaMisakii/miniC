@@ -1,9 +1,10 @@
-
-const int a = 1;
-int main()
+int add(int a, int b[])
 {
-    const int b = 2;
-    int array[a][b];
-    array[0][0] = 2;
-	return array[0][0];
+    return a+b[0];
+}
+int main(){
+    int a = 3;
+    int b[3][4];
+    b[0][0]=1;
+    return add(a,b[0]);
 }

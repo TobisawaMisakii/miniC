@@ -2500,36 +2500,6 @@ bool IRGenerator::ir_const_define(ast_node * node)
     constValue->setConstValue(init_expr_node->val);
     node->val = constValue;
     const_name_node->val = constValue;
-
-    // // 检查是否有初始化
-    // if (node->sons.size() > 1) {
-    //     // 处理初始化表达式
-    //     ast_node * init_expr_node = node->sons[1];
-    //     if (!ir_visit_ast_node(init_expr_node)) {
-    //         minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
-    //         return false;
-    //     }
-
-    //     // 类型转换检查
-    //     if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
-    //         minic_log(LOG_ERROR,
-    //                   "无法将类型%d赋给类型%d",
-    //                   init_expr_node->val->getType()->getTypeID(),
-    //                   constType->getTypeID());
-    //         return false;
-    //     }
-
-    //     // 生成赋值指令
-    //     MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), constValue,
-    //     init_expr_node->val);
-    //     // 添加指令到当前块
-    //     node->blockInsts.addInst(init_expr_node->blockInsts);
-    //     node->blockInsts.addInst(movInst);
-    // } else {
-    //     minic_log(LOG_ERROR, "常量(%s)必须初始化", constName.c_str());
-    //     return false;
-    // }
-
     return true;
 }
 
