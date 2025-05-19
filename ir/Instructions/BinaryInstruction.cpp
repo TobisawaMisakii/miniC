@@ -66,7 +66,7 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_DIV_I:
             // 浮点数乘法指令
-            str = getIRName() + " = div i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = sdiv i32 " + src1->getIRName() + ", " + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_DIV_F:
             // 浮点数乘法指令
@@ -74,11 +74,11 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_MOD_I:
             // 浮点数乘法指令
-            str = getIRName() + " = mod i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = srem i32 " + src1->getIRName() + ", " + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_MOD_F:
             // 浮点数乘法指令
-            str = getIRName() + " = fmod float " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = frem float " + src1->getIRName() + ", " + src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ICMP_LT:
             // 小于比较指令，指令格式为：<result> = icmp <cond> <ty> <op1>, <op2>

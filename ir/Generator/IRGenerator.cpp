@@ -1469,6 +1469,7 @@ bool IRGenerator::ir_if(ast_node * node)
         }
         node->blockInsts.addInst(elseNode->blockInsts);
     }
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, endLabelInst));
 
     // 添加end分支的Label指令
     node->blockInsts.addInst(endLabelInst);
@@ -1504,6 +1505,7 @@ bool IRGenerator::ir_while(ast_node * node)
     LabelInstruction * endLabelInst = new LabelInstruction(currentFunc);
 
     // 添加条件判断的Label指令
+    node->blockInsts.addInst(new GotoInstruction(currentFunc, condLabelInst));
     node->blockInsts.addInst(condLabelInst);
 
     // 处理条件判断
