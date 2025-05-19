@@ -27,7 +27,8 @@ Value * BranchCondInstruction::getCond()
 /// 转换成字符串
 void BranchCondInstruction::toString(std::string & str)
 {
-    str = "bc " + this->cond->getIRName() + ", label " + target_1->getIRName() + ", label " + target_0->getIRName();
+    str = "br " + this->cond->getType()->toString() + " " + this->cond->getIRName() + ", label %" +
+          target_1->getIRName() + ", label %" + target_0->getIRName();
 }
 
 /// 获取目标Label指令

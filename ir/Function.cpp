@@ -109,7 +109,7 @@ void Function::toString(std::string & str)
         }
     }
 
-    str += ")\n";
+    str += ") ";
 
     str += "{\n";
 
@@ -132,7 +132,7 @@ void Function::toString(std::string & str)
             }
         } else {
             // 普通变量声明
-            str += "\tdeclare " + var->getType()->toString() + " " + var->getIRName();
+            str += "\t" + var->getIRName() + " = alloca " + var->getType()->toString() + ", align 4";
 
             std::string extraStr;
             std::string realName = var->getName();
@@ -144,16 +144,16 @@ void Function::toString(std::string & str)
         str += "\n";
     }
 
-    // 输出临时变量的declare形式
-    // 遍历所有的线性IR指令，文本输出
-    for (auto & inst: code.getInsts()) {
+    // // 输出临时变量的declare形式
+    // // 遍历所有的线性IR指令，文本输出
+    // for (auto & inst: code.getInsts()) {
 
-        if (inst->hasResultValue()) {
+    //     if (inst->hasResultValue()) {
 
-            // 局部变量和临时变量需要输出declare语句
-            str += "\tdeclare " + inst->getType()->toString() + " " + inst->getIRName() + "\n";
-        }
-    }
+    //         // 局部变量和临时变量需要输出declare语句
+    //         str += "\tdeclare " + inst->getType()->toString() + " " + inst->getIRName() + "\n";
+    //     }
+    // }
 
     // 遍历所有的线性IR指令，文本输出
     for (auto & inst: code.getInsts()) {
@@ -192,14 +192,14 @@ Instruction * Function::getExitLabel()
 
 /// @brief 设置函数返回值变量
 /// @param val 返回值变量，要求必须是局部变量，不能是临时变量
-void Function::setReturnValue(LocalVariable * val)
+void Function::setReturnValue(Value * val)
 {
     returnValue = val;
 }
 
 /// @brief 获取函数返回值变量
 /// @return 返回值变量
-LocalVariable * Function::getReturnValue()
+Value * Function::getReturnValue()
 {
     return returnValue;
 }

@@ -48,13 +48,13 @@ enum class IRInstOperator {
     IRINST_OP_MUL_I,
     IRINST_OP_MUL_F,
 
-	/// @brief 除法指令，二元运算
-	IRINST_OP_DIV_I,
-	IRINST_OP_DIV_F,
+    /// @brief 除法指令，二元运算
+    IRINST_OP_DIV_I,
+    IRINST_OP_DIV_F,
 
-	/// @brief 取模指令，二元运算
-	IRINST_OP_MOD_I,
-	IRINST_OP_MOD_F,
+    /// @brief 取模指令，二元运算
+    IRINST_OP_MOD_I,
+    IRINST_OP_MOD_F,
 
     /// @brief 赋值指令，一元运算
     IRINST_OP_ASSIGN,
@@ -82,6 +82,10 @@ enum class IRInstOperator {
 
     /// @brief 实参ARG指令，单目运算
     IRINST_OP_ARG,
+
+    /// @brief load 和 store指令
+    IRINST_OP_LOAD,
+    IRINST_OP_STORE,
 
     /* 后续可追加其他的IR指令 */
 

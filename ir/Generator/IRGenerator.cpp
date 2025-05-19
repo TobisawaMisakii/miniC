@@ -31,6 +31,8 @@
 #include "FuncCallInstruction.h"
 #include "BinaryInstruction.h"
 #include "MoveInstruction.h"
+#include "LoadInstruction.h"
+#include "StoreInstruction.h"
 #include "GotoInstruction.h"
 #include "BranchConditional.h"
 #include "UnaryInstruction.h"
@@ -289,7 +291,7 @@ bool IRGenerator::ir_function_define(ast_node * node)
     irCode.addInst(exitLabelInst);
 
     // 函数出口指令
-    irCode.addInst(new ExitInstruction(newFunc, retValue));
+    irCode.addInst(new ExitInstruction(newFunc, newFunc->getReturnValue()));
 
     // 恢复成外部函数
     module->setCurrentFunction(nullptr);
@@ -324,7 +326,7 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
 
     // 找到Entry指令的位置，新的指令要添加在Entry指令之后
     auto entryIter = irCode.getInsts().begin();
-    if (entryIter == irCode.getInsts().end() || (*entryIter)->getOp() != IRInstOperator::IRINST_OP_ENTRY) {
+    if (entryIter == irCode.getInsts().end()) {
         return false;
     }
     ++entryIter;
@@ -627,20 +629,13 @@ bool IRGenerator::ir_assign(ast_node * node)
         return false;
     }
 
-    // TODO real number add
-    MoveInstruction * movInst;
-    if (left->val->getType()->isPointerType()) {
-        movInst = new MoveInstruction(module->getCurrentFunction(), left->val, right->val, true); // store
-    } else {
-        movInst = new MoveInstruction(module->getCurrentFunction(), left->sons[0]->val, right->val);
-    }
-    // 创建临时变量保存IR的值，以及线性IR指令
-    node->blockInsts.addInst(right->blockInsts);
-    node->blockInsts.addInst(left->blockInsts);
-    node->blockInsts.addInst(movInst);
+    // 将右侧操作数的值赋给左侧操作数，采用load + store指令代替move指令
+    // Value * temp = module->newVarValue(left->val->getType());
+    StoreInstruction * storeInst = new StoreInstruction(module->getCurrentFunction(), left->val, right->val);
 
-    // 这里假定赋值的类型是一致的
-    node->val = movInst;
+    node->blockInsts.addInst(left->blockInsts);
+    node->blockInsts.addInst(right->blockInsts);
+    node->blockInsts.addInst(storeInst);
 
     return true;
 }
@@ -794,16 +789,16 @@ bool IRGenerator::ir_lval(ast_node * node)
         }
     } else if (!node->store) {
         // 非数组变量，但需要加载值（如指针解引用）
-        if (resultVal->getType()->isPointerType()) {
-            Value * temp = module->newVarValue(resultVal->getType()->getBaseType());
-            MoveInstruction * loadInst = new MoveInstruction(module->getCurrentFunction(),
-                                                             temp,
-                                                             resultVal,
-                                                             true,  // dereference
-                                                             true); // load
-            node->blockInsts.addInst(loadInst);
-            resultVal = temp; // 更新为加载后的值
-        }
+
+        // Value * temp = module->newVarValue(resultVal->getType());
+        // MoveInstruction * loadInst = new MoveInstruction(module->getCurrentFunction(),
+        //                                                  temp,
+        //                                                  resultVal,
+        //                                                  true,  // dereference
+        //                                                  true); // load
+        LoadInstruction * loadInst = new LoadInstruction(module->getCurrentFunction(), resultVal);
+        node->blockInsts.addInst(loadInst);
+        resultVal = loadInst; // 更新为加载后的值
     }
 
     node->val = resultVal;
@@ -938,8 +933,16 @@ bool IRGenerator::ir_return(ast_node * node)
         node->blockInsts.addInst(right->blockInsts);
 
         // 如果有返回值变量（非void函数），生成赋值指令
-        if (currentFunc->getReturnValue()) {
-            node->blockInsts.addInst(new MoveInstruction(currentFunc, currentFunc->getReturnValue(), returnValue));
+        if (currentFunc->getReturnType() != VoidType::getType()) {
+            // node->blockInsts.addInst(new MoveInstruction(currentFunc, currentFunc->getReturnValue(), returnValue));
+            StoreInstruction * store1 =
+                new StoreInstruction(module->getCurrentFunction(), currentFunc->getReturnValue(), returnValue);
+            LoadInstruction * loadInst =
+                new LoadInstruction(module->getCurrentFunction(), currentFunc->getReturnValue());
+            node->blockInsts.addInst(store1);
+            node->blockInsts.addInst(loadInst);
+            // loadInst->getIRName();
+            module->getCurrentFunction()->setReturnValue(static_cast<Value *>(loadInst));
         }
     }
     // 无返回值的处理
@@ -1150,7 +1153,8 @@ bool IRGenerator::ir_variable_define(ast_node * node)
             return false;
         }
         // 生成赋值指令
-        MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
+        // MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
+        StoreInstruction * movInst = new StoreInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
         // 添加指令到当前块
         node->blockInsts.addInst(init_expr_node->blockInsts);
         node->blockInsts.addInst(var_name_node->blockInsts);

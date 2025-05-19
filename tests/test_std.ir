@@ -1,39 +1,19 @@
 define i32 @main() {
-	declare i32 %l0
-	declare i32 %l1
-	declare i1 %t2
-	declare i32 %t3
-	declare i1 %t4
-	declare i32 %t5
-	declare i1 %t6
-.L1:
-	entry
-	%t2 = icmp lt 1, 8
-	bc %t2, label .L6, label .L7
-.L6:
-	%l1 = 1
-	br label .L8
-.L7:
-	%l1 = 0
-.L8:
-	%t3 = mod 7, 2
-	%t4 = icmp ne %l1, %t3
-	bc %t4, label .L3, label .L4
-.L3:
-	%l0 = 1
-	br label .L2
-.L4:
-.L5:
-	%t5 = mod 7, 2
-	%t6 = icmp ne %t5, 0
-	bc %t6, label .L9, label .L10
-.L9:
-	%l0 = 2
-	br label .L2
-.L10:
-.L11:
-	%l0 = 0
-	br label .L2
-.L2:
-	exit %l0
+	%l0 = alloca i32, align 4
+	%l1 = alloca i32, align 4 ; variable: a
+	store i32 1, i32* %l1, align 4
+	store i32 0, i32* %l0, align 4
+	%t2 = load i32, i32* %l0, align 4
+	ret i32 %t2
 }
+declare i32 @getint(...);
+declare i32 @getch(...);
+declare void @putint(i32);
+declare void @putch(i32);
+declare void @putstr(i8*);
+declare i32 @getarray(i32*);
+declare void @putarray(i32, i32*);
+declare float @getfloat(...);
+declare void @putfloat(float);
+declare i32 @getfarray(float*);
+declare void @putfarray(i32, float*);
