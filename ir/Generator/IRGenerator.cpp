@@ -360,7 +360,7 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
         // Value * tempParam = module->newVarValue(paramType);
 
         // 产生赋值指令，将临时变量的值拷贝到形参局部变量上
-        MoveInstruction * movInst = new MoveInstruction(currentFunc, realParam, currentFunc->getParams().back());
+        StoreInstruction * movInst = new StoreInstruction(currentFunc, realParam, currentFunc->getParams().back());
 
         // 将赋值指令插入到Entry指令之后
         irCode.getInsts().push_back(movInst);
@@ -801,11 +801,6 @@ bool IRGenerator::ir_lval(ast_node * node)
         // 非数组变量，但需要加载值（如指针解引用）
 
         // Value * temp = module->newVarValue(resultVal->getType());
-        // MoveInstruction * loadInst = new MoveInstruction(module->getCurrentFunction(),
-        //                                                  temp,
-        //                                                  resultVal,
-        //                                                  true,  // dereference
-        //                                                  true); // load
         LoadInstruction * loadInst = new LoadInstruction(module->getCurrentFunction(), resultVal);
         node->blockInsts.addInst(loadInst);
         resultVal = loadInst; // 更新为加载后的值
@@ -944,15 +939,9 @@ bool IRGenerator::ir_return(ast_node * node)
 
         // 如果有返回值变量（非void函数），生成赋值指令
         if (currentFunc->getReturnValue()) {
-            // node->blockInsts.addInst(new MoveInstruction(currentFunc, currentFunc->getReturnValue(), returnValue));
             StoreInstruction * store1 =
                 new StoreInstruction(module->getCurrentFunction(), currentFunc->getReturnValue(), returnValue);
-            // LoadInstruction * loadInst =
-            //     new LoadInstruction(module->getCurrentFunction(), currentFunc->getReturnValue());
             node->blockInsts.addInst(store1);
-            // node->blockInsts.addInst(loadInst);
-            // // loadInst->getIRName();
-            // module->getCurrentFunction()->setReturnValue(static_cast<Value *>(loadInst));
         }
     }
     // 无返回值的处理
@@ -1163,7 +1152,6 @@ bool IRGenerator::ir_variable_define(ast_node * node)
             return false;
         }
         // 生成赋值指令
-        // MoveInstruction * movInst = new MoveInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
         StoreInstruction * movInst = new StoreInstruction(module->getCurrentFunction(), varValue, init_expr_node->val);
         // 添加指令到当前块
         node->blockInsts.addInst(init_expr_node->blockInsts);
@@ -2062,14 +2050,14 @@ bool IRGenerator::ir_and(ast_node * node, LabelInstruction * trueLabel, LabelIns
         minic_log(LOG_ERROR, "and操作的子节点数量不正确");
         return false;
     }
-    LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
+    // LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
     LabelInstruction * rightJudgeInst = new LabelInstruction(module->getCurrentFunction());
 
     // 获取左操作数和右操作数
     ast_node * left = node->sons[0];
     ast_node * right = node->sons[1];
     // 处理左操作数
-    node->blockInsts.addInst(leftJudgeInst);
+    // node->blockInsts.addInst(leftJudgeInst);
     if (left->node_type == ast_operator_type::AST_OP_LVAL || left->node_type == ast_operator_type::AST_OP_FUNC_CALL ||
         left->node_type == ast_operator_type::AST_OP_ADD || left->node_type == ast_operator_type::AST_OP_SUB ||
         left->node_type == ast_operator_type::AST_OP_MUL || left->node_type == ast_operator_type::AST_OP_DIV ||
@@ -2220,7 +2208,7 @@ bool IRGenerator::ir_or(ast_node * node, LabelInstruction * trueLabel, LabelInst
         minic_log(LOG_ERROR, "or操作的子节点数量不正确");
         return false;
     }
-    LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
+    // LabelInstruction * leftJudgeInst = new LabelInstruction(module->getCurrentFunction());
     LabelInstruction * rightJudgeInst = new LabelInstruction(module->getCurrentFunction());
 
     // 获取左操作数和右操作数
@@ -2232,7 +2220,7 @@ bool IRGenerator::ir_or(ast_node * node, LabelInstruction * trueLabel, LabelInst
     // 2. 逻辑表达式 (&&, ||)
     // 3. 关系表达式 (==, !=, <, >, <=, >=)
     // 4. 函数调用返回值
-    node->blockInsts.addInst(leftJudgeInst);
+    // node->blockInsts.addInst(leftJudgeInst);
     if (left->node_type == ast_operator_type::AST_OP_LVAL || left->node_type == ast_operator_type::AST_OP_ADD ||
         left->node_type == ast_operator_type::AST_OP_SUB || left->node_type == ast_operator_type::AST_OP_MUL ||
         left->node_type == ast_operator_type::AST_OP_DIV || left->node_type == ast_operator_type::AST_OP_MOD ||
@@ -2369,9 +2357,6 @@ bool IRGenerator::ir_pos(ast_node * node)
 {
     ast_node * src1_node = node->sons[0];
 
-    // 获取当前函数
-    Function * currentFunc = module->getCurrentFunction();
-
     // 处理操作数
     ast_node * left = ir_visit_ast_node(src1_node);
     if (!left || !left->val) {
@@ -2379,18 +2364,11 @@ bool IRGenerator::ir_pos(ast_node * node)
         return false;
     }
 
-    // 创建临时变量保存最终结果
-    Value * result = module->newVarValue(left->val->getType());
-
-    // 创建IR指令
-    MoveInstruction * posInst = new MoveInstruction(currentFunc, result, left->val);
-
     // 添加IR指令
     node->blockInsts.addInst(left->blockInsts);
-    node->blockInsts.addInst(posInst);
 
     // 保存结果
-    node->val = result;
+    node->val = left->val;
 
     return true;
 }

@@ -42,7 +42,8 @@ void BinaryInstruction::toString(std::string & str)
     switch (op) {
         case IRInstOperator::IRINST_OP_ADD_I:
             // 整数加法指令
-            str = getIRName() + " = add i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = add " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_ADD_F:
             // 浮点数加法指令
@@ -50,7 +51,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_SUB_I:
             // 减法指令
-            str = getIRName() + " = sub i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = sub " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_SUB_F:
             // 浮点数减法指令
@@ -58,7 +60,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_MUL_I:
             // 乘法指令
-            str = getIRName() + " = mul i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = mul " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_MUL_F:
             // 浮点数乘法指令
@@ -66,7 +69,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_DIV_I:
             // 浮点数乘法指令
-            str = getIRName() + " = sdiv i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = sdiv " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_DIV_F:
             // 浮点数乘法指令
@@ -74,7 +78,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_MOD_I:
             // 浮点数乘法指令
-            str = getIRName() + " = srem i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = srem " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_MOD_F:
             // 浮点数乘法指令
@@ -82,7 +87,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_LT:
             // 小于比较指令，指令格式为：<result> = icmp <cond> <ty> <op1>, <op2>
-            str = getIRName() + " = icmp slt i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp slt " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_LT:
             // 小于比较指令 float
@@ -90,7 +96,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_GT:
             // 大于比较指令
-            str = getIRName() + " = icmp sgt i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp sgt " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_GT:
             // 大于比较指令 float
@@ -98,7 +105,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_EQ:
             // 等于比较指令
-            str = getIRName() + " = icmp eq i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp eq " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_EQ:
             // 等于比较指令 float
@@ -106,7 +114,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_NE:
             // 不等于比较指令
-            str = getIRName() + " = icmp ne i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp ne " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_NE:
             // 不等于比较指令 float
@@ -114,7 +123,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_LE:
             // 小于等于比较指令
-            str = getIRName() + " = icmp sle i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp sle " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_LE:
             // 小于等于比较指令 float
@@ -122,7 +132,8 @@ void BinaryInstruction::toString(std::string & str)
             break;
         case IRInstOperator::IRINST_OP_ICMP_GE:
             // 大于等于比较指令
-            str = getIRName() + " = icmp sge i32 " + src1->getIRName() + ", " + src2->getIRName();
+            str = getIRName() + " = icmp sge " + src1->getType()->toString() + " " + src1->getIRName() + ", " +
+                  src2->getIRName();
             break;
         case IRInstOperator::IRINST_OP_FCMP_GE:
             // 大于等于比较指令 float

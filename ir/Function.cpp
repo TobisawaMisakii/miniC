@@ -81,7 +81,21 @@ bool Function::isBuiltin()
 void Function::toString(std::string & str)
 {
     if (builtIn) {
-        // 内置函数则什么都不输出
+        str += "declare ";
+        str += getReturnType()->toString() + " " + getIRName() + "(";
+        bool firstParam = false;
+        for (auto & param: params) {
+            if (!firstParam) {
+                firstParam = true;
+            } else {
+                str += ", ";
+            }
+            str += param->getType()->toString();
+        }
+        if (!firstParam) {
+            str += "...";
+        }
+        str += ");\n";
         return;
     }
 
@@ -156,6 +170,8 @@ void Function::toString(std::string & str)
     // }
 
     // 遍历所有的线性IR指令，文本输出
+    // 记录上一个指令，避免连续空Label输出
+    Instruction * lastInst = nullptr;
     for (auto & inst: code.getInsts()) {
 
         std::string instStr;
@@ -163,12 +179,28 @@ void Function::toString(std::string & str)
 
         if (!instStr.empty()) {
 
-            // Label指令不加Tab键
             if (inst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
-                str += instStr + "\n";
+                // 删除连续的空Label指令
+                if (lastInst && lastInst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
+                    str += "";
+                    continue;
+                } else {
+                    // Label指令不加Tab键
+                    str += instStr + "\n";
+                }
+            } else if (inst->getOp() == IRInstOperator::IRINST_OP_GOTO_IF_ZERO ||
+                       inst->getOp() == IRInstOperator::IRINST_OP_GOTO) {
+                if (lastInst && (lastInst->getOp() == IRInstOperator::IRINST_OP_GOTO_IF_ZERO ||
+                                 lastInst->getOp() == IRInstOperator::IRINST_OP_GOTO)) {
+                    str += "";
+                    continue;
+                } else {
+                    str += "\t" + instStr + "\n";
+                }
             } else {
                 str += "\t" + instStr + "\n";
             }
+            lastInst = inst;
         }
     }
 
@@ -329,12 +361,21 @@ void Function::renameIR()
     }
 
     // 遍历所有的指令进行命名
+    Instruction * lastInst = nullptr;
     for (auto inst: this->getInterCode().getInsts()) {
         if (inst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
+            if (lastInst && lastInst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
+                // 如果上一个指令也是Label指令，则用上一条指令的名字，且在 outputIR 时不输出该指令
+                inst->setIRName(lastInst->getIRName());
+                continue;
+            }
+            // Label指令的命名
             inst->setIRName(IR_LABEL_PREFIX + std::to_string(nameIndex++));
         } else if (inst->hasResultValue()) {
             inst->setIRName(IR_TEMP_VARNAME_PREFIX + std::to_string(nameIndex++));
         }
+        // 记录上一个指令
+        lastInst = inst;
     }
 }
 

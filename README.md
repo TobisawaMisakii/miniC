@@ -9,7 +9,10 @@
 
 ##  进度 & TODO
 
-- TODO：加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition stmt应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
+- TODO：加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
+- TODO：支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
+- TODO：llvm下，对整数a的操作： -!a 需要类型转换，需尽早实现不同类型间的转换，包括`bool(i1)<-->int(i32)<-->float`
+- 
 
 ## BUG RECORD
 
@@ -21,6 +24,7 @@
 - (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
 - (fixed)minic_log在哪？直接输出到命令行
 - (fixed)unary op 测评平台未通过
+- !!!全局变量赋值为-1出错
 
 ## 一、前端理解及配置
 
