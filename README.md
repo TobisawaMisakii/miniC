@@ -12,7 +12,7 @@
 - TODO：加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
 - TODO：支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
 - TODO：llvm下，对整数a的操作： -!a 需要类型转换，需尽早实现不同类型间的转换，包括`bool(i1)<-->int(i32)<-->float`
-- 
+- ？？syslib的静态库在本地怎么链接？？
 
 ## BUG RECORD
 
@@ -775,5 +775,107 @@ protected:
     /// @brief 变量加载到寄存器中时对应的寄存器编号
     int32_t loadRegNo = -1;
 };
+```
+
+# 四、LLVM IR
+
+生成llvm的ir表示（均在tests/文件夹下）
+
+```shell
+clang -S -emit-llvm -o test.ll test.c
+```
+
+可能会报错
+
+```shell
+implicit declaration of function 'xxx'
+```
+
+但仍能生成ll文件
+
+链接sysy runtime library 生成可执行文件
+
+```shell
+clang -o test test.ll ../thirdparty/syslib/std.c
+```
+
+运行可执行文件
+
+```shell
+./test < test.in
+```
+
+## 需要额外实现的指令list
+
+- 类型转换
+
+  **bitcast**： 用于**相同大小**的类型转换
+
+  **zext**：零扩展
+
+  **sext**：符号扩展
+
+  **sitofp**（整数转浮点）或 **fptosi**（浮点转整数）：i32 与 float 的类型转换，其中si表示signed int （不考虑unsigned）
+
+- 数组取值
+
+  **getelementptr**
+
+```llvm
+; grammar
+%ptr = getelementptr <array_type>, <array_type>* <array_ptr>, i64 <index>
+
+; 获取 arr[3] 的地址
+%element_ptr = getelementptr [10 x i32], [10 x i32]* %arr, i64 0, i64 3
+
+; load value from ptr
+%value = load i32, i32* %element_ptr  ; 读取 arr[3] 的值
+```
+
+​	多维数组
+
+```llvm
+; 定义一个 3x4 的二维数组
+%arr2d = alloca [3 x [4 x i32]]
+
+; 初始化（假设 arr2d[1][2] = 99）
+%row_ptr = getelementptr [3 x [4 x i32]], [3 x [4 x i32]]* %arr2d, i64 0, i64 1
+%element_ptr = getelementptr [4 x i32], [4 x i32]* %row_ptr, i64 0, i64 2
+store i32 99, i32* %element_ptr
+
+; 读取 arr2d[1][2]
+%val = load i32, i32* %element_ptr  ; 返回 99
+```
+
+​	`getelementptr` 的索引层级：**GEP 的索引是**分层的，每一层对应一个类型的解引用（dereference）。对于数组访问：
+
+```llvm
+%ptr = getelementptr [10 x i32], [10 x i32]* %arr, i64 0, i64 3
+```
+
+- **`[10 x i32]* %arr`**：这是一个指向数组的指针（类型是 `[10 x i32]*`）。
+- **`i64 0`**：处理指针本身的偏移（跳过 0 个 `[10 x i32]`，即直接解引用 `%arr`）。
+- **`i64 3`**：在解引用后的数组中，访问第 3 个元素（索引从 0 开始）。
+
+因为数组取值的索引都是i64格式，所以需要对i32格式的索引进行符号扩展
+
+```cpp
+int findfa(int a) {
+	return array[a];
+}
+```
+
+```llvm
+define dso_local i32 @findfa(i32 %0) #0 {
+  %2 = alloca i32, align 4; varaible: a
+  store i32 %0, i32* %2, align 4
+  // 扩展
+  %3 = load i32, i32* %2, align 4
+  %4 = sext i32 %3 to i64
+  
+  %5 = getelementptr inbounds [110 x i32], [110 x i32]* @array, i64 0, i64 %4
+  %6 = load i32, i32* %5, align 4
+  ret i32 %6
+}
 ```
 
