@@ -1,17 +1,31 @@
-define i32 @main()
-{
-	declare i32 %l0
-	declare i32 %l1 ; 1:a
-	declare i32 %l2 ; 1:b
-	declare i32 %t3
-	declare i32 %t4
-	entry
-	%t3 = neg 1
-	%l1 = %t3
-	%t4 = neg 2
-	%l2 = %t4
-	%l0 = %l1
-	br label .L5
-.L5:
-	exit %l0
+
+define dso_local i32 @add([5 x i32]* noundef %0, i32* noundef %1) #0 {
+  %3 = alloca [5 x i32]*, align 8
+  %4 = alloca i32*, align 8
+  store [5 x i32]* %0, [5 x i32]** %3, align 8
+  store i32* %1, i32** %4, align 8
+  %5 = load [5 x i32]*, [5 x i32]** %3, align 8
+  %6 = getelementptr inbounds [5 x i32], [5 x i32]* %5, i64 0
+  %7 = getelementptr inbounds [5 x i32], [5 x i32]* %6, i64 0, i64 0
+  %8 = load i32, i32* %7, align 4
+  %9 = load i32*, i32** %4, align 8
+  %10 = getelementptr inbounds i32, i32* %9, i64 0
+  %11 = load i32, i32* %10, align 4
+  %12 = add nsw i32 %8, %11
+  ret i32 %12
+}
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca [3 x [5 x i32]], align 16
+  %3 = alloca [3 x i32], align 4
+  store i32 0, i32* %1, align 4
+  %4 = getelementptr inbounds [3 x [5 x i32]], [3 x [5 x i32]]* %2, i64 0, i64 0
+  %5 = getelementptr inbounds [5 x i32], [5 x i32]* %4, i64 0, i64 0
+  store i32 2, i32* %5, align 16
+  %6 = getelementptr inbounds [3 x i32], [3 x i32]* %3, i64 0, i64 0
+  store i32 1, i32* %6, align 4
+  %7 = getelementptr inbounds [3 x [5 x i32]], [3 x [5 x i32]]* %2, i64 0, i64 0
+  %8 = getelementptr inbounds [3 x i32], [3 x i32]* %3, i64 0, i64 0
+  %9 = call i32 @add([5 x i32]* noundef %7, i32* noundef %8)
+  ret i32 %9
 }

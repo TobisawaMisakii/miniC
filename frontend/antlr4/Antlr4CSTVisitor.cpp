@@ -320,6 +320,27 @@ std::any SysYCSTVisitor::visitFuncFParam(SysYParser::FuncFParamContext * ctx)
     if (ctx->getText().find('[') != std::string::npos) {
         // 数组参数
         ast_node * dimsNode = create_contain_node(ast_operator_type::AST_OP_ARRAY_DIMS);
+        // 遍历children，遇到'['判断后面是否有exp
+        auto & children = ctx->children;
+        // size_t expIdx = 0;
+        for (size_t i = 0; i < children.size(); ++i) {
+            auto token = children[i];
+            std::string text = token->getText();
+            if (text == "[") {
+                // 判断下一个是不是exp
+                if (i + 1 < children.size() && dynamic_cast<SysYParser::ExpContext *>(children[i + 1])) {
+                    // 是exp
+                    auto dimNode =
+                        std::any_cast<ast_node *>(visitExp(dynamic_cast<SysYParser::ExpContext *>(children[i + 1])));
+                    dimsNode->insert_son_node(dimNode);
+                    ++i; // 跳过exp
+                } else {
+                    // 不是exp，直接插入-1
+                    dimsNode->insert_son_node(
+                        ast_node::New(digit_int_attr{0xFFFFFFFF, (int64_t) ctx->Ident()->getSymbol()->getLine()}));
+                }
+            }
+        }
         return ast_node::New(ast_operator_type::AST_OP_FUNC_FORMAL_PARAM, typeNode, idNode, dimsNode, nullptr);
     } else {
         // 普通参数

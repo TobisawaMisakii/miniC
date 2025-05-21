@@ -1112,20 +1112,25 @@ bool IRGenerator::ir_variable_define(ast_node * node)
 
     // 检查是否为数组声明
     if (node->sons.size() > 1 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_DIMS) {
-        // 解析数组维度
-        std::vector<int32_t> dimensions;
-        if (!ir_array_dims(node->sons[1], dimensions)) {
-            minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
-            return false;
+        // // 解析数组维度
+        // std::vector<int32_t> dimensions;
+        // if (!ir_array_dims(node->sons[1], dimensions)) {
+        //     minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
+        //     return false;
+        // }
+        // // 创建数组变量
+        // Value * arrayValue = module->newArrayValue(varType, varName, dimensions);
+        // if (!arrayValue) {
+        //     minic_log(LOG_ERROR, "数组(%s)创建失败", varName.c_str());
+        //     return false;
+        // }
+        // node->val = arrayValue;
+        // var_name_node->val = arrayValue;
+        if(!ir_array_dims(node->sons[1])) {
+			minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
+			return false;
         }
-        // 创建数组变量
-        Value * arrayValue = module->newArrayValue(varType, varName, dimensions);
-        if (!arrayValue) {
-            minic_log(LOG_ERROR, "数组(%s)创建失败", varName.c_str());
-            return false;
-        }
-        node->val = arrayValue;
-        var_name_node->val = arrayValue;
+        
         return true;
     }
     // 非数组变量处理
