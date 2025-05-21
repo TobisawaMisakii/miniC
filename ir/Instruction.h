@@ -87,6 +87,12 @@ enum class IRInstOperator {
     IRINST_OP_LOAD,
     IRINST_OP_STORE,
 
+    /// @brief 数据类型转换指令
+    IRINST_OP_ZEXT,   // 零扩展指令
+    IRINST_OP_SEXT,   // 符号扩展指令
+    IRINST_OP_SITOFP, // i32转浮点指令
+    IRINST_OP_FPTOSI, // 浮点转i32指令
+
     /* 后续可追加其他的IR指令 */
 
     /// @brief 最大指令码，也是无效指令

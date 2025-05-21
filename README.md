@@ -7,12 +7,11 @@
 - [2024Compiler（包括测例）]<https://gitlab.eduxiji.net/csc1/nscscc/compiler2024/-/tree/main>
 - [LLVM IR Manual]<[LLVM Language Reference Manual — LLVM 21.0.0git documentation](https://llvm.org/docs/LangRef.html)>
 
-##  进度 & TODO
+##  TODO
 
-- TODO：加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
-- TODO：支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
-- TODO：llvm下，对整数a的操作： -!a 需要类型转换，需尽早实现不同类型间的转换，包括`bool(i1)<-->int(i32)<-->float`
-- ？？syslib的静态库在本地怎么链接？？
+- 加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
+- 支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
+- llvm下，对整数a的操作： -!a 需要类型转换，需尽早实现不同类型间的转换，包括`bool(i1)<-->int(i32)<-->float`
 
 ## BUG RECORD
 
@@ -24,7 +23,8 @@
 - (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
 - (fixed)minic_log在哪？直接输出到命令行
 - (fixed)unary op 测评平台未通过
-- !!!全局变量赋值为-1出错
+- (fixed)全局变量赋值为-1出错：shell输出main函数返回值时，按i8输出，-1输出255
+- llvm的多维数组定义错误
 
 ## 一、前端理解及配置
 
@@ -811,7 +811,7 @@ clang -o test test.ll ../thirdparty/syslib/std.c
 
   **bitcast**： 用于**相同大小**的类型转换
 
-  **zext**：零扩展
+  **zext**：零扩展（bool的扩展必须使用zext）
 
   **sext**：符号扩展
 
@@ -878,4 +878,59 @@ define dso_local i32 @findfa(i32 %0) #0 {
   ret i32 %6
 }
 ```
+
+## SEXT
+
+将**有符号整数**从小宽度类型转换为大宽度类型时，**保留符号位**（负数高位补 `1`，正数补 `0`）
+
+适用于场景有符号整数（如 `i8`、`i16`、`i32` ）的扩展。
+
+语法：
+
+```llvm
+%result = sext <source_type> <value> to <target_type>
+```
+
+e.g
+
+```llvm
+%x = sext i8 -10 to i32  ; -10 (i8: 0xF6) → -10 (i32: 0xFFFFFFF6)
+%y = sext i8 127 to i32  ; 127 (i8: 0x7F) → 127 (i32: 0x0000007F)
+```
+
+## ZEXT
+
+将**无符号整数**从小宽度类型转换为大宽度类型时，**高位补 `0`**
+
+## NOT
+
+ `!flag` 看到两种实现方式 （flag指针为`%l1`）：
+
+1. ```llvm
+   %t1 = load i32, i32* %l1, align 4 
+   %t2 = icmp ne i32 %t1, 0
+   %t3 = xor i1 %t2, true
+   %t4 = zext i1 %t3 to i32
+   store i32 %t4, i32 %l1, align 4
+   ```
+
+   这是clang的方式，如果多个 not 运算连一起，只需要等量增加 xor 指令即可
+
+2. ```llvm
+   %t1 = load i32, i32* %l1, align 4 
+   %t2 = icmp eq i32 %t1, 0
+   %t3 = zext i1 %t2 to i32
+   store i32 %t3, i32 %l1, align 4
+   ```
+
+   这是IRCompiler的方式，少用一条xor指令，但在多个 not 指令相连时需要复制（IRCompiler的目前实现是错的）
+
+3. ```
+   %t1 = load i32, i32* %l1, align 4
+   %t2 = icmp eq i32 %t1, 0
+   %t3 = zext i1 %t2 to i32
+   store i32 %t3, i32* %l1, align 4
+   ```
+
+   这是GDD的实现，多个 not 指令只需要增加 icmp eq i1指令（其实就是xor）
 
