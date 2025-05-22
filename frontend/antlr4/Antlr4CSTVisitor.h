@@ -41,7 +41,7 @@ protected:
     std::any visitMacroDecl(SysYParser::MacroDeclContext * ctx) override;
 
     // 宏表
-    std::unordered_map<std::string, std::string> macroTable;
+    std::unordered_map<std::string, digit_int_attr> macroTable;
 
     /// @brief 非终结运算符decl的遍历
     /// @param ctx CST上下文

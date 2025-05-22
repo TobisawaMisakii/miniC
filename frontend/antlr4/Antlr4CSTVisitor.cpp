@@ -81,13 +81,17 @@ std::any SysYCSTVisitor::visitMacroDecl(SysYParser::MacroDeclContext * ctx)
 
     // 处理宏定义的值
     std::string macroValue = ctx->IntConst()->getText();
-    ast_node * value_node = ast_node::New(macroValue, ctx->IntConst()->getSymbol()->getLine());
+    int macroValueInt = std::stoi(macroValue);
+    digit_int_attr macroValueAttr;
+    macroValueAttr.val = macroValueInt;
+    macroValueAttr.lineno = ctx->IntConst()->getSymbol()->getLine();
+    ast_node * value_node = ast_node::New(macroValueAttr);
 
     // 创建宏定义节点
     macro_decl_node->insert_son_node(value_node);
 
     // 将宏定义存入宏表
-    macroTable[macroName] = macroValue;
+    macroTable[macroName] = macroValueAttr;
 
     return macro_decl_node;
 }
@@ -509,8 +513,8 @@ std::any SysYCSTVisitor::visitLVal(SysYParser::LValContext * ctx)
     std::string varName = ctx->Ident()->getText();
     // 如果是宏定义的变量，替换为宏值
     if (macroTable.find(varName) != macroTable.end()) {
-        std::string macroValue = macroTable[varName];
-        ast_node * idNode = ast_node::New(macroValue, ctx->Ident()->getSymbol()->getLine());
+        digit_int_attr macroValue = macroTable[varName];
+        ast_node * idNode = ast_node::New(macroValue);
         return idNode;
     }
     ast_node * idNode = ast_node::New(varName, ctx->Ident()->getSymbol()->getLine());

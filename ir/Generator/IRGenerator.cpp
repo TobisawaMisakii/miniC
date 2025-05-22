@@ -111,6 +111,9 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
     /* 语句块 */
     ast2ir_handlers[ast_operator_type::AST_OP_BLOCK] = &IRGenerator::ir_block;
 
+    /* 宏 */
+    ast2ir_handlers[ast_operator_type::AST_OP_MACRO_DECL] = &IRGenerator::ir_macro_decl;
+
     /* 编译单元 */
     ast2ir_handlers[ast_operator_type::AST_OP_COMPILE_UNIT] = &IRGenerator::ir_compile_unit;
 }
@@ -2805,5 +2808,18 @@ bool IRGenerator::ir_condition(ast_node * node, LabelInstruction * trueExitLabel
     // 4. 函数调用的返回值
     // 5. 数学表达式(+ - * / %)
     // 6. 常量
+    return true;
+}
+
+/// @brief 处理宏定义点，生成对应的IR
+/// @param node AST节点
+/// @return 翻译是否成功，true：成功，false：失败
+bool IRGenerator::ir_macro_decl(ast_node * node)
+{
+    // 宏定义在ast树已经优化，无需处理
+    if (node->sons.size() < 2) {
+        minic_log(LOG_ERROR, "宏定义节点的子节点数量不足");
+        return false;
+    }
     return true;
 }
