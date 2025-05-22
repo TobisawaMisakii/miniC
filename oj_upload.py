@@ -58,7 +58,9 @@ if __name__ == '__main__':
         'thirdparty',
         '.idea',
         'tests',
-        'function-tests',
+        '2023function-tests',
+        '2025function-tests',
+        '2025performance-tests',
         'oj_upload.py',
         '*.sh',
         'Doxygen.config'

@@ -103,21 +103,34 @@ public:
         if (getType()->isArrayType()) {
             // 获取类型字符串
             std::string typeStr = getType()->getBaseType()->toString();
-            str = "declare " + getType()->getBaseType()->toString() + " " + getIRName();
+            str = getIRName() + " = global ";
             // 获取数组维度
             const ArrayType * arrayType = dynamic_cast<const ArrayType *>(getType());
             if (arrayType) {
                 for (int dim: arrayType->getDimensions()) {
-                    str += "[" + std::to_string(dim) + "]";
+                    str += "[" + std::to_string(dim) + " x " + getType()->getBaseType()->toString() +
+                           "] zeroinitializer, align 16";
                 }
             }
+
         } else {
             // 非数组类型的处理
             if (getInitialValue()) {
-                str = "declare " + getType()->toString() + " " + getIRName() + " = " + getInitialValue()->getIRName();
+                str = getIRName() + " = global " + getType()->toString() + " " + getInitialValue()->getIRName() +
+                      ", align " + std::to_string(getAlignment());
                 ;
             } else {
-                str = "declare " + getType()->toString() + " " + getIRName();
+                // 全局变量的自动初始值
+                std::string autoInitValue;
+                if (getType()->isIntegerType()) {
+                    autoInitValue = "0";
+                } else if (getType()->isFloatType()) {
+                    autoInitValue = "0x0";
+                } else {
+                    autoInitValue = nullptr;
+                }
+                str = getIRName() + " = global " + getType()->toString() + " " + autoInitValue + ", align " +
+                      std::to_string(getAlignment());
             }
         }
     }

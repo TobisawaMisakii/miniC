@@ -45,6 +45,17 @@ void FuncCallInstruction::toString(std::string & str)
     // 这里假定所有函数返回类型要么是i32，要么是void
     // 函数参数的类型是i32
     printf("函数%s, 操作数数量：%d\n", calledFunction->getName().c_str(), operandsNum);
+    if (calledFunction->isBuiltin() && operandsNum == 1) {
+        // 函数没有参数
+        if (type->isInt32Type()) {
+			str = getIRName() + " = call i32 (...) " + calledFunction->getIRName() + "()";
+			return;
+		} else if (type->isFloatType()) {
+			str = getIRName() + " = call float (...) " + calledFunction->getIRName() + "()";
+			return;
+		}
+    }
+
     if (type->isVoidType()) {
         // 函数没有返回值设置
         str = "call void " + calledFunction->getIRName() + "(";

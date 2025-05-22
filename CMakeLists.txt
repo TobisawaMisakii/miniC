@@ -127,6 +127,10 @@ set(IR_SRCS
 	ir/Instructions/GotoInstruction.h
 	ir/Instructions/LabelInstruction.cpp
 	ir/Instructions/LabelInstruction.h
+	ir/Instructions/LoadInstruction.cpp
+	ir/Instructions/LoadInstruction.h
+	ir/Instructions/StoreInstruction.cpp
+	ir/Instructions/StoreInstruction.h
 	ir/Instructions/MoveInstruction.cpp
 	ir/Instructions/MoveInstruction.h
 	ir/Instructions/UnaryInstruction.cpp

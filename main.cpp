@@ -109,7 +109,7 @@ int ArgsAnalysis(int argc, char * argv[])
     // -O要求必须带有附加整数，指明优化的级别
     // -t要求必须带有目标CPU，指明目标CPU的汇编
     // -c选项在输出汇编时有效，附带输出IR指令内容
-    const char options[] = "ho:STIADO:t:c";
+    const char options[] = "ho:STILADO:t:c";
 
     opterr = 1;
 
@@ -128,8 +128,8 @@ lb_check:
             case 'T':
                 gShowAST = true;
                 break;
-            case 'I':
-                // 产生中间IR
+            case 'L':
+                // 产生中间IR(llvm)
                 gShowLineIR = true;
                 break;
             case 'A':

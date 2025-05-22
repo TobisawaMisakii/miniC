@@ -19,10 +19,15 @@ void UnaryInstruction::toString(std::string & str)
 {
     switch (op) {
         case IRInstOperator::IRINST_OP_NEG:
-            str = getIRName() + " = neg " + srcVal1->getIRName();
+            if (srcVal1->getType()->isFloatType()) {
+                str = getIRName() + " = fsub float 0, " + srcVal1->getIRName();
+            } else if (srcVal1->getType()->isIntegerType()) {
+                str = getIRName() + " = sub i32 0, " + srcVal1->getIRName();
+            }
+
             break;
         case IRInstOperator::IRINST_OP_NOT:
-            str = getIRName() + " = not " + srcVal1->getIRName();
+            str = getIRName() + " = not " + srcVal1->getType()->toString() + " " + srcVal1->getIRName();
             break;
 
         default:
