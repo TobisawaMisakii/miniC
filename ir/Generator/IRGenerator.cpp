@@ -1498,6 +1498,14 @@ bool IRGenerator::ir_if(ast_node * node)
             return false;
         }
         node->blockInsts.addInst(condNode->blockInsts);
+        // 与0比较
+        BinaryInstruction * unary_expr_ne_0 = new BinaryInstruction(module->getCurrentFunction(),
+                                                                    IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                    condNode->val,
+                                                                    module->newConstInt(0),
+                                                                    IntegerType::getTypeBool());
+        node->blockInsts.addInst(unary_expr_ne_0);
+        condNode->val = unary_expr_ne_0;
         // 根据条件表达式的值，跳转到thenLabel或elseLabel(如果没有elseLabel，则跳转到endLabel)
         BranchCondInstruction * condGotoInst = new BranchCondInstruction(module->getCurrentFunction(),
                                                                          condNode->val,
@@ -2603,12 +2611,21 @@ bool IRGenerator::ir_neg(ast_node * node)
         minic_log(LOG_ERROR, "neg操作数解析失败");
         return false;
     }
+    // i1 -> i32
+    CastInstruction * castInst = nullptr;
+    if (left->val->getType()->isInt1Byte()) {
+        castInst = new CastInstruction(currentFunc, left->val, IntegerType::getTypeInt());
+        left->val = castInst;
+    }
 
     // 创建IR指令
     UnaryInstruction * negInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NEG, left->val);
 
     // 添加IR指令
     node->blockInsts.addInst(left->blockInsts);
+    if (castInst) {
+        node->blockInsts.addInst(castInst);
+    }
     node->blockInsts.addInst(negInst);
 
     // 保存结果
@@ -2634,18 +2651,32 @@ bool IRGenerator::ir_not(ast_node * node)
         return false;
     }
 
-    // 用icmp eq 0代替not指令
-    BinaryInstruction * notInst = new BinaryInstruction(currentFunc,
-                                                        IRInstOperator::IRINST_OP_ICMP_EQ,
-                                                        left->val,
-                                                        module->newConstInt(0),
-                                                        IntegerType::getTypeBool());
-    // 添加IR指令
-    node->blockInsts.addInst(left->blockInsts);
-    node->blockInsts.addInst(notInst);
-    // 保存结果
-    node->val = notInst;
-
+    if (left->val->getType() != IntegerType::getTypeBool()) {
+        // 用icmp ne 0 + xor 代替not指令
+        BinaryInstruction * notInst = new BinaryInstruction(currentFunc,
+                                                            IRInstOperator::IRINST_OP_ICMP_NE,
+                                                            left->val,
+                                                            module->newConstInt(0),
+                                                            IntegerType::getTypeBool());
+        UnaryInstruction * xorInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, notInst);
+        // 添加IR指令
+        node->blockInsts.addInst(left->blockInsts);
+        node->blockInsts.addInst(notInst);
+        node->blockInsts.addInst(xorInst);
+        // 保存结果
+        node->val = xorInst;
+    } else if (left->val->getType() == IntegerType::getTypeBool()) {
+        // 直接使用not指令
+        UnaryInstruction * notInst = new UnaryInstruction(currentFunc, IRInstOperator::IRINST_OP_NOT, left->val);
+        // 添加IR指令
+        node->blockInsts.addInst(left->blockInsts);
+        node->blockInsts.addInst(notInst);
+        // 保存结果
+        node->val = notInst;
+    } else {
+        minic_log(LOG_ERROR, "not操作数类型错误");
+        return false;
+    }
     return true;
 }
 

@@ -1,9 +1,11 @@
 int main() {
-	int a = 1;
-    float b = 1.0;
-	if (a == b) {
-        return 66;
-    } else {
-		return 77;
-	}
+    int a;
+    a = 10;
+    if (+-!!!a) {
+        a = - - -1;
+    }
+    else {
+        a = 0;
+    }
+    return a;
 }
