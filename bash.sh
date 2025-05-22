@@ -8,11 +8,11 @@ cmake --build build --parallel
 # 生成AST图
 ./build/minic -S -T -A -o ./tests/test-AST.png ./tests/test.c
 # 生成标准ir
-tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -L -o tests/test_std.ir tests/test.c 
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -L -o tests/test_std.ll tests/test.c 
 # 用自己的编译器生成ir
-./build/minic -S -A -I -o tests/test.ir tests/test.c
+./build/minic -S -A -I -o tests/test.ll tests/test.c
 # 用ircompiler运行自己的ir测试准确性
-tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ir
+tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ll
 
 # # 生成标准LLVM IR (.ll文件)
 # clang -S -emit-llvm -o tests/test_std.ll tests/test.c
@@ -22,6 +22,7 @@ tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ir
 # lli tests/test.ll
 # 查看返回值
 echo $?  
+rm -rf ./llvm-*
 
 # 命令格式：
 # minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source

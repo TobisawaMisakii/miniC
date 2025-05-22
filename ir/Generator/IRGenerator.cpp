@@ -28,6 +28,7 @@
 #include "EntryInstruction.h"
 #include "LabelInstruction.h"
 #include "ExitInstruction.h"
+#include "CastInstruction.h"
 #include "FuncCallInstruction.h"
 #include "BinaryInstruction.h"
 #include "MoveInstruction.h"
@@ -639,12 +640,49 @@ bool IRGenerator::ir_assign(ast_node * node)
         return false;
     }
 
+    // 检查是否需要进行类型转换
+    CastInstruction * cast_inst = nullptr;
+    if (left->val->getType() != right->val->getType()) {
+        minic_log(LOG_INFO,
+                  "赋值语句操作数需要类型转换: %s -> %s",
+                  right->val->getType()->toString().c_str(),
+                  left->val->getType()->toString().c_str());
+
+        if (left->val->getType()->isInt32Type() && right->val->getType()->isInt1Byte()) {
+            // i1 -> i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(),
+                                            CastInstruction::CastType::ZEXT,
+                                            right->val,
+                                            IntegerType::getTypeInt());
+            right->val = cast_inst;
+        } else if (left->val->getType()->isInt32Type() && right->val->getType()->isFloatType()) {
+            // float -> i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(),
+                                            CastInstruction::CastType::FPTOSI,
+                                            right->val,
+                                            IntegerType::getTypeInt());
+            right->val = cast_inst;
+        } else if (left->val->getType()->isFloatType() && right->val->getType()->isInt32Type()) {
+            // i32 -> float
+            cast_inst = new CastInstruction(module->getCurrentFunction(),
+                                            CastInstruction::CastType::SITOFP,
+                                            right->val,
+                                            FloatType::getTypeFloat());
+            right->val = cast_inst;
+        } else {
+            minic_log(LOG_ERROR, "赋值语句操作数不匹配");
+            return false;
+        }
+    }
+
     // 将右侧操作数的值赋给左侧操作数，采用load + store指令代替move指令
-    // Value * temp = module->newVarValue(left->val->getType());
     StoreInstruction * storeInst = new StoreInstruction(module->getCurrentFunction(), left->val, right->val);
 
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);
+    if (cast_inst) {
+        node->blockInsts.addInst(cast_inst);
+    }
     node->blockInsts.addInst(storeInst);
 
     return true;

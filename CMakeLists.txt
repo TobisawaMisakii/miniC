@@ -42,7 +42,7 @@ set(ANTLR4_JAR_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/antlr4/antlr-4.12
 # 设置libsysy-runtime的位置
 set(LIBSYSY_RUNTIME_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/syslib)
 
-if(NOT EXISTS ${LIBSYSY_RUNTIME_LOCATION}/libsysy.a)
+if(NOT EXISTS ${LIBSYSY_RUNTIME_LOCATION}/std.a)
 	message(FATAL_ERROR "libsysy.a not found at ${LIBSYSY_RUNTIME_LOCATION}/libsysy.a")
 endif()
 
@@ -117,6 +117,8 @@ set(IR_SRCS
 	ir/Instructions/BinaryInstruction.h
 	ir/Instructions/BranchConditional.cpp
 	ir/Instructions/BranchConditional.h
+	ir/Instructions/CastInstruction.cpp
+	ir/Instructions/CastInstruction.h
 	ir/Instructions/EntryInstruction.cpp
 	ir/Instructions/EntryInstruction.h
 	ir/Instructions/ExitInstruction.cpp
@@ -266,7 +268,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # 添加syslib静态库
 add_library(sysy_runtime STATIC IMPORTED)
 set_target_properties(sysy_runtime PROPERTIES
-	IMPORTED_LOCATION ${LIBSYSY_RUNTIME_LOCATION}/libsysy.a
+	IMPORTED_LOCATION ${LIBSYSY_RUNTIME_LOCATION}/std.a
 )
 
 # 指导antlr4的库名，防止链接时找不到antlr4-runtime
