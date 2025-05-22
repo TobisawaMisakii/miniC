@@ -151,7 +151,7 @@ debug后会显示错误
 修改完成后，还要重新生成antlr4相关文件，采用命令如下：
 
 ```shell
-antlr4 -Dlanguage=Cpp -visitor -no-listener /home/cpy/Compiler/exp04-minic-expr/frontend/antlr4/MiniC.g4
+antlr4 -Dlanguage=Cpp -visitor -no-listener /home/cpy/Compiler/miniC/frontend/antlr4/SysY.g4
 ```
 参数说明（依据exp04选择的参数）：
 

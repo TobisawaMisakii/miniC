@@ -19,6 +19,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitMacroDecl(SysYParser::MacroDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitDecl(SysYParser::DeclContext *ctx) override {
     return visitChildren(ctx);
   }

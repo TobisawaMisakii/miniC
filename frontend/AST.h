@@ -39,6 +39,9 @@ enum class ast_operator_type : int {
 
     /* 声明和定义节点 */
     AST_OP_COMPILE_UNIT,       // 编译单元4
+    AST_OP_MACRO_DECL,         // 宏定义
+    AST_OP_MACRO_VALUE,        // 宏值
+    AST_OP_MACRO_CALL,         // 宏调用
     AST_OP_FUNC_DEF,           // 函数定义
     AST_OP_FUNC_FORMAL_PARAMS, // 形参列表
     AST_OP_FUNC_FORMAL_PARAM,  // 形参

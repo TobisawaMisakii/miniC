@@ -10,6 +10,7 @@
 
 #include "AST.h"
 #include "SysYBaseVisitor.h"
+#include <unordered_map>
 
 /// @brief 遍历具体语法树产生抽象语法树
 class SysYCSTVisitor : public SysYBaseVisitor {
@@ -33,6 +34,14 @@ protected:
     /// @param ctx CST上下文
     /// @return AST的节点
     std::any visitCompileUnit(SysYParser::CompileUnitContext * ctx) override;
+
+    /// @brief 非终结运算符macroDecl的遍历
+    /// @param ctx CST上下文
+    /// @return AST的节点
+    std::any visitMacroDecl(SysYParser::MacroDeclContext * ctx) override;
+
+    // 宏表
+    std::unordered_map<std::string, std::string> macroTable;
 
     /// @brief 非终结运算符decl的遍历
     /// @param ctx CST上下文

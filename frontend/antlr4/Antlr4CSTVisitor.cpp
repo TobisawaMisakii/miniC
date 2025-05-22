@@ -36,6 +36,12 @@ std::any SysYCSTVisitor::visitCompileUnit(SysYParser::CompileUnitContext * ctx)
 {
     ast_node * compileUnitNode = create_contain_node(ast_operator_type::AST_OP_COMPILE_UNIT);
 
+    // 处理所有宏定义
+    for (auto macro: ctx->macroDecl()) {
+        auto node = std::any_cast<ast_node *>(visitMacroDecl(macro));
+        compileUnitNode->insert_son_node(node);
+    }
+
     // 处理所有声明和函数定义
     for (auto item: ctx->decl()) {
         auto node = std::any_cast<ast_node *>(visitDecl(item));
@@ -62,6 +68,28 @@ std::any SysYCSTVisitor::visitCompileUnit(SysYParser::CompileUnitContext * ctx)
     }
 
     return compileUnitNode;
+}
+
+/// @brief 非终结运算符macroDecl的遍历
+std::any SysYCSTVisitor::visitMacroDecl(SysYParser::MacroDeclContext * ctx)
+{
+    // 识别产生式 macroDecl: '#define' Ident IntConsts;
+    ast_node * macro_decl_node = ast_node::New(ast_operator_type::AST_OP_MACRO_DECL, nullptr);
+    std::string macroName = ctx->Ident()->getText();
+    ast_node * id_node = ast_node::New(macroName, ctx->Ident()->getSymbol()->getLine());
+    macro_decl_node->insert_son_node(id_node);
+
+    // 处理宏定义的值
+    std::string macroValue = ctx->IntConst()->getText();
+    ast_node * value_node = ast_node::New(macroValue, ctx->IntConst()->getSymbol()->getLine());
+
+    // 创建宏定义节点
+    macro_decl_node->insert_son_node(value_node);
+
+    // 将宏定义存入宏表
+    macroTable[macroName] = macroValue;
+
+    return macro_decl_node;
 }
 
 /// @brief 非终结运算符decl的遍历
@@ -479,6 +507,12 @@ std::any SysYCSTVisitor::visitCond(SysYParser::CondContext * ctx)
 std::any SysYCSTVisitor::visitLVal(SysYParser::LValContext * ctx)
 {
     std::string varName = ctx->Ident()->getText();
+    // 如果是宏定义的变量，替换为宏值
+    if (macroTable.find(varName) != macroTable.end()) {
+        std::string macroValue = macroTable[varName];
+        ast_node * idNode = ast_node::New(macroValue, ctx->Ident()->getSymbol()->getLine());
+        return idNode;
+    }
     ast_node * idNode = ast_node::New(varName, ctx->Ident()->getSymbol()->getLine());
 
     if (!ctx->exp().empty()) {
@@ -546,11 +580,12 @@ std::any SysYCSTVisitor::visitNumber(SysYParser::NumberContext * ctx)
         }
 
         return ast_node::New(digit_int_attr{(uint32_t) value, (int64_t) ctx->IntConst()->getSymbol()->getLine()});
-    } else {
+    } else if (ctx->FloatConst()) {
         // 处理浮点型常量
         double value = std::stod(ctx->FloatConst()->getText());
         return ast_node::New(digit_real_attr{value, (int64_t) ctx->FloatConst()->getSymbol()->getLine()});
     }
+    return nullptr;
 }
 
 /// @brief 非终结运算符unaryExp的遍历
