@@ -10,7 +10,7 @@ cmake --build build --parallel
 # 生成标准ir
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -L -o tests/test_std.ll tests/test.c 
 # 用自己的编译器生成ir
-./build/minic -S -A -I -o tests/test.ll tests/test.c
+./build/minic -S -A -L -o tests/test.ll tests/test.c
 # 用ircompiler运行自己的ir测试准确性
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ll
 
@@ -56,3 +56,4 @@ rm -rf ./llvm-*
 # 查看提交历史	git log --graph --oneline
 # 创建一个本地分支并自动跟踪  git checkout -b dev_CPY origin/dev_CPY
 # git branch -r  # 查看所有远程跟踪分支
+# git checkout 78fabb2 -- tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler 恢复到某个特定的提交版本

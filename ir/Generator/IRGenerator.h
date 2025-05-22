@@ -160,6 +160,8 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_array_dims(ast_node * node, std::vector<int32_t> & dimensions);
 
+    bool ir_array_indices(ast_node * node);
+
     /// @brief 数组的初始化节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败

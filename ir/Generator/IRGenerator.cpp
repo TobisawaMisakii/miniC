@@ -105,7 +105,7 @@ IRGenerator::IRGenerator(ast_node * _root, Module * _module) : root(_root), modu
 
     // 数组, 不支持定义时初始化数组，维度处理处理节点还需要维度参数，索引直接在lval处理了，所以都不走visit
     // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_DIMS] = &IRGenerator::ir_array_dims;
-    // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
+    ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INDICES] = &IRGenerator::ir_array_indices;
     // ast2ir_handlers[ast_operator_type::AST_OP_ARRAY_INIT] = &IRGenerator::ir_array_init;
 
     /* 语句块 */
@@ -498,22 +498,64 @@ bool IRGenerator::ir_add(ast_node * node)
     // 左右值的处理ir,对于数组，要先计算地址，创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);
+
     //分别处理整数和浮点
     IRInstOperator op;
     Type * resultType;
-    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+    CastInstruction * cast_inst = nullptr;
+
+    if (left->val->getType()->isFloatType() && right->val->getType()->isFloatType()) {
         op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
         resultType = FloatType::getTypeFloat();
         // 需要确保0.1这样的常量被识别为float
-    } else {
+    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
         op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
         resultType = IntegerType::getTypeInt();
+    } else {
+        // 类型转换
+        minic_log(LOG_INFO,
+                  "add语句操作数需要类型转换: %s <-> %s",
+                  right->val->getType()->toString().c_str(),
+                  left->val->getType()->toString().c_str());
+        if (left->val->getType()->isFloatType()) {
+            // float + i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (right->val->getType()->isFloatType()) {
+            // i32 + float
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
+            // i32 + i1
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
+            resultType = IntegerType::getTypeInt();
+        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
+            // i1 + i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
+            resultType = IntegerType::getTypeInt();
+        } else {
+            // 其它类型不支持
+            minic_log(LOG_ERROR, "加法操作数的类型转换不支持");
+            return false;
+        }
     }
     BinaryInstruction * addInst =
         new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
 
     // 加法ir，创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(addInst);
+
+    if (cast_inst) {
+        node->blockInsts.addInst(cast_inst);
+    }
 
     node->val = addInst;
     return true;
@@ -545,13 +587,50 @@ bool IRGenerator::ir_sub(ast_node * node)
     //分别处理整数和浮点
     IRInstOperator op;
     Type * resultType;
-    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+    CastInstruction * cast_inst = nullptr;
+
+    if (left->val->getType()->isFloatType() && right->val->getType()->isFloatType()) {
         op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
         resultType = FloatType::getTypeFloat();
         // 需要确保0.1这样的常量被识别为float
-    } else {
+    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
         op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
         resultType = IntegerType::getTypeInt();
+    } else {
+        // 类型转换
+        minic_log(LOG_INFO,
+                  "sub语句操作数需要类型转换: %s <-> %s",
+                  right->val->getType()->toString().c_str(),
+                  left->val->getType()->toString().c_str());
+        if (left->val->getType()->isFloatType()) {
+            // float - i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (right->val->getType()->isFloatType()) {
+            // i32 - float
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
+            // i32 - i1
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
+            resultType = IntegerType::getTypeInt();
+        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
+            // i1 - i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
+            resultType = IntegerType::getTypeInt();
+        } else {
+            // 其它类型不支持
+            minic_log(LOG_ERROR, "减法操作数的类型转换不支持");
+            return false;
+        }
     }
     BinaryInstruction * subInst =
         new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
@@ -559,6 +638,9 @@ bool IRGenerator::ir_sub(ast_node * node)
     // 创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);
+    if (cast_inst) {
+        node->blockInsts.addInst(cast_inst);
+    }
     node->blockInsts.addInst(subInst);
 
     node->val = subInst;
@@ -588,13 +670,61 @@ bool IRGenerator::ir_mul(ast_node * node)
     //分别处理整数和浮点
     IRInstOperator op;
     Type * resultType;
+    CastInstruction * cast_inst = nullptr;
+
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        op = IRInstOperator::IRINST_OP_MUL_F; // 浮点加法指令
+        CastInstruction * cast_left =
+            new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+        CastInstruction * cast_right =
+            new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        if (cast_left) {
+            left->val = cast_left;
+            cast_inst = cast_left;
+        } else {
+            left->val = cast_right;
+            cast_inst = cast_right;
+        }
+        op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
         resultType = FloatType::getTypeFloat();
         // 需要确保0.1这样的常量被识别为float
-    } else {
-        op = IRInstOperator::IRINST_OP_MUL_I; // 整数加法指令
+    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
+        op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
         resultType = IntegerType::getTypeInt();
+    } else {
+        // 类型转换
+        minic_log(LOG_INFO,
+                  "mul语句操作数需要类型转换: %s <-> %s",
+                  right->val->getType()->toString().c_str(),
+                  left->val->getType()->toString().c_str());
+        if (left->val->getType()->isFloatType()) {
+            // float * i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (right->val->getType()->isFloatType()) {
+            // i32 * float
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
+            resultType = FloatType::getTypeFloat();
+        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
+            // i32 * i1
+            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
+            right->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
+            resultType = IntegerType::getTypeInt();
+        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
+            // i1 * i32
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+            left->val = cast_inst;
+            op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
+            resultType = IntegerType::getTypeInt();
+        } else {
+            // 其它类型不支持
+            minic_log(LOG_ERROR, "乘法操作数的类型转换不支持");
+            return false;
+        }
     }
 
     BinaryInstruction * mulInst =
@@ -602,6 +732,9 @@ bool IRGenerator::ir_mul(ast_node * node)
 
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);
+    if (cast_inst) {
+        node->blockInsts.addInst(cast_inst);
+    }
     node->blockInsts.addInst(mulInst);
 
     node->val = mulInst;
@@ -651,26 +784,26 @@ bool IRGenerator::ir_assign(ast_node * node)
         if (left->val->getType()->isInt32Type() && right->val->getType()->isInt1Byte()) {
             // i1 -> i32
             cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            CastInstruction::CastType::ZEXT,
+                                            // CastInstruction::CastType::ZEXT,
                                             right->val,
                                             IntegerType::getTypeInt());
             right->val = cast_inst;
         } else if (left->val->getType()->isInt32Type() && right->val->getType()->isFloatType()) {
             // float -> i32
             cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            CastInstruction::CastType::FPTOSI,
+                                            // CastInstruction::CastType::FPTOSI,
                                             right->val,
                                             IntegerType::getTypeInt());
             right->val = cast_inst;
         } else if (left->val->getType()->isFloatType() && right->val->getType()->isInt32Type()) {
             // i32 -> float
             cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            CastInstruction::CastType::SITOFP,
+                                            // CastInstruction::CastType::SITOFP,
                                             right->val,
                                             FloatType::getTypeFloat());
             right->val = cast_inst;
         } else {
-            minic_log(LOG_ERROR, "赋值语句操作数不匹配");
+            minic_log(LOG_ERROR, "赋值语句操作数暂时不支持转换");
             return false;
         }
     }
@@ -707,134 +840,140 @@ bool IRGenerator::ir_lval(ast_node * node)
 
     // 检查是否是数组访问
     if (node->sons.size() == 2 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_INDICES) {
-        // 获取数组的值
-        Value * arrayValue = var_node->val;
-        if (!arrayValue) {
-            minic_log(LOG_ERROR, "数组变量未定义");
+        // 将数组索引处理拆分到 ir_array_indices
+        if (!ir_array_indices(node)) {
+            minic_log(LOG_ERROR, "数组索引处理失败");
             return false;
         }
+        resultVal = node->val; // ir_array_indices 会设置 node->val
+                               // // 获取数组的值
+        // Value * arrayValue = var_node->val;
+        // if (!arrayValue) {
+        //     minic_log(LOG_ERROR, "数组变量未定义");
+        //     return false;
+        // }
 
-        // 获取数组类型
-        Type * arrayVarType = arrayValue->getType();
-        const ArrayType * arrayType = nullptr;
+        // // 获取数组类型
+        // Type * arrayVarType = arrayValue->getType();
+        // const ArrayType * arrayType = nullptr;
 
-        // 处理数组变量可能是数组类型或指针类型的情况
-        if (arrayVarType->isArrayType()) {
-            arrayType = dynamic_cast<const ArrayType *>(arrayVarType);
-        } else if (arrayVarType->isPointerType()) {
-            const PointerType * ptrType = dynamic_cast<const PointerType *>(arrayVarType);
-            if (ptrType && ptrType->getPointeeType()->isArrayType()) {
-                arrayType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
-            }
-        }
+        // // 处理数组变量可能是数组类型或指针类型的情况
+        // if (arrayVarType->isArrayType()) {
+        //     arrayType = dynamic_cast<const ArrayType *>(arrayVarType);
+        // } else if (arrayVarType->isPointerType()) {
+        //     const PointerType * ptrType = dynamic_cast<const PointerType *>(arrayVarType);
+        //     if (ptrType && ptrType->getPointeeType()->isArrayType()) {
+        //         arrayType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
+        //     }
+        // }
 
-        if (!arrayType) {
-            minic_log(LOG_ERROR, "无效的数组类型");
-            return false;
-        }
+        // if (!arrayType) {
+        //     minic_log(LOG_ERROR, "无效的数组类型");
+        //     return false;
+        // }
 
-        // 解析索引表达式
-        ast_node * indices_node = node->sons[1];
-        std::vector<Value *> indices;
-        for (auto index_node: indices_node->sons) {
-            if (!ir_visit_ast_node(index_node)) {
-                minic_log(LOG_ERROR, "数组索引解析失败");
-                return false;
-            }
-            indices.push_back(index_node->val);
-            node->blockInsts.addInst(index_node->blockInsts);
-        }
+        // // 解析索引表达式
+        // ast_node * indices_node = node->sons[1];
+        // std::vector<Value *> indices;
+        // for (auto index_node: indices_node->sons) {
+        //     if (!ir_visit_ast_node(index_node)) {
+        //         minic_log(LOG_ERROR, "数组索引解析失败");
+        //         return false;
+        //     }
+        //     indices.push_back(index_node->val);
+        //     node->blockInsts.addInst(index_node->blockInsts);
+        // }
 
-        // 计算偏移量
-        const auto & dims = arrayType->getDimensions();
-        Value * totalOffset = module->newConstInt(0);
-        Function * currentFunc = module->getCurrentFunction();
-        Type * intType = IntegerType::getTypeInt();
-        bool isFirstDim = true; // 添加标志位跟踪第一个维度
-        const int elementSize = arrayType->getBaseType()->getSize();
+        // // 计算偏移量
+        // const auto & dims = arrayType->getDimensions();
+        // Value * totalOffset = module->newConstInt(0);
+        // Function * currentFunc = module->getCurrentFunction();
+        // Type * intType = IntegerType::getTypeInt();
+        // bool isFirstDim = true; // 添加标志位跟踪第一个维度
+        // const int elementSize = arrayType->getBaseType()->getSize();
 
         // 多维数组计算
-        if (dims.size() > 1) {
-            // 计算前n-1维的偏移
-            for (size_t i = 0; i < indices.size() - 1; i++) {
-                // 计算后续维度的乘积
-                int32_t stride = 1;
-                for (size_t j = i + 1; j < dims.size(); j++) {
-                    stride *= dims[j];
-                }
+        // if (dims.size() > 1) {
+        //     // 计算前n-1维的偏移
+        //     for (size_t i = 0; i < indices.size() - 1; i++) {
+        //         // 计算后续维度的乘积
+        //         int32_t stride = 1;
+        //         for (size_t j = i + 1; j < dims.size(); j++) {
+        //             stride *= dims[j];
+        //         }
 
-                BinaryInstruction * dimOffset = new BinaryInstruction(currentFunc,
-                                                                      IRInstOperator::IRINST_OP_MUL_I,
-                                                                      indices[i],
-                                                                      module->newConstInt(stride),
-                                                                      intType);
-                node->blockInsts.addInst(dimOffset);
+        //         BinaryInstruction * dimOffset = new BinaryInstruction(currentFunc,
+        //                                                               IRInstOperator::IRINST_OP_MUL_I,
+        //                                                               indices[i],
+        //                                                               module->newConstInt(stride),
+        //                                                               intType);
+        //         node->blockInsts.addInst(dimOffset);
 
-                // 累加到总偏移
-                if (isFirstDim) {
-                    totalOffset = dimOffset;
-                    isFirstDim = false;
-                } else {
-                    BinaryInstruction * newOffset = new BinaryInstruction(currentFunc,
-                                                                          IRInstOperator::IRINST_OP_ADD_I,
-                                                                          totalOffset,
-                                                                          dimOffset,
-                                                                          intType);
-                    node->blockInsts.addInst(newOffset);
-                    totalOffset = newOffset;
-                }
-            }
+        // // 累加到总偏移
+        // if (isFirstDim) {
+        //     totalOffset = dimOffset;
+        //     isFirstDim = false;
+        // } else {
+        //     BinaryInstruction * newOffset = new BinaryInstruction(currentFunc,
+        //                                                           IRInstOperator::IRINST_OP_ADD_I,
+        //                                                           totalOffset,
+        //                                                           dimOffset,
+        //                                                           intType);
+        //     node->blockInsts.addInst(newOffset);
+        //         totalOffset = newOffset;
+        //     }
+        // }
 
-            // 加上最后一维的索引
-            BinaryInstruction * finalOffset = new BinaryInstruction(currentFunc,
-                                                                    IRInstOperator::IRINST_OP_ADD_I,
-                                                                    totalOffset,
-                                                                    indices.back(),
-                                                                    intType);
-            node->blockInsts.addInst(finalOffset);
+        // // 加上最后一维的索引
+        // BinaryInstruction * finalOffset = new BinaryInstruction(currentFunc,
+        //                                                         IRInstOperator::IRINST_OP_ADD_I,
+        //                                                         totalOffset,
+        //                                                         indices.back(),
+        //                                                         intType);
+        // node->blockInsts.addInst(finalOffset);
 
-            // 乘以元素大小4字节
-            BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
-                                                                   IRInstOperator::IRINST_OP_MUL_I,
-                                                                   finalOffset,
-                                                                   module->newConstInt(elementSize),
-                                                                   intType);
-            node->blockInsts.addInst(byteOffset);
-            totalOffset = byteOffset;
-        } else {
-            // 一维数组直接计算
-            BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
-                                                                   IRInstOperator::IRINST_OP_MUL_I,
-                                                                   indices[0],
-                                                                   module->newConstInt(elementSize),
-                                                                   intType);
-            node->blockInsts.addInst(byteOffset);
-            totalOffset = byteOffset;
-        }
+        // // 乘以元素大小4字节
+        // BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
+        //                                                         IRInstOperator::IRINST_OP_MUL_I,
+        //                                                       finalOffset,
+        //                                                        module->newConstInt(elementSize),
+        //                                                        intType);
+        // node->blockInsts.addInst(byteOffset);
+        // totalOffset = byteOffset;
+        // } else {
+        //     // 一维数组直接计算
+        //     BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
+        //                                                            IRInstOperator::IRINST_OP_MUL_I,
+        //                                                            indices[0],
+        //                                                            module->newConstInt(elementSize),
+        //                                                            intType);
+        //     node->blockInsts.addInst(byteOffset);
+        //     totalOffset = byteOffset;
+        // }
 
-        // 计算最终地址
-        const PointerType * elemPtrType = PointerType::get(arrayType->getBaseType());
-        BinaryInstruction * addrCalc =
-            new BinaryInstruction(currentFunc,
-                                  IRInstOperator::IRINST_OP_ADD_I,
-                                  arrayValue,
-                                  totalOffset,
-                                  const_cast<Type *>(static_cast<const Type *>(elemPtrType)));
-        node->blockInsts.addInst(addrCalc);
+        // // 计算最终地址
+        // const PointerType * elemPtrType = PointerType::get(arrayType->getBaseType());
+        // BinaryInstruction * addrCalc =
+        //     new BinaryInstruction(currentFunc,
+        //                           IRInstOperator::IRINST_OP_ADD_I,
+        //                           arrayValue,
+        //                           totalOffset,
+        //                           const_cast<Type *>(static_cast<const Type *>(elemPtrType)));
+        // // node->blockInsts.addInst(addrCalc);
 
-        resultVal = addrCalc;
+        // resultVal = addrCalc;
 
-        // 如果 store=false，则直接加载数组元素的值
-        if (!node->store) {
-            Value * temp = module->newVarValue(arrayType->getBaseType());
-            MoveInstruction * loadInst = new MoveInstruction(currentFunc,
-                                                             temp,
-                                                             resultVal,
-                                                             true,  // dereference
-                                                             true); // load
-            node->blockInsts.addInst(loadInst);
-            resultVal = temp; // 更新为加载后的值
-        }
+        // // 如果 store=false，则直接加载数组元素的值
+        // if (!node->store) {
+        //     Value * temp = module->newVarValue(arrayType->getBaseType());
+        //     MoveInstruction * loadInst = new MoveInstruction(currentFunc,
+        //                                                      temp,
+        //                                                      resultVal,
+        //                                                      true,  // dereference
+        //                                                      true); // load
+        //     node->blockInsts.addInst(loadInst);
+        //     resultVal = temp; // 更新为加载后的值
+        // }
     } else if (!node->store) {
         // 非数组变量，但需要加载值（如指针解引用）
 
@@ -1152,25 +1291,20 @@ bool IRGenerator::ir_variable_define(ast_node * node)
 
     // 检查是否为数组声明
     if (node->sons.size() > 1 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_DIMS) {
-        // // 解析数组维度
-        // std::vector<int32_t> dimensions;
-        // if (!ir_array_dims(node->sons[1], dimensions)) {
-        //     minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
-        //     return false;
-        // }
-        // // 创建数组变量
-        // Value * arrayValue = module->newArrayValue(varType, varName, dimensions);
-        // if (!arrayValue) {
-        //     minic_log(LOG_ERROR, "数组(%s)创建失败", varName.c_str());
-        //     return false;
-        // }
-        // node->val = arrayValue;
-        // var_name_node->val = arrayValue;
-        if(!ir_array_dims(node->sons[1])) {
-			minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
-			return false;
+        // 解析数组维度
+        std::vector<int32_t> dimensions;
+        if (!ir_array_dims(node->sons[1], dimensions)) {
+            minic_log(LOG_ERROR, "数组(%s)的维度处理失败", varName.c_str());
+            return false;
         }
-        
+        // 创建数组变量
+        Value * arrayValue = module->newArrayValue(varType, varName, dimensions);
+        if (!arrayValue) {
+            minic_log(LOG_ERROR, "数组(%s)创建失败", varName.c_str());
+            return false;
+        }
+        node->val = arrayValue;
+        var_name_node->val = arrayValue;
         return true;
     }
     // 非数组变量处理
@@ -1243,6 +1377,137 @@ bool IRGenerator::ir_array_dims(ast_node * node, std::vector<int32_t> & dimensio
 
     return true;
 }
+
+bool IRGenerator::ir_array_indices(ast_node * node)
+{
+    // node: AST_OP_LVAL, sons[0]: var_node, sons[1]: indices_node
+    if (node->sons.size() != 2) {
+        minic_log(LOG_ERROR, "数组访问节点子节点数量错误");
+        return false;
+    }
+    ast_node * var_node = node->sons[0];
+    ast_node * indices_node = node->sons[1];
+
+    Value * arrayValue = var_node->val;
+    if (!arrayValue) {
+        minic_log(LOG_ERROR, "数组变量未定义");
+        return false;
+    }
+
+    // 获取数组类型
+    Type * arrayVarType = arrayValue->getType();
+    const ArrayType * arrayType = nullptr;
+
+    if (arrayVarType->isArrayType()) {
+        arrayType = dynamic_cast<const ArrayType *>(arrayVarType);
+    } else if (arrayVarType->isPointerType()) {
+        const PointerType * ptrType = dynamic_cast<const PointerType *>(arrayVarType);
+        if (ptrType && ptrType->getPointeeType()->isArrayType()) {
+            arrayType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
+        }
+    }
+
+    if (!arrayType) {
+        minic_log(LOG_ERROR, "无效的数组类型");
+        return false;
+    }
+
+    // 解析索引表达式
+    std::vector<Value *> indices;
+    for (auto index_node: indices_node->sons) {
+        if (!ir_visit_ast_node(index_node)) {
+            minic_log(LOG_ERROR, "数组索引解析失败");
+            return false;
+        }
+        indices.push_back(index_node->val);
+        node->blockInsts.addInst(index_node->blockInsts);
+    }
+
+    // 计算偏移量
+    const auto & dims = arrayType->getDimensions();
+    Value * totalOffset = module->newConstInt(0);
+    Function * currentFunc = module->getCurrentFunction();
+    Type * intType = IntegerType::getTypeInt();
+    bool isFirstDim = true;
+    const int elementSize = arrayType->getBaseType()->getSize();
+
+    if (dims.size() > 1) {
+        for (size_t i = 0; i < indices.size() - 1; i++) {
+            int32_t stride = 1;
+            for (size_t j = i + 1; j < dims.size(); j++) {
+                stride *= dims[j];
+            }
+            BinaryInstruction * dimOffset = new BinaryInstruction(currentFunc,
+                                                                  IRInstOperator::IRINST_OP_MUL_I,
+                                                                  indices[i],
+                                                                  module->newConstInt(stride),
+                                                                  intType);
+            node->blockInsts.addInst(dimOffset);
+
+            if (isFirstDim) {
+                totalOffset = dimOffset;
+                isFirstDim = false;
+            } else {
+                BinaryInstruction * newOffset = new BinaryInstruction(currentFunc,
+                                                                      IRInstOperator::IRINST_OP_ADD_I,
+                                                                      totalOffset,
+                                                                      dimOffset,
+                                                                      intType);
+                node->blockInsts.addInst(newOffset);
+                totalOffset = newOffset;
+            }
+        }
+        // 加上最后一维的索引
+        BinaryInstruction * finalOffset =
+            new BinaryInstruction(currentFunc, IRInstOperator::IRINST_OP_ADD_I, totalOffset, indices.back(), intType);
+        node->blockInsts.addInst(finalOffset);
+
+        // 乘以元素大小
+        BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
+                                                               IRInstOperator::IRINST_OP_MUL_I,
+                                                               finalOffset,
+                                                               module->newConstInt(elementSize),
+                                                               intType);
+        node->blockInsts.addInst(byteOffset);
+        totalOffset = byteOffset;
+    } else {
+        // 一维数组直接计算
+        BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
+                                                               IRInstOperator::IRINST_OP_MUL_I,
+                                                               indices[0],
+                                                               module->newConstInt(elementSize),
+                                                               intType);
+        node->blockInsts.addInst(byteOffset);
+        totalOffset = byteOffset;
+    }
+
+    // 计算最终地址
+    const PointerType * elemPtrType = PointerType::get(arrayType->getBaseType());
+    BinaryInstruction * addrCalc = new BinaryInstruction(currentFunc,
+                                                         IRInstOperator::IRINST_OP_ADD_I,
+                                                         arrayValue,
+                                                         totalOffset,
+                                                         const_cast<Type *>(static_cast<const Type *>(elemPtrType)));
+    node->blockInsts.addInst(addrCalc);
+
+    Value * resultVal = addrCalc;
+
+    // 如果 store=false，则直接加载数组元素的值
+    if (!node->store) {
+        Value * temp = module->newVarValue(arrayType->getBaseType());
+        MoveInstruction * loadInst = new MoveInstruction(currentFunc,
+                                                         temp,
+                                                         resultVal,
+                                                         true,  // dereference
+                                                         true); // load
+        node->blockInsts.addInst(loadInst);
+        resultVal = temp;
+    }
+
+    node->val = resultVal;
+    return true;
+}
+
 bool IRGenerator::ir_array_init(ast_node * node)
 {
     Value * arrayValue = node->parent->val;
@@ -1992,36 +2257,79 @@ bool IRGenerator::ir_eq(ast_node * node)
     }
     if (left->val->getType() != right->val->getType()) {
         minic_log(LOG_ERROR, "equal操作数类型不一致");
-        return false;
+        // return false;
     }
 
     BinaryInstruction * eqInst = nullptr;
+    CastInstruction * castInst = nullptr;
 
-    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "equal操作数类型不一致");
-            return false;
-        }
-        // 这里可以进行类型转换
-        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
-        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+    if (left->val->getType()->isFloatType() && right->val->getType()->isFloatType()) {
+        // float == float
         eqInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_FCMP_EQ,
                                        left->val,
                                        right->val,
                                        IntegerType::getTypeBool());
-    } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
+    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
+        // i32 == i32
         eqInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_EQ,
                                        left->val,
                                        right->val,
                                        IntegerType::getTypeBool());
+    } else {
+        // 类型转换
+        if (left->val->getType()->isInt32Type() && right->val->getType()->isFloatType()) {
+            // i32 == float
+            castInst = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_FCMP_EQ,
+                                           castInst,
+                                           right->val,
+                                           IntegerType::getTypeBool());
+        } else if (left->val->getType()->isFloatType() && right->val->getType()->isInt32Type()) {
+            // float == i32
+            castInst = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_FCMP_EQ,
+                                           left->val,
+                                           castInst,
+                                           IntegerType::getTypeBool());
+        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isInt1Byte()) {
+            // i1 == i1
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_ICMP_EQ,
+                                           left->val,
+                                           right->val,
+                                           IntegerType::getTypeBool());
+        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isInt32Type()) {
+            // i1 == i32
+            castInst = new CastInstruction(module->getCurrentFunction(), left->val, IntegerType::getTypeInt());
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_ICMP_EQ,
+                                           castInst,
+                                           right->val,
+                                           IntegerType::getTypeBool());
+        } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt1Byte()) {
+            // i32 == i1
+            castInst = new CastInstruction(module->getCurrentFunction(), right->val, IntegerType::getTypeInt());
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_ICMP_EQ,
+                                           left->val,
+                                           castInst,
+                                           IntegerType::getTypeBool());
+        } else {
+            minic_log(LOG_ERROR, "equal操作数类型不一致");
+            return false;
+        }
     }
 
     // 创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(left->blockInsts);
     node->blockInsts.addInst(right->blockInsts);
+    if (castInst) {
+        node->blockInsts.addInst(castInst);
+    }
     node->blockInsts.addInst(eqInst);
 
     node->val = eqInst;

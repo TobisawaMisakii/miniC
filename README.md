@@ -9,9 +9,10 @@
 
 ##  TODO
 
+- 已经加入类型转换指令，在 assign/add/sub/mul/eq 节点试用暂未发现问题，需继续添加到其他判断（ne/lt/...）和其他需要的的地方
+
 - 加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
 - 支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
-- llvm下，对整数a的操作： -!a 需要类型转换，需尽早实现不同类型间的转换，包括`bool(i1)<-->int(i32)<-->float`
 
 ## BUG RECORD
 
@@ -925,7 +926,7 @@ e.g
 
    这是IRCompiler的方式，少用一条xor指令，但在多个 not 指令相连时需要复制（IRCompiler的目前实现是错的）
 
-3. ```
+3. ```llvm
    %t1 = load i32, i32* %l1, align 4
    %t2 = icmp eq i32 %t1, 0
    %t3 = zext i1 %t2 to i32

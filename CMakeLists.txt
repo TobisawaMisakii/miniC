@@ -43,7 +43,7 @@ set(ANTLR4_JAR_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/antlr4/antlr-4.12
 set(LIBSYSY_RUNTIME_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/syslib)
 
 if(NOT EXISTS ${LIBSYSY_RUNTIME_LOCATION}/std.a)
-	message(FATAL_ERROR "libsysy.a not found at ${LIBSYSY_RUNTIME_LOCATION}/libsysy.a")
+	message(FATAL_ERROR "std.a not found at ${LIBSYSY_RUNTIME_LOCATION}/std.a")
 endif()
 
 # 查找antlr4-runtime包是否存在，若不存在则出错。目的用于本程序与Antlr4进行链接
