@@ -13,23 +13,22 @@ declare void @starttime(...);
 declare void @stoptime(...);
 define i32 @main() {
 	%l0 = alloca i32, align 4
-	%l1 = alloca i32, align 4 ; 1:flag
-	store i32 0, i32* %l1, align 4
-	%t3 = load i32, i32* %l1, align 4
-	%t4 = icmp eq i32 %t3, 0
-	br i1 %t4, label %.L5, label %.L11
-.L5:
-	%t6 = load i32, i32* %l1, align 4
-	%t7 = icmp eq i32 %t6, 0
-	%t8 = icmp eq i1 %t7, 0
-	%t9 = zext i1 %t8 to i32
-	store i32 %t9, i32* %l1, align 4
-	br label %.L11
+	%l1 = alloca i32, align 4 ; 1:a
+	%l2 = alloca float, align 4 ; 1:b
+	store i32 1, i32* %l1, align 4
+	store float 1.000000, float* %l2, align 4
+	%t5 = load i32, i32* %l1, align 4
+	%t6 = load float, float* %l2, align 4
+	%t7 = sitofp i32 %t5 to float
+	%t8 = fcmp oeq float %t7, %t6
+	br i1 %t8, label %.L9, label %.L11
+.L9:
+	store i32 66, i32* %l0, align 4
+	br label %.L13
 .L11:
-	%t12 = load i32, i32* %l1, align 4
-	store i32 %t12, i32* %l0, align 4
-	br label %.L14
-.L14:
-	%t15 = load i32, i32* %l0, align 4
-	ret i32 %t15
+	store i32 77, i32* %l0, align 4
+	br label %.L13
+.L13:
+	%t14 = load i32, i32* %l0, align 4
+	ret i32 %t14
 }

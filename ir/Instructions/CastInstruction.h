@@ -12,11 +12,11 @@ public:
 
     /// @brief 构造函数
     /// @param _func 所属函数
-    /// @param _castType 转换类型
     /// @param _value 被扩展的value
     /// @param _resultType 目标类型
-    ///
-    CastInstruction(Function * _func, CastType _castType, Value * _value, Type * _resultType);
+    CastInstruction(Function * _func, Value * _value, Type * _resultType);
+
+    ~CastInstruction() override = default;
 
     /// @brief 转换成IR指令文本
     /// @param str IR指令

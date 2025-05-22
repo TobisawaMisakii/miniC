@@ -1,7 +1,9 @@
-int main(){
-    int flag = 0;
-	if (!flag) {
-        flag = !!flag;
-    }
-    return flag;
+int main() {
+	int a = 1;
+    float b = 1.0;
+	if (a == b) {
+        return 66;
+    } else {
+		return 77;
+	}
 }
