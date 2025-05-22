@@ -140,7 +140,7 @@ ast_node * IRGenerator::ir_visit_ast_node(ast_node * node)
     if (nullptr == node) {
         return nullptr;
     }
-    minic_log(LOG_INFO, "Visit节点类型: %d, 名称: %s", static_cast<int>(node->node_type), node->name.c_str());
+    // minic_log(LOG_INFO, "Visit节点类型: %d, 名称: %s", static_cast<int>(node->node_type), node->name.c_str());
     bool result;
 
     std::unordered_map<ast_operator_type, ast2ir_handler_t>::const_iterator pIter;

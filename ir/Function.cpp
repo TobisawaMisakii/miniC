@@ -180,6 +180,12 @@ void Function::toString(std::string & str)
         if (!instStr.empty()) {
 
             if (inst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
+                if (lastInst && lastInst->getOp() != IRInstOperator::IRINST_OP_LABEL &&
+                    lastInst->getOp() != IRInstOperator::IRINST_OP_GOTO_IF_ZERO &&
+                    lastInst->getOp() != IRInstOperator::IRINST_OP_GOTO &&
+                    lastInst->getOp() != IRInstOperator::IRINST_OP_EXIT) {
+                    str += "\tbr label %" + inst->getIRName() + "\n";
+                }
                 // 删除连续的空Label指令
                 if (lastInst && lastInst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
                     str += "";
