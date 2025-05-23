@@ -101,18 +101,7 @@ public:
     void toDeclareString(std::string & str)
     {
         if (getType()->isArrayType()) {
-            // 获取类型字符串
-            std::string typeStr = getType()->getBaseType()->toString();
-            str = getIRName() + " = global ";
-            // 获取数组维度
-            const ArrayType * arrayType = dynamic_cast<const ArrayType *>(getType());
-            if (arrayType) {
-                for (int dim: arrayType->getDimensions()) {
-                    str += "[" + std::to_string(dim) + " x " + getType()->getBaseType()->toString() +
-                           "] zeroinitializer, align 16";
-                }
-            }
-
+            str = getIRName() + " = global " + getType()->toString() + " zeroinitializer, align 16";
         } else {
             // 非数组类型的处理
             if (getInitialValue()) {

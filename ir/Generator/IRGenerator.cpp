@@ -959,10 +959,15 @@ bool IRGenerator::ir_lval(ast_node * node)
         }
         resultVal = node->val;
     } else if (!node->store) {
-        // 非数组变量，但需要加载值（如指针解引用）
-        LoadInstruction * loadInst = new LoadInstruction(module->getCurrentFunction(), resultVal);
-        node->blockInsts.addInst(loadInst);
-        resultVal = loadInst; // 更新为加载后的值
+        Value * val = module->findVarValue(var_node->name);
+        if (val->isConst()) {
+            resultVal = val->getConstValue();
+        } else {
+            // 非数组变量，但需要加载值（如指针解引用）
+            LoadInstruction * loadInst = new LoadInstruction(module->getCurrentFunction(), resultVal);
+            node->blockInsts.addInst(loadInst);
+            resultVal = loadInst; // 更新为加载后的值
+        }
     }
 
     node->val = resultVal;

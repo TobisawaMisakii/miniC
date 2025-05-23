@@ -98,7 +98,6 @@ void Function::toString(std::string & str)
         str += ");\n";
         return;
     }
-
     // 输出函数头
     str = "define " + getReturnType()->toString() + " " + getIRName() + "(";
 
