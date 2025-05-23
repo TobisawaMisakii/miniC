@@ -17,10 +17,10 @@ public:
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
     T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
-    T__32 = 33, Ident = 34, IntConst = 35, DecimalConst = 36, OctalConst = 37, 
-    HexadecimalConst = 38, HexadecimalPrefix = 39, NonzeroDigit = 40, Digit = 41, 
-    OctalDigit = 42, HexadecimalDigit = 43, FloatConst = 44, WS = 45, COMMENT = 46, 
-    BLOCK_COMMENT = 47
+    T__32 = 33, T__33 = 34, Ident = 35, IntConst = 36, DecimalConst = 37, 
+    OctalConst = 38, HexadecimalConst = 39, HexadecimalPrefix = 40, NonzeroDigit = 41, 
+    Digit = 42, OctalDigit = 43, HexadecimalDigit = 44, FloatConst = 45, 
+    WS = 46, COMMENT = 47, BLOCK_COMMENT = 48
   };
 
   explicit SysYLexer(antlr4::CharStream *input);

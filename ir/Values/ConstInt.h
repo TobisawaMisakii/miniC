@@ -36,6 +36,13 @@ public:
         intVal = val;
     }
 
+    // 64位整型常量
+    ConstInt(int64_t val, Type * type) : Constant(type)
+    {
+        name = std::to_string(val);
+        int64Val = val;
+    }
+
     /// @brief 获取名字
     /// @return 变量名
     [[nodiscard]] std::string getIRName() const override
@@ -51,7 +58,10 @@ public:
     {
         return intVal;
     }
-
+    int64_t getVal64() const
+    {
+        return int64Val;
+    }
     ///
     /// @brief 对该Value进行Load用的寄存器编号
     /// @return int32_t 寄存器编号
@@ -75,6 +85,7 @@ private:
     /// @brief 整数值
     ///
     int32_t intVal;
+    int64_t int64Val;
 
     ///
     /// @brief 变量加载到寄存器中时对应的寄存器编号

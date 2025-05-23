@@ -21,6 +21,8 @@ public:
    */
     virtual std::any visitCompileUnit(SysYParser::CompileUnitContext *context) = 0;
 
+    virtual std::any visitMacroDecl(SysYParser::MacroDeclContext *context) = 0;
+
     virtual std::any visitDecl(SysYParser::DeclContext *context) = 0;
 
     virtual std::any visitConstDecl(SysYParser::ConstDeclContext *context) = 0;

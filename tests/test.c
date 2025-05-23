@@ -5,8 +5,8 @@
 int main()
 {
     int a[3][5];
-    int b[3];
-    a[0][0]=2;
-    b[0] = 1;
-    return b[0];
+    int b;
+    a[1][1] = 2;
+    b = a[1][1];
+    return b+a[1][1];
 }

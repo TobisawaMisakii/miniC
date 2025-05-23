@@ -198,6 +198,11 @@ ConstInt * Module::newConstInt(int32_t intVal)
     return val;
 }
 
+ConstInt * Module::newConstInt64(int64_t intVal)
+{
+    return new ConstInt(intVal, IntegerType::getTypeInt64());
+}
+
 ConstFloat * Module::newConstFloat(float floatVal)
 {
     // 查找整数字符串

@@ -14,10 +14,12 @@ CastInstruction::CastInstruction(Function * _func, Value * _value, Type * _resul
     }
 
     // 设置操作码
-    if (resultType == IntegerType::getTypeInt() && value->getType() == IntegerType::getTypeBool()) {
-        castType = CastType::ZEXT;
+    if (resultType == IntegerType::getTypeInt64() && value->getType() == IntegerType::getTypeInt()) {
+        castType = CastType::SEXT;
     } else if (resultType == IntegerType::getTypeInt() && value->getType() == IntegerType::getTypeInt()) {
         castType = CastType::SEXT;
+    } else if (resultType == IntegerType::getTypeInt() && value->getType() == IntegerType::getTypeBool()) {
+        castType = CastType::ZEXT;
     } else if (resultType->isFloatType() && value->getType() == IntegerType::getTypeInt()) {
         castType = CastType::SITOFP;
     } else if (resultType == IntegerType::getTypeInt() && value->getType()->isFloatType()) {

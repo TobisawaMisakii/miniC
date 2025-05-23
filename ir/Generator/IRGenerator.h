@@ -50,6 +50,11 @@ protected:
     /// @return 翻译是否成功，true：成功，false：失败
     bool ir_compile_unit(ast_node * node);
 
+    /// @brief 宏定义AST节点翻译成线性中间IR
+    /// @param node AST节点
+    /// @return 翻译是否成功，true：成功，false：失败
+    bool ir_macro_decl(ast_node * node);
+
     /// @brief 函数定义AST节点翻译成线性中间IR
     /// @param node AST节点
     /// @return 翻译是否成功，true：成功，false：失败

@@ -1,7 +1,10 @@
 grammar SysY;
 
 // 编译单元
-compileUnit: (decl | funcDef)* EOF;
+compileUnit: (macroDecl | decl | funcDef)* EOF;
+
+// 新增：宏定义
+macroDecl: '#define' Ident IntConst;
 
 // 声明
 decl: constDecl | varDecl;

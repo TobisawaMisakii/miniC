@@ -17,21 +17,21 @@ public:
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
     T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
-    T__32 = 33, Ident = 34, IntConst = 35, DecimalConst = 36, OctalConst = 37, 
-    HexadecimalConst = 38, HexadecimalPrefix = 39, NonzeroDigit = 40, Digit = 41, 
-    OctalDigit = 42, HexadecimalDigit = 43, FloatConst = 44, WS = 45, COMMENT = 46, 
-    BLOCK_COMMENT = 47
+    T__32 = 33, T__33 = 34, Ident = 35, IntConst = 36, DecimalConst = 37, 
+    OctalConst = 38, HexadecimalConst = 39, HexadecimalPrefix = 40, NonzeroDigit = 41, 
+    Digit = 42, OctalDigit = 43, HexadecimalDigit = 44, FloatConst = 45, 
+    WS = 46, COMMENT = 47, BLOCK_COMMENT = 48
   };
 
   enum {
-    RuleCompileUnit = 0, RuleDecl = 1, RuleConstDecl = 2, RuleBasicType = 3, 
-    RuleConstDef = 4, RuleConstInitVal = 5, RuleVarDecl = 6, RuleVarDef = 7, 
-    RuleInitVal = 8, RuleFuncDef = 9, RuleFuncType = 10, RuleFuncFParams = 11, 
-    RuleFuncFParam = 12, RuleBlock = 13, RuleBlockItem = 14, RuleStmt = 15, 
-    RuleExp = 16, RuleCond = 17, RuleLVal = 18, RulePrimaryExp = 19, RuleNumber = 20, 
-    RuleUnaryExp = 21, RuleUnaryOp = 22, RuleFuncRParams = 23, RuleMulExp = 24, 
-    RuleAddExp = 25, RuleRelExp = 26, RuleEqExp = 27, RuleLAndExp = 28, 
-    RuleLOrExp = 29, RuleConstExp = 30
+    RuleCompileUnit = 0, RuleMacroDecl = 1, RuleDecl = 2, RuleConstDecl = 3, 
+    RuleBasicType = 4, RuleConstDef = 5, RuleConstInitVal = 6, RuleVarDecl = 7, 
+    RuleVarDef = 8, RuleInitVal = 9, RuleFuncDef = 10, RuleFuncType = 11, 
+    RuleFuncFParams = 12, RuleFuncFParam = 13, RuleBlock = 14, RuleBlockItem = 15, 
+    RuleStmt = 16, RuleExp = 17, RuleCond = 18, RuleLVal = 19, RulePrimaryExp = 20, 
+    RuleNumber = 21, RuleUnaryExp = 22, RuleUnaryOp = 23, RuleFuncRParams = 24, 
+    RuleMulExp = 25, RuleAddExp = 26, RuleRelExp = 27, RuleEqExp = 28, RuleLAndExp = 29, 
+    RuleLOrExp = 30, RuleConstExp = 31
   };
 
   explicit SysYParser(antlr4::TokenStream *input);
@@ -52,6 +52,7 @@ public:
 
 
   class CompileUnitContext;
+  class MacroDeclContext;
   class DeclContext;
   class ConstDeclContext;
   class BasicTypeContext;
@@ -88,6 +89,8 @@ public:
     CompileUnitContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *EOF();
+    std::vector<MacroDeclContext *> macroDecl();
+    MacroDeclContext* macroDecl(size_t i);
     std::vector<DeclContext *> decl();
     DeclContext* decl(size_t i);
     std::vector<FuncDefContext *> funcDef();
@@ -99,6 +102,20 @@ public:
   };
 
   CompileUnitContext* compileUnit();
+
+  class  MacroDeclContext : public antlr4::ParserRuleContext {
+  public:
+    MacroDeclContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *Ident();
+    antlr4::tree::TerminalNode *IntConst();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  MacroDeclContext* macroDecl();
 
   class  DeclContext : public antlr4::ParserRuleContext {
   public:

@@ -115,6 +115,9 @@ public:
     /// \return 临时Value
     ConstInt * newConstInt(int32_t intVal);
 
+    /// @brief 新建一个64位整型数值的Value
+    ConstInt * newConstInt64(int64_t intVal);
+
     /// @brief 新建一个浮点数值的Value，并加入到符号表，用于后续释放空间
     /// \param floatVal 浮点值
     /// \return 临时Value

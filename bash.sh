@@ -15,7 +15,7 @@ tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -S -L -o tests/test_std.ll
 tools/IRCompiler/Linux-x86_64/Ubuntu-22.04/IRCompiler -R tests/test.ll
 
 # # 生成标准LLVM IR (.ll文件)
-# clang -S -emit-llvm -o tests/test_std.ll tests/test.c
+# clang -S -emit-llvm -o tests/test_std1.ll tests/test.c
 # # 自己的编译器生成LLVM IR
 # ./build/minic -S -A -emit-llvm -o tests/test.ll tests/test.c
 # # 执行IR (通过JIT)

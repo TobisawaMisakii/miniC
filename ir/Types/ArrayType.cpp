@@ -28,8 +28,8 @@ int32_t ArrayType::getTotalSize() const
 std::string ArrayType::toString() const
 {
     std::string result = baseType->toString();
-    for (int32_t dim: dimensions) {
-        result += "[" + std::to_string(dim) + "]";
+    for (auto it = dimensions.rbegin(); it != dimensions.rend(); ++it) {
+        result = "[" + std::to_string(*it) + " x " + result + "]";
     }
     return result;
 }
