@@ -1,36 +1,3 @@
-define i32 @add([5 x i32]* %t0, i32* %t1, i32 %t2) {
-	%l3 = alloca [5 x i32]*, align 8 ; variable: a
-	%l4 = alloca i32*, align 8 ; variable: b
-	%l5 = alloca i32, align 4 ; variable: c
-	%l6 = alloca i32, align 4
-	store [5 x i32]* %t0, [5 x i32]** %l3, align 8
-	store i32* %t1, i32** %l4, align 8
-	store i32 %t2, i32* %l5, align 4
-	%t7 = mul nsw i32 0, 5
-	%t8 = add nsw i32 %t7, 0
-	%t10 = mul nsw i32 %t8, 4
-	%t19 = load [5 x i32]*, [5 x i32]** %l3, align 8
-	%t20 = getelementptr inbounds [5 x i32], [5 x i32]* %t19, i64 0, i64 0
-	%t21 = bitcast i32* %t20 to i8*
-	%t23 = sext i32 %t10 to i64
-	%t22 = getelementptr inbounds i8, i8* %t21, i64 %t23
-	%t9 = bitcast i8* %t22 to i32*
-	%t13 = mul nsw i32 0, 4
-	%t24 = load i32*, i32** %l4, align 8
-	%t25 = getelementptr inbounds i32, i32* %t24, i64 0
-	%t26 = bitcast i32* %t25 to i8*
-	%t28 = sext i32 %t13 to i64
-	%t27 = getelementptr inbounds i8, i8* %t26, i64 %t28
-	%t12 = bitcast i8* %t27 to i32*
-	%t15 = load i32, i32* %t9, align 4
-	%t16 = load i32, i32* %t12, align 4
-	%t17 = add nsw i32 %t15, %t16
-	%t29 = load i32, i32* %l5, align 4
-	%t18 = add nsw i32 %t17, %t29
-	store i32 %t18, i32* %l6, align 4
-	%t30 = load i32, i32* %l6, align 4
-	ret i32 %t30
-}
 define i32 @main() {
 	%l0 = alloca i32, align 4
 	%l1 = alloca [3 x [5 x i32]], align 16 ; variable: a
@@ -56,7 +23,7 @@ define i32 @main() {
 	%t14 = bitcast i8* %t29 to i32*
 	%t17 = load i32, i32* %t14, align 4
 	%t31 = load i32, i32* %l3, align 4
-	%t18 = sub nsw i32 %t17, %t31
+	%t18 = add nsw i32 %t17, %t31
 	%t10 = mul nsw i32 0, 4
 	%t32 = getelementptr inbounds [3 x i32], [3 x i32]* %l2, i64 0, i64 0
 	%t33 = bitcast i32* %t32 to i8*

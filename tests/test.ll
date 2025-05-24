@@ -1,18 +1,3 @@
-define i32 @add([5 x i32]* %t0, i32* %t1, i32 %t2)
-{
-	%l3 = alloca [5 x i32]*, align 8 ; 1:a
-	%l4 = alloca i32*, align 8 ; 1:b
-	%l5 = alloca i32, align 4 ; 1:c
-	%l6 = alloca i32, align 4
-	store [5 x i32]* %t0, [5 x i32]** %l3, align 4
-	store i32* %t1, i32** %l4, align 4
-	store i32 %t2, i32* %l5, align 4
-	store i32 0, i32* %l6, align 4
-	br label %.L11
-.L11:
-	%t12 = load i32, i32* %l6, align 4
-	ret i32 %t12
-}
 define i32 @main()
 {
 	%l0 = alloca i32, align 4
@@ -39,7 +24,7 @@ define i32 @main()
 	%t21 = bitcast i8* %t20 to i32*
 	%t22 = load i32, i32* %t21, align 4
 	%t23 = load i32, i32* %l3, align 4
-	%t24 = sub i32 %t22, %t23
+	%t24 = add i32 %t22, %t23
 	%t25 = mul i32 0, 4
 	%t26 = getelementptr inbounds [3 x i32], [3 x i32]* %l2, i64 0, i64 0
 	%t27 = bitcast i32* %t26 to i8*

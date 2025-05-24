@@ -971,7 +971,7 @@ bool IRGenerator::ir_lval(ast_node * node)
     // 检查是否是数组访问
     if (node->sons.size() == 2 && node->sons[1]->node_type == ast_operator_type::AST_OP_ARRAY_INDICES) {
         // 将数组索引处理拆分到 ir_array_indices
-        if (!ir_array_indices(node->sons[1])) {
+        if (!ir_array_indices(node)) {
             minic_log(LOG_ERROR, "数组索引处理失败");
             return false;
         }
@@ -1305,8 +1305,8 @@ bool IRGenerator::ir_array_dims(ast_node * node, std::vector<int32_t> & dimensio
 
 bool IRGenerator::ir_array_indices(ast_node * node)
 {
-    ast_node * var_node = node->parent->sons[0];
-    ast_node * indices_node = node;
+    ast_node * var_node = node->sons[0];
+    ast_node * indices_node = node->sons[1];
 
     Value * arrayValue = var_node->val;
     if (!arrayValue) {
@@ -1315,33 +1315,16 @@ bool IRGenerator::ir_array_indices(ast_node * node)
     }
 
     // 获取数组类型
-    // Type * arrayVarType = arrayValue->getType();
-    // const ArrayType * arrayType = nullptr;
-
-    // if (arrayVarType->isArrayType()) {
-    //     arrayType = dynamic_cast<const ArrayType *>(arrayVarType);
-    // } else if (arrayVarType->isPointerType()) {
-    //     const PointerType * ptrType = dynamic_cast<const PointerType *>(arrayVarType);
-    //     if (ptrType && ptrType->getPointeeType()->isArrayType()) {
-    //         arrayType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
-    //     }
-    // }
-    // 递归解引用指针，直到拿到 ArrayType
     Type * arrayVarType = arrayValue->getType();
     const ArrayType * arrayType = nullptr;
-    Value * basePtr = arrayValue;
-    while (arrayVarType->isPointerType()) {
-        // load 一次
-        LoadInstruction * loadInst =
-            new LoadInstruction(module->getCurrentFunction(),
-                                basePtr,
-                                const_cast<Type *>(((PointerType *) arrayVarType)->getPointeeType()));
-        node->blockInsts.addInst(loadInst);
-        basePtr = loadInst;
-        arrayVarType = const_cast<Type *>(((PointerType *) arrayVarType)->getPointeeType());
-    }
+
     if (arrayVarType->isArrayType()) {
         arrayType = dynamic_cast<const ArrayType *>(arrayVarType);
+    } else if (arrayVarType->isPointerType()) {
+        const PointerType * ptrType = dynamic_cast<const PointerType *>(arrayVarType);
+        if (ptrType && ptrType->getPointeeType()->isArrayType()) {
+            arrayType = dynamic_cast<const ArrayType *>(ptrType->getPointeeType());
+        }
     }
 
     if (!arrayType) {
