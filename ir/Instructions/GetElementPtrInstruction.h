@@ -24,4 +24,5 @@ public:
 private:
     Value * basePtr;
     std::vector<Value *> indices;
+    Type * resultType;
 };

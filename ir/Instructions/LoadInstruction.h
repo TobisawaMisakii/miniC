@@ -9,13 +9,14 @@
 class LoadInstruction : public Instruction {
 private:
     Value * source; // 源操作数，表示内存地址
+    Type * destType;
 
 public:
     /// @brief 构造函数
     /// @param _func 所属的函数
     /// @param _result 结果操作数
     /// @param _sourcePtr 源操作数(指针，表示内存地址)
-    LoadInstruction(Function * _func, Value * _sourcePtr);
+    LoadInstruction(Function * _func, Value * _sourcePtr, Type * _destType);
 
     /// @brief 转换成字符串
     /// @param str 转换后的字符串

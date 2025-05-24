@@ -108,15 +108,7 @@ void Function::toString(std::string & str)
         } else {
             str += ", ";
         }
-        if (param->getType()->isArrayType()) {
-            ArrayType * arrType = dynamic_cast<ArrayType *>(param->getType());
-            str += arrType->getBaseType()->toString() + " " + param->getIRName();
-            for (int32_t dim: arrType->getDimensions()) {
-                str += "[" + std::to_string(dim) + "]";
-            }
-        } else {
-            str += param->getType()->toString() + " " + param->getIRName();
-        }
+        str += param->getType()->toString() + " " + param->getIRName();
     }
     str += ")\n";
     str += "{\n";
@@ -124,34 +116,25 @@ void Function::toString(std::string & str)
     // 输出局部变量的名字与IR名字
     for (auto & var: this->varsVector) {
 
-        // 检查变量是否为数组类型
-        if (var->getType()->isArrayType()) {
-            // ArrayType * arrayType = dynamic_cast<ArrayType *>(var->getType());
-            // if (arrayType) {
-            //     // 输出数组声明
-            //     str += "\tdeclare " + arrayType->getBaseType()->toString() + " " + var->getIRName();
-
-            //     // 添加维度信息
-            //     for (int32_t dim: arrayType->getDimensions()) {
-            //         str += "[" + std::to_string(dim) + "]";
-            //     }
-
-            //     str += " ;  " + std::to_string(var->getScopeLevel()) + ":" + var->getName();
-            // }
+        if (var->getType()->isPointerType()) { // 指针类型变量声明
+            str += "\t" + var->getIRName() + " = alloca " + var->getType()->toString() + ", align 8";
+            std::string realName = var->getName();
+            if (!realName.empty()) {
+                str += " ; " + std::to_string(var->getScopeLevel()) + ":" + realName;
+            }
+        } else if (var->getType()->isArrayType()) { // 检查变量是否为数组类型
             ArrayType * arrayType = dynamic_cast<ArrayType *>(var->getType());
             if (arrayType) {
                 str += "\t" + var->getIRName() + " = alloca " + arrayType->toString() + ", align 16";
                 str += " ;  " + std::to_string(var->getScopeLevel()) + ":" + var->getName();
             }
-        } else {
-            // 普通变量声明
+        } else { // 普通变量声明
             str += "\t" + var->getIRName() + " = alloca " + var->getType()->toString() + ", align 4";
             std::string realName = var->getName();
             if (!realName.empty()) {
                 str += " ; " + std::to_string(var->getScopeLevel()) + ":" + realName;
             }
         }
-
         str += "\n";
     }
 

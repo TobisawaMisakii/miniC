@@ -30,46 +30,6 @@ Module::Module(std::string _name) : name(_name)
 
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
-
-    // 注册内置函数
-    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
-    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
-    (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
-
-    (void) newFunction("getarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-    (void) newFunction("getfarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
-                       true);
-
-    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
-    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
-    (void) newFunction("putch", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
-
-    (void) newFunction("putarray",
-                       VoidType::getType(),
-                       {new FormalParam{IntegerType::getTypeInt(), ""},
-                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-
-    (void) newFunction("putfarray",
-                       VoidType::getType(),
-                       {new FormalParam{IntegerType::getTypeInt(), ""},
-                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
-                       true);
-
-    // 输出字符数组 char []
-    (void) newFunction("putf",
-                       VoidType::getType(),
-                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-
-    // 用户调用无需参数，在IR生成阶段展开，插入line_no
-    (void) newFunction("starttime", VoidType::getType(), {}, true);
-    (void) newFunction("stoptime", VoidType::getType(), {}, true);
 }
 
 /// @brief 进入作用域，如进入函数体块、语句块等
@@ -457,7 +417,45 @@ void Module::outputIR(const std::string & filePath)
         var->toDeclareString(str);
         fprintf(fp, "%s\n", str.c_str());
     }
+    // 注册内置函数
+    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
+    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
+    (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
 
+    (void) newFunction("getarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+    (void) newFunction("getfarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
+    (void) newFunction("putch", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+
+    (void) newFunction("putarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    (void) newFunction("putfarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    // 输出字符数组 char []
+    (void) newFunction("putf",
+                       VoidType::getType(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    // 用户调用无需参数，在IR生成阶段展开，插入line_no
+    (void) newFunction("starttime", VoidType::getType(), {}, true);
+    (void) newFunction("stoptime", VoidType::getType(), {}, true);
     // 遍历所有的线性IR指令，文本输出
     for (auto func: funcVector) {
 

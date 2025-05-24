@@ -1,7 +1,7 @@
 #include "StoreInstruction.h"
 
 StoreInstruction::StoreInstruction(Function * _func, Value * _result, Value * _sourcePtr)
-    : Instruction(_func, IRInstOperator::IRINST_OP_LOAD, _result->getType()), source(_sourcePtr)
+    : Instruction(_func, IRInstOperator::IRINST_OP_LOAD, _result->getType()), result(_result), source(_sourcePtr)
 {
     addOperand(_result);
     addOperand(_sourcePtr);
@@ -11,7 +11,14 @@ StoreInstruction::StoreInstruction(Function * _func, Value * _result, Value * _s
 /// @param str 转换后的字符串
 void StoreInstruction::toString(std::string & str)
 {
-    Value * result = getOperand(0);
-    str = "store " + source->getType()->toString() + " " + source->getIRName() + ", " + result->getType()->toString() +
-          "* " + result->getIRName() + ", align 4";
+    // Value * result = getOperand(0);
+    str = "store " + source->getType()->toString() + " " + source->getIRName() + ", ";
+    if (result->getType()->isPointerType() && source->getType()->isPointerType())
+        str += result->getType()->toString() + "*";
+    else if (result->getType()->isPointerType())
+        str += result->getType()->toString();
+    else
+        str += result->getType()->toString() + "*";
+
+    str += " " + result->getIRName() + ", align 4";
 }

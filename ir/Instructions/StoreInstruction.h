@@ -8,6 +8,7 @@
 /// @brief Load指令，用于从内存加载值到寄存器
 class StoreInstruction : public Instruction {
 private:
+    Value * result;
     Value * source; // 源操作数，表示内存地址
 
 public:

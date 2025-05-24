@@ -9,6 +9,10 @@ BitCastInstruction::BitCastInstruction(Function * func, Value * srcVal, Type * d
 void BitCastInstruction::toString(std::string & str)
 {
     str = getIRName() + " = bitcast ";
-    str += srcVal->getType()->toString() + "* " + srcVal->getIRName();
-    str += " to " + destType->toString() + "*";
+    if (srcVal->getType()->isIntegerType())
+        str += srcVal->getType()->toString() + "* " + srcVal->getIRName();
+    else {
+        str += srcVal->getType()->toString() + " " + srcVal->getIRName();
+    }
+    str += " to " + destType->toString();
 }
