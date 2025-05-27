@@ -30,7 +30,6 @@ Module::Module(std::string _name) : name(_name)
 
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
-
     // 注册内置函数
     (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
     (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);

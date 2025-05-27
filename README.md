@@ -26,6 +26,7 @@
 - (fixed)unary op 测评平台未通过
 - (fixed)全局变量赋值为-1出错：shell输出main函数返回值时，按i8输出，-1输出255
 - llvm的多维数组定义错误
+- 数组的赋值和比较等其他情况，比如Type::PointerTyID = Type::IntegerTyID时需要处理，已经处理了assign，还有lt等需要处理
 
 ## 一、前端理解及配置
 
