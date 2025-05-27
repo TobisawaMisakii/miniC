@@ -1,7 +1,10 @@
 grammar SysY;
 
 // 编译单元
-compileUnit: (decl | funcDef)* EOF;
+compileUnit: (macroDecl | decl | funcDef)* EOF;
+
+// 新增：宏定义
+macroDecl: '#define' Ident IntConst;
 
 // 声明
 decl: constDecl | varDecl;
@@ -79,7 +82,7 @@ primaryExp:
 	| lVal		# leftValueExpression
 	| number	# numberExpression;
 
-// 数值（常数）
+// 数值（常数） （实际上都是非负数，负数用单目运算符实现）
 number: IntConst | FloatConst;
 
 // 一元表达式
@@ -133,11 +136,11 @@ HexadecimalDigit: [0-9a-fA-F];
 
 // 浮点型常量（简化版，完整实现需参考C99标准）
 FloatConst:
-	Digit+ '.' Digit* ExponentPart?
-	| '.' Digit+ ExponentPart?
+	Digit* '.' Digit+ ExponentPart?
+	| Digit+ '.' ExponentPart?
 	| Digit+ ExponentPart;
 
-ExponentPart: [eE] [+-]? Digit+;
+fragment ExponentPart: [eE] [+-]? Digit+;
 
 WS: [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;

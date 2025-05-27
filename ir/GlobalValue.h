@@ -70,6 +70,7 @@ public:
         return false;
     }
 
+	
     ///
     /// @brief  检查是否是函数
     /// @return true 是函数

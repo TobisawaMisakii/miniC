@@ -20,10 +20,15 @@
 #include <unordered_map>
 
 #include "ConstInt.h"
+#include "ConstFloat.h"
 #include "Type.h"
 #include "GlobalVariable.h"
-#include "Function.h"
 
+#include "Function.h"
+#include "VoidType.h"
+#include "FloatType.h"
+#include "ArrayType.h"
+#include "PointerType.h"
 class ScopeStack;
 
 ///
@@ -110,17 +115,38 @@ public:
     /// \return 临时Value
     ConstInt * newConstInt(int32_t intVal);
 
+    /// @brief 新建一个64位整型数值的Value
+    ConstInt * newConstInt64(int64_t intVal);
+
+    /// @brief 新建一个浮点数值的Value，并加入到符号表，用于后续释放空间
+    /// \param floatVal 浮点值
+    /// \return 临时Value
+    ConstFloat * newConstFloat(float floatVal);
+
     /// @brief 新建变量型Value，会根据currentFunc的值进行判断创建全局或者局部变量
     /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
     /// @param name 变量ID
     /// @param type 变量类型
-    Value * newVarValue(Type * type, std::string name = "");
+    /// @param initValue 初始值，默认nullptr
+    Value * newVarValue(Type * type, std::string name = "", Value * initValue = nullptr);
 
     /// @brief 查找变量（全局变量或局部变量），会根据作用域栈进行逐级查找。
     /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
     /// @param name 变量ID
     /// @return 指针有效则找到，空指针未找到
     Value * findVarValue(std::string name);
+
+    /// @brief 查找当前作用域变量
+    /// @param name 变量ID
+    /// @return 指针有效则找到，空指针未找到
+    Value * findCurrentVarValue(std::string name);
+
+    /// @brief 新建一个数组变量的 Value，并加入到符号表中
+    /// @param type 数组的基础类型（如 int、float）
+    /// @param name 数组的名称
+    /// @param dimensions 数组的维度信息（每一维的大小）
+    /// @return 新建的数组变量 Value，如果失败则返回 nullptr
+    Value * newArrayValue(Type * type, std::string name = "", const std::vector<int32_t> & dimensions = {});
 
     /// @brief 清理Module中管理的所有信息资源
     void Delete();
@@ -140,13 +166,18 @@ protected:
     /// \return 变量对应的值
     ConstInt * findConstInt(int32_t val);
 
+    /// @brief 根据浮点值获取当前符号
+    /// \param name 变量名
+    /// \return 变量对应的值
+    ConstFloat * findConstFloat(float val);
+
     ///
     /// @brief 新建全局变量，要求name必须有效，并且加入到全局符号表中。
     /// @param type 类型
     /// @param name 名字
     /// @return Value* 全局变量
     ///
-    GlobalVariable * newGlobalVariable(Type * type, std::string name);
+    GlobalVariable * newGlobalVariable(Type * type, std::string name, Value * initValue = nullptr);
 
     /// @brief 根据变量名获取当前符号（只管理全局变量）
     /// \param name 变量名
@@ -196,4 +227,5 @@ private:
 
     /// @brief 常量表
     std::unordered_map<int32_t, ConstInt *> constIntMap;
+    std::unordered_map<float, ConstFloat *> constFloatMap;
 };

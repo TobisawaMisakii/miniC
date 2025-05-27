@@ -32,13 +32,16 @@
 ///
 enum class ast_operator_type : int {
     /* 叶子节点类型 */
-    AST_OP_LEAF_LITERAL_UINT,  // 无符号整数字面量
+    AST_OP_LEAF_LITERAL_UINT,  // 无符号整数字面量0
     AST_OP_LEAF_LITERAL_FLOAT, // 浮点数字面量
     AST_OP_LEAF_VAR_ID,        // 变量ID
-    AST_OP_LEAF_TYPE,          // 类型节点
+    AST_OP_LEAF_TYPE,          // 类型节点3
 
     /* 声明和定义节点 */
-    AST_OP_COMPILE_UNIT,       // 编译单元
+    AST_OP_COMPILE_UNIT,       // 编译单元4
+    AST_OP_MACRO_DECL,         // 宏定义
+    AST_OP_MACRO_VALUE,        // 宏值
+    AST_OP_MACRO_CALL,         // 宏调用
     AST_OP_FUNC_DEF,           // 函数定义
     AST_OP_FUNC_FORMAL_PARAMS, // 形参列表
     AST_OP_FUNC_FORMAL_PARAM,  // 形参
@@ -48,39 +51,39 @@ enum class ast_operator_type : int {
     AST_OP_VAR_DECL,           // 变量声明
     AST_OP_CONST_DECL,         // 常量声明
     AST_OP_VAR_DEF,            // 变量定义
-    AST_OP_CONST_DEF,          // 常量定义
+    AST_OP_CONST_DEF,          // 常量定义14
 
     /* 控制流节点 */
-    AST_OP_BLOCK,    // 语句块
+    AST_OP_BLOCK,    // 语句块15
     AST_OP_IF,       // if语句
     AST_OP_WHILE,    // while语句
     AST_OP_BREAK,    // break语句
     AST_OP_CONTINUE, // continue语句
-    AST_OP_RETURN,   // return语句
+    AST_OP_RETURN,   // return语句20
 
     /* 表达式节点 */
-    AST_OP_ASSIGN,        // 赋值
+    AST_OP_ASSIGN,        // 赋值21
     AST_OP_LVAL,          // 左值
     AST_OP_ARRAY_DIMS,    // 数组维度
     AST_OP_ARRAY_INDICES, // 数组索引
-    AST_OP_ARRAY_INIT,    // 数组初始化
+    AST_OP_ARRAY_INIT,    // 数组初始化25
 
     /* 运算符节点 */
-    AST_OP_POS, // 正号
+    AST_OP_POS, // 正号26
     AST_OP_NEG, // 负号
     AST_OP_NOT, // 逻辑非
     AST_OP_ADD, // 加法
-    AST_OP_SUB, // 减法
+    AST_OP_SUB, // 减法30
     AST_OP_MUL, // 乘法
     AST_OP_DIV, // 除法
     AST_OP_MOD, // 取模
     AST_OP_LT,  // 小于
-    AST_OP_GT,  // 大于
+    AST_OP_GT,  // 大于35
     AST_OP_LE,  // 小于等于
     AST_OP_GE,  // 大于等于
     AST_OP_EQ,  // 等于
     AST_OP_NE,  // 不等于
-    AST_OP_AND, // 逻辑与
+    AST_OP_AND, // 逻辑与40
     AST_OP_OR,  // 逻辑或
 
     AST_OP_EMPTY, // 空语句
@@ -95,6 +98,7 @@ public:
     ast_operator_type node_type; // 节点类型
     int64_t line_no;             // 行号信息
     Type * type;                 // 节点值的类型
+    bool store; //该节点是否可以store, 即是否为赋值语句的左值，至于是否为数组或指针，在左值节点判断
     union {
         uint32_t integer_val; // 整数值
         float float_val;      // 浮点值
@@ -107,7 +111,10 @@ public:
     bool needScope = true;        // 是否需要作用域管理， 默认需要
 
     /// @brief 构造函数
-    ast_node(ast_operator_type _node_type, Type * _type = VoidType::getType(), int64_t _line_no = -1);
+    ast_node(ast_operator_type _node_type,
+             Type * _type = VoidType::getType(),
+             int64_t _line_no = -1,
+             bool store = false);
 
     /// @brief 类型节点构造函数
     ast_node(Type * _type);

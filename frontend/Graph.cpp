@@ -162,6 +162,15 @@ string getNodeName(ast_node * astnode)
         case ast_operator_type::AST_OP_EMPTY:
             nodeName = "empty stmt";
             break;
+        case ast_operator_type::AST_OP_MACRO_DECL:
+            nodeName = "macro decl";
+            break;
+        case ast_operator_type::AST_OP_MACRO_VALUE:
+            nodeName = "macro value";
+            break;
+        case ast_operator_type::AST_OP_MACRO_CALL:
+            nodeName = "macro call";
+            break;
         default:
             nodeName = "unknown";
             break;

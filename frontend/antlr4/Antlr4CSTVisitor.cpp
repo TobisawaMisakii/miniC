@@ -36,6 +36,12 @@ std::any SysYCSTVisitor::visitCompileUnit(SysYParser::CompileUnitContext * ctx)
 {
     ast_node * compileUnitNode = create_contain_node(ast_operator_type::AST_OP_COMPILE_UNIT);
 
+    // 处理所有宏定义
+    for (auto macro: ctx->macroDecl()) {
+        auto node = std::any_cast<ast_node *>(visitMacroDecl(macro));
+        compileUnitNode->insert_son_node(node);
+    }
+
     // 处理所有声明和函数定义
     for (auto item: ctx->decl()) {
         auto node = std::any_cast<ast_node *>(visitDecl(item));
@@ -64,6 +70,32 @@ std::any SysYCSTVisitor::visitCompileUnit(SysYParser::CompileUnitContext * ctx)
     return compileUnitNode;
 }
 
+/// @brief 非终结运算符macroDecl的遍历
+std::any SysYCSTVisitor::visitMacroDecl(SysYParser::MacroDeclContext * ctx)
+{
+    // 识别产生式 macroDecl: '#define' Ident IntConsts;
+    ast_node * macro_decl_node = ast_node::New(ast_operator_type::AST_OP_MACRO_DECL, nullptr);
+    std::string macroName = ctx->Ident()->getText();
+    ast_node * id_node = ast_node::New(macroName, ctx->Ident()->getSymbol()->getLine());
+    macro_decl_node->insert_son_node(id_node);
+
+    // 处理宏定义的值
+    std::string macroValue = ctx->IntConst()->getText();
+    int macroValueInt = std::stoi(macroValue);
+    digit_int_attr macroValueAttr;
+    macroValueAttr.val = macroValueInt;
+    macroValueAttr.lineno = ctx->IntConst()->getSymbol()->getLine();
+    ast_node * value_node = ast_node::New(macroValueAttr);
+
+    // 创建宏定义节点
+    macro_decl_node->insert_son_node(value_node);
+
+    // 将宏定义存入宏表
+    macroTable[macroName] = macroValueAttr;
+
+    return macro_decl_node;
+}
+
 /// @brief 非终结运算符decl的遍历
 std::any SysYCSTVisitor::visitDecl(SysYParser::DeclContext * ctx)
 {
@@ -79,13 +111,16 @@ std::any SysYCSTVisitor::visitConstDecl(SysYParser::ConstDeclContext * ctx)
 {
     // 识别产生式 constDecl: 'const' basicType constDef (',' constDef)* ';';
     ast_node * stmt_node = create_contain_node(ast_operator_type::AST_OP_DECL_STMT);
+    ast_node * const_decl_node = ast_node::New(ast_operator_type::AST_OP_CONST_DECL, nullptr);
+    stmt_node->insert_son_node(const_decl_node);
+
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
+    ast_node * type_node = create_type_node(typeAttr);
+    const_decl_node->insert_son_node(type_node);
 
     for (auto constDef: ctx->constDef()) {
         auto defNode = std::any_cast<ast_node *>(visitConstDef(constDef));
-        ast_node * type_node = create_type_node(typeAttr);
-        ast_node * decl_node = ast_node::New(ast_operator_type::AST_OP_CONST_DECL, type_node, defNode, nullptr);
-        stmt_node->insert_son_node(decl_node);
+        const_decl_node->insert_son_node(defNode);
     }
 
     return stmt_node;
@@ -161,13 +196,16 @@ std::any SysYCSTVisitor::visitArrayConstantInit(SysYParser::ArrayConstantInitCon
 std::any SysYCSTVisitor::visitVarDecl(SysYParser::VarDeclContext * ctx)
 {
     ast_node * stmt_node = create_contain_node(ast_operator_type::AST_OP_DECL_STMT);
+    ast_node * var_decl_node = ast_node::New(ast_operator_type::AST_OP_VAR_DECL, nullptr);
+    stmt_node->insert_son_node(var_decl_node);
+
     type_attr typeAttr = std::any_cast<type_attr>(visitBasicType(ctx->basicType()));
+    ast_node * type_node = create_type_node(typeAttr);
+    var_decl_node->insert_son_node(type_node);
 
     for (auto varDef: ctx->varDef()) {
         auto defNode = std::any_cast<ast_node *>(visitVarDef(varDef));
-        ast_node * type_node = create_type_node(typeAttr);
-        ast_node * decl_node = ast_node::New(ast_operator_type::AST_OP_VAR_DECL, type_node, defNode, nullptr);
-        stmt_node->insert_son_node(decl_node);
+        var_decl_node->insert_son_node(defNode);
     }
 
     return stmt_node;
@@ -314,6 +352,27 @@ std::any SysYCSTVisitor::visitFuncFParam(SysYParser::FuncFParamContext * ctx)
     if (ctx->getText().find('[') != std::string::npos) {
         // 数组参数
         ast_node * dimsNode = create_contain_node(ast_operator_type::AST_OP_ARRAY_DIMS);
+        // 遍历children，遇到'['判断后面是否有exp
+        auto & children = ctx->children;
+        // size_t expIdx = 0;
+        for (size_t i = 0; i < children.size(); ++i) {
+            auto token = children[i];
+            std::string text = token->getText();
+            if (text == "[") {
+                // 判断下一个是不是exp
+                if (i + 1 < children.size() && dynamic_cast<SysYParser::ExpContext *>(children[i + 1])) {
+                    // 是exp
+                    auto dimNode =
+                        std::any_cast<ast_node *>(visitExp(dynamic_cast<SysYParser::ExpContext *>(children[i + 1])));
+                    dimsNode->insert_son_node(dimNode);
+                    ++i; // 跳过exp
+                } else {
+                    // 不是exp，直接插入-1
+                    dimsNode->insert_son_node(
+                        ast_node::New(digit_int_attr{0xFFFFFFFF, (int64_t) ctx->Ident()->getSymbol()->getLine()}));
+                }
+            }
+        }
         return ast_node::New(ast_operator_type::AST_OP_FUNC_FORMAL_PARAM, typeNode, idNode, dimsNode, nullptr);
     } else {
         // 普通参数
@@ -473,6 +532,12 @@ std::any SysYCSTVisitor::visitCond(SysYParser::CondContext * ctx)
 std::any SysYCSTVisitor::visitLVal(SysYParser::LValContext * ctx)
 {
     std::string varName = ctx->Ident()->getText();
+    // 如果是宏定义的变量，替换为宏值
+    if (macroTable.find(varName) != macroTable.end()) {
+        digit_int_attr macroValue = macroTable[varName];
+        ast_node * idNode = ast_node::New(macroValue);
+        return idNode;
+    }
     ast_node * idNode = ast_node::New(varName, ctx->Ident()->getSymbol()->getLine());
 
     if (!ctx->exp().empty()) {
@@ -540,11 +605,12 @@ std::any SysYCSTVisitor::visitNumber(SysYParser::NumberContext * ctx)
         }
 
         return ast_node::New(digit_int_attr{(uint32_t) value, (int64_t) ctx->IntConst()->getSymbol()->getLine()});
-    } else {
+    } else if (ctx->FloatConst()) {
         // 处理浮点型常量
         double value = std::stod(ctx->FloatConst()->getText());
         return ast_node::New(digit_real_attr{value, (int64_t) ctx->FloatConst()->getSymbol()->getLine()});
     }
+    return nullptr;
 }
 
 /// @brief 非终结运算符unaryExp的遍历

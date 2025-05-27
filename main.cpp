@@ -20,7 +20,6 @@
 #include "AST.h"
 #include "Antlr4Executor.h"
 #include "CodeGenerator.h"
-#include "CodeGeneratorArm32.h"
 #include "CodeGeneratorArm64.h"
 // #include "FlexBisonExecutor.h"
 #include "FrontEndExecutor.h"
@@ -328,11 +327,7 @@ int compile(std::string inputFile, std::string outputFile)
 
             CodeGenerator * generator = nullptr;
 
-            if (gCPUTarget == "ARM32") {
-                // 输出面向ARM32的汇编指令
-                generator = new CodeGeneratorArm32(module);
-                generator->run(outputFile);
-            } else if (gCPUTarget == "ARM64") {
+			if (gCPUTarget == "ARM64") {
                 generator = new CodeGeneratorArm64(module);
                 generator->run(outputFile);
             }

@@ -18,6 +18,10 @@
 #include "ScopeStack.h"
 #include "Common.h"
 #include "VoidType.h"
+#include "FloatType.h"
+#include "ArrayType.h"
+#include "PointerType.h"
+#include <bits/floatn-common.h>
 
 Module::Module(std::string _name) : name(_name)
 {
@@ -26,10 +30,6 @@ Module::Module(std::string _name) : name(_name)
 
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
-
-    // 加入内置函数putint
-    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
-    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
 }
 
 /// @brief 进入作用域，如进入函数体块、语句块等
@@ -132,7 +132,7 @@ void Module::insertGlobalValueDirectly(GlobalVariable * val)
     globalVariableVector.push_back(val);
 }
 
-/// @brief Value直接插入到符号表中的全局变量中
+/// @brief Value直接插入到符号表中的常数中
 /// @param name Value的名称
 /// @param val Value信息
 void Module::insertConstIntDirectly(ConstInt * val)
@@ -140,7 +140,7 @@ void Module::insertConstIntDirectly(ConstInt * val)
     constIntMap.emplace(val->getVal(), val);
 }
 
-/// @brief 新建一个整型数值的Value，并加入到符号表，用于后续释放空间
+/// @brief 新建一个整型数值，并加入到符号表，用于后续释放空间
 /// @param intVal 整数值
 /// @return 常量Value
 ConstInt * Module::newConstInt(int32_t intVal)
@@ -153,6 +153,25 @@ ConstInt * Module::newConstInt(int32_t intVal)
         val = new ConstInt(intVal);
 
         insertConstIntDirectly(val);
+    }
+
+    return val;
+}
+
+ConstInt * Module::newConstInt64(int64_t intVal)
+{
+    return new ConstInt(intVal, IntegerType::getTypeInt64());
+}
+
+ConstFloat * Module::newConstFloat(float floatVal)
+{
+    // 查找整数字符串
+    ConstFloat * val = findConstFloat(floatVal);
+    if (!val) {
+
+        // 不存在，则创建浮点常量Value
+        val = new ConstFloat(floatVal);
+        constFloatMap.emplace(val->getVal(), val);
     }
 
     return val;
@@ -174,12 +193,28 @@ ConstInt * Module::findConstInt(int32_t val)
     return temp;
 }
 
+/// @brief 根据浮点值获取当前符号
+/// \param name 变量名
+/// \return 变量对应的值
+ConstFloat * Module::findConstFloat(float val)
+{
+    ConstFloat * temp = nullptr;
+
+    auto pIter = constFloatMap.find(val);
+    if (pIter != constFloatMap.end()) {
+        // 查找到
+        temp = pIter->second;
+    }
+
+    return temp;
+}
+
 /// @brief 在当前的作用域中查找，若没有查找到则创建局部变量或者全局变量。请注意不能创建临时变量
 /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
 /// @param type 变量类型
 /// @param name 变量ID 局部变量时可以为空，目的为了SSA时创建临时的局部变量，
 /// @return nullptr则说明变量已存在，否则为新建的变量
-Value * Module::newVarValue(Type * type, std::string name)
+Value * Module::newVarValue(Type * type, std::string name, Value * initValue)
 {
     Value * retVal;
     std::string varName;
@@ -195,7 +230,7 @@ Value * Module::newVarValue(Type * type, std::string name)
         }
     } else if (!currentFunc) {
         // 全局变量要求name不能为空串，必须有效
-        minic_log(LOG_ERROR, "变量名为空");
+        minic_log(LOG_ERROR, "全局变量要求name不能为空串");
         return nullptr;
     }
 
@@ -208,11 +243,11 @@ Value * Module::newVarValue(Type * type, std::string name)
         } else {
             scope_level = scopeStack->getCurrentScopeLevel();
         }
-
         retVal = currentFunc->newLocalVarValue(type, name, scope_level);
 
     } else {
-        retVal = newGlobalVariable(type, name);
+        printf("创建全局变量%s\n", name.c_str());
+        retVal = newGlobalVariable(type, name, initValue);
     }
 
     // 增加做作用域中
@@ -223,29 +258,91 @@ Value * Module::newVarValue(Type * type, std::string name)
 
 /// @brief 查找变量，会根据作用域栈进行逐级查找。
 /// ! 该函数只有在AST遍历生成线性IR中使用，其它地方不能使用
-///
 /// @param name 变量ID
 /// @return 指针有效则找到，空指针未找到
 Value * Module::findVarValue(std::string name)
 {
     // 逐层级作用域查找
     Value * tempValue = scopeStack->findAllScope(name);
-
     return tempValue;
+}
+
+Value * Module::findCurrentVarValue(std::string name)
+{
+    // 逐层级作用域查找
+    Value * tempValue = scopeStack->findCurrentScope(name);
+    return tempValue;
+}
+
+/// @brief 新建一个数组变量的 Value，并加入到符号表中
+/// @param type 数组的基础类型（如 int、float）
+/// @param name 数组的名称
+/// @param dimensions 数组的维度信息（每一维的大小）
+/// @return 新建的数组变量 Value，如果失败则返回 nullptr
+Value * Module::newArrayValue(Type * type, std::string name, const std::vector<int32_t> & dimensions)
+{
+    // 检查变量名是否有效
+    if (!name.empty()) {
+        Value * tempValue = scopeStack->findCurrentScope(name);
+        if (tempValue) {
+            // 变量已存在，语义错误
+            minic_log(LOG_ERROR, "数组变量(%s)已经存在", name.c_str());
+            return nullptr;
+        }
+    } else if (!currentFunc) {
+        // 全局数组变量要求 name 不能为空
+        minic_log(LOG_ERROR, "全局数组变量要求 name 不能为空");
+        return nullptr;
+    }
+
+    // 计算数组的总大小
+    // int32_t totalSize = 1;
+    for (int32_t dim: dimensions) {
+        if (dim <= 0) {
+            minic_log(LOG_ERROR, "数组(%s)的维度大小无效", name.c_str());
+            return nullptr;
+        }
+        // totalSize *= dim;
+    }
+
+    // 创建数组类型
+    ArrayType * arrayType = new ArrayType(type, dimensions);
+
+    Value * retVal;
+    if (currentFunc) {
+        // 局部数组变量
+        int32_t scope_level = scopeStack->getCurrentScopeLevel();
+        retVal = currentFunc->newLocalVarValue(arrayType, name, scope_level);
+    } else {
+        // 全局数组变量
+        retVal = newGlobalVariable(arrayType, name);
+    }
+
+    // 将数组变量加入作用域
+    scopeStack->insertValue(retVal);
+
+    return retVal;
 }
 
 ///
 /// @brief 新建全局变量，要求name必须有效，并且加入到全局符号表中。不检查是否现有的符号表中是否存在。
 /// @param type 类型
 /// @param name 名字
+/// @param initValue 初始化值，默认nullptr
 /// @return Value* 全局变量
 ///
-GlobalVariable * Module::newGlobalVariable(Type * type, std::string name)
+GlobalVariable * Module::newGlobalVariable(Type * type, std::string name, Value * initValue)
 {
     GlobalVariable * val = new GlobalVariable(type, name);
-
+    if (initValue) {
+        if (!Type::canConvert(initValue->getType(), type)) {
+            minic_log(LOG_ERROR, "全局变量(%s)的初始化值类型不匹配", name.c_str());
+            delete val;
+            return nullptr;
+        }
+        val->setInitialValue(initValue);
+    }
     insertGlobalValueDirectly(val);
-
     return val;
 }
 
@@ -320,7 +417,45 @@ void Module::outputIR(const std::string & filePath)
         var->toDeclareString(str);
         fprintf(fp, "%s\n", str.c_str());
     }
+    // 注册内置函数
+    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
+    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
+    (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
 
+    (void) newFunction("getarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+    (void) newFunction("getfarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
+    (void) newFunction("putch", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+
+    (void) newFunction("putarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    (void) newFunction("putfarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    // 输出字符数组 char []
+    (void) newFunction("putf",
+                       VoidType::getType(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    // 用户调用无需参数，在IR生成阶段展开，插入line_no
+    (void) newFunction("starttime", VoidType::getType(), {}, true);
+    (void) newFunction("stoptime", VoidType::getType(), {}, true);
     // 遍历所有的线性IR指令，文本输出
     for (auto func: funcVector) {
 

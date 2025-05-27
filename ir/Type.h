@@ -55,17 +55,41 @@ public:
 
     ///
     /// @brief 下列操作不被允许，只能通过指针传递
-    ///
+    // 拷贝构造函数(Type(const Type &))：拷贝构造函数用于创建一个新对象，该对象是另一个同类型对象的副本。 =
+    //     	   delete 表示将拷贝构造函数删除，即禁止使用拷贝构造函数来创建对象。
+    // 移动构造函数(Type(Type &&))：移动构造函数用于将一个临时对象的资源转移到新对象中，避免不必要的拷贝。 =
+    //         delete 表示将移动构造函数删除，即禁止使用移动构造函数来创建对象。
+    // 拷贝赋值运算符(Type & operator=(const Type &))：拷贝赋值运算符用于将一个对象的值赋给另一个同类型的对象。 =
+    //         delete 表示将拷贝赋值运算符删除，即禁止使用拷贝赋值运算符来赋值对象。
+    // 移动赋值运算符(Type & operator=(Type &&))：移动赋值运算符用于将一个临时对象的资源转移到另一个对象中。 =
+    //         delete 表示将移动赋值运算符删除，即禁止使用移动赋值运算符来赋值对象。
     Type(const Type &) = delete;
     Type(Type &&) = delete;
     Type & operator=(const Type &) = delete;
     Type & operator=(Type &&) = delete;
 
-    ///
+    /// @brief 检查是否能转换类型，只允许整型和浮点间转换
+    /// @return true 是
+    /// @return false  不是
+    [[nodiscard]] static bool canConvert(const Type * from, const Type * to)
+    {
+        if (from == to)
+            return true;
+        if (from->isIntegerType() && to->isFloatType())
+            return true;
+        if (from->isFloatType() && to->isIntegerType())
+            return true;
+        return false; // 其他情况不允许转换
+    }
+
+    virtual Type * getBaseType() const
+    {
+        return nullptr;
+    }
+
     /// @brief 检查是否是VOID类型
     /// @return true 是
     /// @return false  不是
-    ///
     [[nodiscard]] bool isVoidType() const
     {
         return ID == VoidTyID;

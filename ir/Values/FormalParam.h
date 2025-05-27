@@ -18,7 +18,8 @@
 
 #include "Value.h"
 #include "IRConstant.h"
-
+#include "ArrayType.h"
+#include "PointerType.h"
 /// @brief 描述函数形参类
 class FormalParam : public Value {
 
@@ -31,12 +32,17 @@ public:
         this->name = _name;
     };
 
-    // /// @brief 输出字符串
-    // /// @param str
-    // std::string toString() override
-    // {
-    //     return type->toString() + " " + IRName;
-    // }
+    /// @brief 输出字符串
+    /// @param str
+    std::string toString()
+    {
+        // 指针类型（包括数组退化的指针）或数组类型
+        if (type->isPointerType() || type->isArrayType()) {
+            return type->toString() + "* " + IRName;
+        }
+        // 普通类型
+        return type->toString() + " " + IRName;
+    }
 
     ///
     /// @brief 获得分配的寄存器编号或ID

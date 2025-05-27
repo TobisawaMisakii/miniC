@@ -20,7 +20,7 @@ public:
     ///
     [[nodiscard]] std::string toString() const override
     {
-        return "f" + std::to_string(bitWidth);
+        return "float";
     }
 
     ///

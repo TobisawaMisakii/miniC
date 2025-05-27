@@ -42,5 +42,5 @@ void ArgInstruction::toString(std::string & str)
     }
 
     // ARG指令个数增加1
-    func->realArgCountInc();
+    // func->realArgCountInc();
 }

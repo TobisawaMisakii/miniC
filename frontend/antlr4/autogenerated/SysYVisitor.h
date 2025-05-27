@@ -1,5 +1,5 @@
 
-// Generated from /home/cpy/Compiler/exp04-minic-expr/frontend/antlr4/SysY.g4 by ANTLR 4.12.0
+// Generated from SysY.g4 by ANTLR 4.12.0
 
 #pragma once
 
@@ -20,6 +20,8 @@ public:
    * Visit parse trees produced by SysYParser.
    */
     virtual std::any visitCompileUnit(SysYParser::CompileUnitContext *context) = 0;
+
+    virtual std::any visitMacroDecl(SysYParser::MacroDeclContext *context) = 0;
 
     virtual std::any visitDecl(SysYParser::DeclContext *context) = 0;
 

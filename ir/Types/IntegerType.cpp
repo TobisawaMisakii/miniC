@@ -22,6 +22,8 @@
 ///
 IntegerType * IntegerType::oneInstanceBool = new IntegerType(1);
 IntegerType * IntegerType::oneInstanceInt = new IntegerType(32);
+IntegerType * IntegerType::oneInstanceInt8 = new IntegerType(8);
+IntegerType * IntegerType::oneInstanceInt64 = new IntegerType(64);
 
 ///
 /// @brief 获取类型bool
@@ -39,4 +41,14 @@ IntegerType * IntegerType::getTypeBool()
 IntegerType * IntegerType::getTypeInt()
 {
     return oneInstanceInt;
+}
+
+IntegerType * IntegerType::getTypeInt64()
+{
+    return oneInstanceInt64;
+}
+
+IntegerType * IntegerType::getTypeInt8()
+{
+    return oneInstanceInt8;
 }

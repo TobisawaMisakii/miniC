@@ -45,6 +45,10 @@ protected:
     ///
     std::vector<Use *> uses;
 
+    bool is_const_ = false;
+
+    Value * const_value_ = nullptr;
+
 public:
     /// @brief 构造函数
     /// @param _type
@@ -62,6 +66,27 @@ public:
     /// @param _name 名字
     ///
     void setName(std::string _name);
+
+    virtual void setConst(bool flag)
+    {
+        is_const_ = flag;
+    }
+
+    /// @brief 判断常量
+    bool isConst() const
+    {
+        return is_const_;
+    }
+
+    Value * getConstValue() const
+    {
+        return const_value_;
+    }
+
+    void setConstValue(Value * v)
+    {
+        const_value_ = v;
+    }
 
     /// @brief 获取名字
     /// @return 变量名

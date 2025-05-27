@@ -33,21 +33,65 @@ enum class IRInstOperator {
 
     /// @brief 无条件分支指令
     IRINST_OP_GOTO,
+    /// @brief 有条件分支指令(基于条件值为0)
+    IRINST_OP_GOTO_IF_ZERO,
 
-    /// @brief 整数的加法指令，二元运算
+    /// @brief 加法指令，二元运算
     IRINST_OP_ADD_I,
+    IRINST_OP_ADD_F,
 
-    /// @brief 整数的减法指令，二元运算
+    /// @brief 减法指令，二元运算
     IRINST_OP_SUB_I,
+    IRINST_OP_SUB_F,
+
+    /// @brief 乘法指令，二元运算
+    IRINST_OP_MUL_I,
+    IRINST_OP_MUL_F,
+
+    /// @brief 除法指令，二元运算
+    IRINST_OP_DIV_I,
+    IRINST_OP_DIV_F,
+
+    /// @brief 取模指令，二元运算
+    IRINST_OP_MOD_I,
+    IRINST_OP_MOD_F,
 
     /// @brief 赋值指令，一元运算
     IRINST_OP_ASSIGN,
+
+    /// @brief 比较指令，二元运算
+    IRINST_OP_ICMP_LT,
+    IRINST_OP_FCMP_LT,
+    IRINST_OP_ICMP_LE,
+    IRINST_OP_FCMP_LE,
+    IRINST_OP_ICMP_GT,
+    IRINST_OP_FCMP_GT,
+    IRINST_OP_ICMP_GE,
+    IRINST_OP_FCMP_GE,
+    IRINST_OP_ICMP_EQ,
+    IRINST_OP_FCMP_EQ,
+    IRINST_OP_ICMP_NE,
+    IRINST_OP_FCMP_NE,
+
+    /// @brief 单目运算
+    IRINST_OP_NEG, //取负指令
+    IRINST_OP_NOT, //取反指令
 
     /// @brief 函数调用，多目运算，个数不限
     IRINST_OP_FUNC_CALL,
 
     /// @brief 实参ARG指令，单目运算
     IRINST_OP_ARG,
+
+    /// @brief load 和 store指令
+    IRINST_OP_LOAD,
+    IRINST_OP_STORE,
+
+    /// @brief 数据类型转换指令
+    IRINST_OP_ZEXT,   // 零扩展指令
+    IRINST_OP_SEXT,   // 符号扩展指令
+    IRINST_OP_SITOFP, // i32转浮点指令
+    IRINST_OP_FPTOSI, // 浮点转i32指令
 
     /* 后续可追加其他的IR指令 */
 

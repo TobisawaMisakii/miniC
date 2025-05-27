@@ -1,5 +1,5 @@
 
-// Generated from /home/cpy/Compiler/exp04-minic-expr/frontend/antlr4/SysY.g4 by ANTLR 4.12.0
+// Generated from SysY.g4 by ANTLR 4.12.0
 
 #pragma once
 
@@ -16,6 +16,10 @@ class  SysYBaseVisitor : public SysYVisitor {
 public:
 
   virtual std::any visitCompileUnit(SysYParser::CompileUnitContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitMacroDecl(SysYParser::MacroDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 

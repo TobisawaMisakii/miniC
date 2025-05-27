@@ -36,6 +36,9 @@ public:
     ///
     static IntegerType * getTypeInt();
 
+    static IntegerType * getTypeInt64();
+
+    static IntegerType * getTypeInt8();
     ///
     /// @brief 获取类型的IR标识符
     /// @return std::string IR标识符void
@@ -99,6 +102,10 @@ private:
     /// @brief 唯一的VOID类型实例
     ///
     static IntegerType * oneInstanceInt;
+
+    static IntegerType * oneInstanceInt8;
+
+    static IntegerType * oneInstanceInt64;
 
     ///
     /// @brief 位宽
