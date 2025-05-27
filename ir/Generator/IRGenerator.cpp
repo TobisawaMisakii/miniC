@@ -433,7 +433,10 @@ bool IRGenerator::ir_function_call(ast_node * node)
     std::string funcName = node->sons[0]->name;
     // int64_t lineno = node->sons[0]->line_no;
 
-    ast_node * paramsNode = node->sons[1];
+    ast_node * paramsNode = nullptr;
+    if (node->sons[1] != nullptr && node->sons[1]->node_type == ast_operator_type::AST_OP_FUNC_REAL_PARAMS) {
+        paramsNode = node->sons[1];
+    }
 
     // 根据函数名查找函数，看是否存在。若不存在则出错
     // 这里约定函数必须先定义后使用
@@ -836,15 +839,22 @@ bool IRGenerator::ir_mul(ast_node * node)
             op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
             resultType = IntegerType::getTypeInt();
         } else {
-            // 其它类型不支持
-            minic_log(LOG_ERROR, "乘法操作数的类型转换不支持");
-            if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-                op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
-                resultType = FloatType::getTypeFloat();
-                // 需要确保0.1这样的常量被识别为float
-            } else {
-                op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
+            // 数组
+            if ((left->val->getType()->isPointerType() &&
+                 left->val->getType()->getBaseType() == IntegerType::getTypeInt()) ||
+                (right->val->getType()->isPointerType() &&
+                 right->val->getType()->getBaseType() == IntegerType::getTypeInt())) {
+                op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
                 resultType = IntegerType::getTypeInt();
+            } else {
+                if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+                    op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
+                    resultType = FloatType::getTypeFloat();
+                    // 需要确保0.1这样的常量被识别为float
+                } else {
+                    op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
+                    resultType = IntegerType::getTypeInt();
+                }
             }
         }
     }
@@ -2085,19 +2095,10 @@ bool IRGenerator::ir_lt(ast_node * node)
         minic_log(LOG_ERROR, "less than操作数解析失败");
         return false;
     }
-    // if (left->val->getType() != right->val->getType()) {
-    //     minic_log(LOG_ERROR, "less than操作数类型不一致");
-    //     return false;
-    // }
 
     BinaryInstruction * ltInst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "less than操作数类型不一致");
-            return false;
-        }
         // 这里可以进行类型转换
         // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
         // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
@@ -2118,6 +2119,13 @@ bool IRGenerator::ir_lt(ast_node * node)
                                        right->val,
                                        IntegerType::getTypeBool());
     } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
+        ltInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_LT,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else {
+        // 其他类型的比较
         ltInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_LT,
                                        left->val,
@@ -2149,19 +2157,10 @@ bool IRGenerator::ir_gt(ast_node * node)
         minic_log(LOG_ERROR, "greater than操作数解析失败");
         return false;
     }
-    if (left->val->getType() != right->val->getType()) {
-        minic_log(LOG_ERROR, "greater than操作数类型不一致");
-        return false;
-    }
 
     BinaryInstruction * gtInst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "greater than操作数类型不一致");
-            return false;
-        }
         // 这里可以进行类型转换
         // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
         // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
@@ -2208,19 +2207,10 @@ bool IRGenerator::ir_le(ast_node * node)
         minic_log(LOG_ERROR, "less than equal操作数解析失败");
         return false;
     }
-    if (left->val->getType() != right->val->getType()) {
-        minic_log(LOG_ERROR, "less than equal操作数类型不一致");
-        return false;
-    }
 
     BinaryInstruction * leInst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "less than equal操作数类型不一致");
-            return false;
-        }
         // 这里可以进行类型转换
         // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
         // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
@@ -2230,6 +2220,13 @@ bool IRGenerator::ir_le(ast_node * node)
                                        right->val,
                                        IntegerType::getTypeBool());
     } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
+        leInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_LE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else {
+        // 其他类型的比较
         leInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_LE,
                                        left->val,
@@ -2261,19 +2258,10 @@ bool IRGenerator::ir_ge(ast_node * node)
         minic_log(LOG_ERROR, "greater than equal操作数解析失败");
         return false;
     }
-    if (left->val->getType() != right->val->getType()) {
-        minic_log(LOG_ERROR, "greater than equal操作数类型不一致");
-        return false;
-    }
 
     BinaryInstruction * geInst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "greater than equal操作数类型不一致");
-            return false;
-        }
         // 这里可以进行类型转换
         // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
         // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
@@ -2283,6 +2271,13 @@ bool IRGenerator::ir_ge(ast_node * node)
                                        right->val,
                                        IntegerType::getTypeBool());
     } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
+        geInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_GE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else {
+        // 其他类型的比较
         geInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_GE,
                                        left->val,
@@ -2314,10 +2309,6 @@ bool IRGenerator::ir_eq(ast_node * node)
     if (!left || !right || !left->val || !right->val) {
         minic_log(LOG_ERROR, "equal操作数解析失败");
         return false;
-    }
-    if (left->val->getType() != right->val->getType()) {
-        minic_log(LOG_ERROR, "equal操作数类型不一致");
-        // return false;
     }
 
     BinaryInstruction * eqInst = nullptr;
@@ -2379,8 +2370,11 @@ bool IRGenerator::ir_eq(ast_node * node)
                                            castInst,
                                            IntegerType::getTypeBool());
         } else {
-            minic_log(LOG_ERROR, "equal操作数类型不一致");
-            return false;
+            eqInst = new BinaryInstruction(module->getCurrentFunction(),
+                                           IRInstOperator::IRINST_OP_ICMP_EQ,
+                                           left->val,
+                                           right->val,
+                                           IntegerType::getTypeBool());
         }
     }
 
@@ -2411,19 +2405,10 @@ bool IRGenerator::ir_ne(ast_node * node)
         minic_log(LOG_ERROR, "not equal操作数解析失败");
         return false;
     }
-    if (left->val->getType() != right->val->getType()) {
-        minic_log(LOG_ERROR, "not equal操作数类型不一致");
-        return false;
-    }
 
     BinaryInstruction * neInst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        // 类型转换
-        if (!Type::canConvert(left->val->getType(), right->val->getType())) {
-            minic_log(LOG_ERROR, "not equal操作数类型不一致");
-            return false;
-        }
         // 这里可以进行类型转换
         // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
         // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
@@ -2433,6 +2418,13 @@ bool IRGenerator::ir_ne(ast_node * node)
                                        right->val,
                                        IntegerType::getTypeBool());
     } else if (left->val->getType()->isIntegerType() && right->val->getType()->isIntegerType()) {
+        neInst = new BinaryInstruction(module->getCurrentFunction(),
+                                       IRInstOperator::IRINST_OP_ICMP_NE,
+                                       left->val,
+                                       right->val,
+                                       IntegerType::getTypeBool());
+    } else {
+        // 其他类型的比较
         neInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_NE,
                                        left->val,
