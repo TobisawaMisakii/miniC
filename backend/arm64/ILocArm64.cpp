@@ -1,16 +1,16 @@
 ///
 /// @file ILocArm64.cpp
-/// @brief Ö¸ÁîĞòÁĞ¹ÜÀíµÄÊµÏÖ£¬ILOCµÄÈ«³ÆÎªIntermediate Language for Optimizing Compilers
+/// @brief æŒ‡ä»¤åºåˆ—ç®¡ç†çš„å®ç°ï¼ŒILOCçš„å…¨ç§°ä¸ºIntermediate Language for Optimizing Compilers
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #include <cstdio>
@@ -32,7 +32,7 @@ ArmInst64::ArmInst64(std::string _opcode,
 {}
 
 /*
-    Ö¸ÁîÄÚÈİÌæ»»
+    æŒ‡ä»¤å†…å®¹æ›¿æ¢
 */
 void ArmInst64::replace(std::string _opcode,
                         std::string _result,
@@ -49,7 +49,7 @@ void ArmInst64::replace(std::string _opcode,
     addition = _addition;
 
 #if 0
-    // ¿Õ²Ù×÷£¬ÔòÉèÖÃÎªdead
+    // ç©ºæ“ä½œï¼Œåˆ™è®¾ç½®ä¸ºdead
     if (op == "") {
         dead = true;
     }
@@ -57,7 +57,7 @@ void ArmInst64::replace(std::string _opcode,
 }
 
 /*
-    ÉèÖÃÎªÎŞĞ§Ö¸Áî
+    è®¾ç½®ä¸ºæ— æ•ˆæŒ‡ä»¤
 */
 void ArmInst64::setDead()
 {
@@ -65,16 +65,16 @@ void ArmInst64::setDead()
 }
 
 /*
-    Êä³öº¯Êı
+    è¾“å‡ºå‡½æ•°
 */
 std::string ArmInst64::outPut()
 {
-    // ÎŞÓÃ´úÂë£¬Ê²Ã´¶¼²»Êä³ö
+    // æ— ç”¨ä»£ç ï¼Œä»€ä¹ˆéƒ½ä¸è¾“å‡º
     if (dead) {
         return "";
     }
 
-    // Õ¼Î»Ö¸Áî,¿ÉÄÜĞèÒªÊä³öÒ»¸ö¿Õ²Ù×÷£¬¿´ÊÇ·ñÖ§³Ö FIXME
+    // å ä½æŒ‡ä»¤,å¯èƒ½éœ€è¦è¾“å‡ºä¸€ä¸ªç©ºæ“ä½œï¼Œçœ‹æ˜¯å¦æ”¯æŒ FIXME
     if (opcode.empty()) {
         return "";
     }
@@ -85,7 +85,7 @@ std::string ArmInst64::outPut()
         ret += cond;
     }
 
-    // ½á¹ûÊä³ö
+    // ç»“æœè¾“å‡º
     if (!result.empty()) {
         if (result == ":") {
             ret += result;
@@ -94,17 +94,17 @@ std::string ArmInst64::outPut()
         }
     }
 
-    // µÚÒ»Ôª²ÎÊıÊä³ö
+    // ç¬¬ä¸€å…ƒå‚æ•°è¾“å‡º
     if (!arg1.empty()) {
         ret += "," + arg1;
     }
 
-    // µÚ¶şÔª²ÎÊıÊä³ö
+    // ç¬¬äºŒå…ƒå‚æ•°è¾“å‡º
     if (!arg2.empty()) {
         ret += "," + arg2;
     }
 
-    // ÆäËû¸½¼ÓĞÅÏ¢Êä³ö
+    // å…¶ä»–é™„åŠ ä¿¡æ¯è¾“å‡º
     if (!addition.empty()) {
         ret += "," + addition;
     }
@@ -114,14 +114,14 @@ std::string ArmInst64::outPut()
 
 #define emit(...) code.push_back(new ArmInst64(__VA_ARGS__))
 
-/// @brief ¹¹Ôìº¯Êı
-/// @param _module ·ûºÅ±í
+/// @brief æ„é€ å‡½æ•°
+/// @param _module ç¬¦å·è¡¨
 ILocArm64::ILocArm64(Module * _module)
 {
     this->module = _module;
 }
 
-/// @brief Îö¹¹º¯Êı
+/// @brief ææ„å‡½æ•°
 ILocArm64::~ILocArm64()
 {
     std::list<ArmInst64 *>::iterator pIter;
@@ -131,7 +131,7 @@ ILocArm64::~ILocArm64()
     }
 }
 
-/// @brief É¾³ıÎŞÓÃµÄLabelÖ¸Áî
+/// @brief åˆ é™¤æ— ç”¨çš„LabelæŒ‡ä»¤
 void ILocArm64::deleteUsedLabel()
 {
     std::list<ArmInst64 *> labelInsts;
@@ -145,7 +145,7 @@ void ILocArm64::deleteUsedLabel()
         bool labelUsed = false;
 
         for (ArmInst64 * arm: code) {
-            // TODO ×ªÒÆÓï¾äµÄÖ¸Áî±êÊ¶·û¸ù¾İ¶¨ÒåĞŞ¸ÄÅĞ¶Ï
+            // TODO è½¬ç§»è¯­å¥çš„æŒ‡ä»¤æ ‡è¯†ç¬¦æ ¹æ®å®šä¹‰ä¿®æ”¹åˆ¤æ–­
             if ((!arm->dead) && (arm->opcode[0] == 'b') && (arm->result == labelArm->opcode)) {
                 labelUsed = true;
                 break;
@@ -158,9 +158,9 @@ void ILocArm64::deleteUsedLabel()
     }
 }
 
-/// @brief Êä³ö»ã±à
-/// @param file Êä³öµÄÎÄ¼şÖ¸Õë
-/// @param outputEmpty ÊÇ·ñÊä³ö¿ÕÓï¾ä
+/// @brief è¾“å‡ºæ±‡ç¼–
+/// @param file è¾“å‡ºçš„æ–‡ä»¶æŒ‡é’ˆ
+/// @param outputEmpty æ˜¯å¦è¾“å‡ºç©ºè¯­å¥
 void ILocArm64::outPut(FILE * file, bool outputEmpty)
 {
     for (auto arm: code) {
@@ -168,7 +168,7 @@ void ILocArm64::outPut(FILE * file, bool outputEmpty)
         std::string s = arm->outPut();
 
         if (arm->result == ":") {
-            // LabelÖ¸Áî£¬²»ĞèÒªTabÊä³ö
+            // LabelæŒ‡ä»¤ï¼Œä¸éœ€è¦Tabè¾“å‡º
             fprintf(file, "%s\n", s.c_str());
             continue;
         }
@@ -181,15 +181,15 @@ void ILocArm64::outPut(FILE * file, bool outputEmpty)
     }
 }
 
-/// @brief »ñÈ¡µ±Ç°µÄ´úÂëĞòÁĞ
-/// @return ´úÂëĞòÁĞ
+/// @brief è·å–å½“å‰çš„ä»£ç åºåˆ—
+/// @return ä»£ç åºåˆ—
 std::list<ArmInst64 *> & ILocArm64::getCode()
 {
     return code;
 }
 
 /**
- * Êı×Ö±ä×Ö·û´®£¬ÈôflagÎªÕæ£¬Ôò±äÎªÁ¢¼´ÊıÑ°Ö·£¨¼Ó#£©
+ * æ•°å­—å˜å­—ç¬¦ä¸²ï¼Œè‹¥flagä¸ºçœŸï¼Œåˆ™å˜ä¸ºç«‹å³æ•°å¯»å€ï¼ˆåŠ #ï¼‰
  */
 std::string ILocArm64::toStr(int num, bool flag)
 {
@@ -205,7 +205,7 @@ std::string ILocArm64::toStr(int num, bool flag)
 }
 
 /*
-    ²úÉú±êÇ©
+    äº§ç”Ÿæ ‡ç­¾
 */
 void ILocArm64::label(std::string name)
 {
@@ -213,35 +213,35 @@ void ILocArm64::label(std::string name)
     emit(name, ":");
 }
 
-/// @brief 0¸öÔ´²Ù×÷ÊıÖ¸Áî
-/// @param op ²Ù×÷Âë
-/// @param rs ²Ù×÷Êı
+/// @brief 0ä¸ªæºæ“ä½œæ•°æŒ‡ä»¤
+/// @param op æ“ä½œç 
+/// @param rs æ“ä½œæ•°
 void ILocArm64::inst(std::string op, std::string rs)
 {
     emit(op, rs);
 }
 
-/// @brief Ò»¸ö²Ù×÷ÊıÖ¸Áî
-/// @param op ²Ù×÷Âë
-/// @param rs ²Ù×÷Êı
-/// @param arg1 Ô´²Ù×÷Êı
+/// @brief ä¸€ä¸ªæ“ä½œæ•°æŒ‡ä»¤
+/// @param op æ“ä½œç 
+/// @param rs æ“ä½œæ•°
+/// @param arg1 æºæ“ä½œæ•°
 void ILocArm64::inst(std::string op, std::string rs, std::string arg1)
 {
     emit(op, rs, arg1);
 }
 
-/// @brief Ò»¸ö²Ù×÷ÊıÖ¸Áî
-/// @param op ²Ù×÷Âë
-/// @param rs ²Ù×÷Êı
-/// @param arg1 Ô´²Ù×÷Êı
-/// @param arg2 Ô´²Ù×÷Êı
+/// @brief ä¸€ä¸ªæ“ä½œæ•°æŒ‡ä»¤
+/// @param op æ“ä½œç 
+/// @param rs æ“ä½œæ•°
+/// @param arg1 æºæ“ä½œæ•°
+/// @param arg2 æºæ“ä½œæ•°
 void ILocArm64::inst(std::string op, std::string rs, std::string arg1, std::string arg2)
 {
     emit(op, rs, arg1, arg2);
 }
 
 ///
-/// @brief ×¢ÊÍÖ¸Áî£¬²»°üº¬·ÖºÅ
+/// @brief æ³¨é‡ŠæŒ‡ä»¤ï¼Œä¸åŒ…å«åˆ†å·
 ///
 void ILocArm64::comment(std::string str)
 {
@@ -249,25 +249,25 @@ void ILocArm64::comment(std::string str)
 }
 
 /*
-    ¼ÓÔØÁ¢¼´Êı ldr r0,=#100
+    åŠ è½½ç«‹å³æ•° ldr r0,=#100
 */
 void ILocArm64::load_imm(int rs_reg_no, int constant)
 {
-    // movw:°Ñ 16 Î»Á¢¼´Êı·Åµ½¼Ä´æÆ÷µÄµÍ16Î»£¬¸ß16Î»Çå0
-    // movt:°Ñ 16 Î»Á¢¼´Êı·Åµ½¼Ä´æÆ÷µÄ¸ß16Î»£¬µÍ 16Î»²»Ó°Ïì
+    // movw:æŠŠ 16 ä½ç«‹å³æ•°æ”¾åˆ°å¯„å­˜å™¨çš„ä½16ä½ï¼Œé«˜16ä½æ¸…0
+    // movt:æŠŠ 16 ä½ç«‹å³æ•°æ”¾åˆ°å¯„å­˜å™¨çš„é«˜16ä½ï¼Œä½ 16ä½ä¸å½±å“
     if (0 == ((constant >> 16) & 0xFFFF)) {
-        // Èç¹û¸ß16Î»±¾À´¾ÍÎª0£¬Ö±½Ómovw
+        // å¦‚æœé«˜16ä½æœ¬æ¥å°±ä¸º0ï¼Œç›´æ¥movw
         emit("movw", PlatformArm64::regName[rs_reg_no], "#:lower16:" + std::to_string(constant));
     } else {
-        // Èç¹û¸ß16Î»²»Îª0£¬ÏÈmovw£¬È»ºómovt
+        // å¦‚æœé«˜16ä½ä¸ä¸º0ï¼Œå…ˆmovwï¼Œç„¶åmovt
         emit("movw", PlatformArm64::regName[rs_reg_no], "#:lower16:" + std::to_string(constant));
         emit("movt", PlatformArm64::regName[rs_reg_no], "#:upper16:" + std::to_string(constant));
     }
 }
 
-/// @brief ¼ÓÔØ·ûºÅÖµ ldr r0,=g ldr r0,=.L1
-/// @param rs_reg_no ½á¹û¼Ä´æÆ÷±àºÅ
-/// @param name ·ûºÅÃû
+/// @brief åŠ è½½ç¬¦å·å€¼ ldr r0,=g ldr r0,=.L1
+/// @param rs_reg_no ç»“æœå¯„å­˜å™¨ç¼–å·
+/// @param name ç¬¦å·å
 void ILocArm64::load_symbol(int rs_reg_no, std::string name)
 {
     // movw r10, #:lower16:a
@@ -276,107 +276,70 @@ void ILocArm64::load_symbol(int rs_reg_no, std::string name)
     emit("movt", PlatformArm64::regName[rs_reg_no], "#:upper16:" + name);
 }
 
-/// @brief »ùÖ·Ñ°Ö· ldr r0,[fp,#100]
-/// @param rsReg ½á¹û¼Ä´æÆ÷
-/// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-/// @param offset Æ«ÒÆ
+/// @brief åŸºå€å¯»å€ ldr r0,[fp,#100]
+/// @param rsReg ç»“æœå¯„å­˜å™¨
+/// @param base_reg_no åŸºå€å¯„å­˜å™¨
+/// @param offset åç§»
 void ILocArm64::load_base(int rs_reg_no, int base_reg_no, int offset)
 {
     std::string rsReg = PlatformArm64::regName[rs_reg_no];
     std::string base = PlatformArm64::regName[base_reg_no];
 
-    if (PlatformArm64::isDisp(offset)) {
-        // ÓĞĞ§µÄÆ«ÒÆ³£Á¿
-        if (offset) {
-            // [fp,#-16] [fp]
-            base += "," + toStr(offset);
-        }
-    } else {
-
-        // ldr r8,=-4096
-        load_imm(rs_reg_no, offset);
-
-        // fp,r8
-        base += "," + rsReg;
+    if (offset != 0) {
+        base += "," + toStr(offset);
     }
 
-    // ÄÚ´æÑ°Ö·
     base = "[" + base + "]";
-
-    // ldr r8,[fp,#-16]
-    // ldr r8,[fp,r8]
     emit("ldr", rsReg, base);
 }
 
-/// @brief »ùÖ·Ñ°Ö· str r0,[fp,#100]
-/// @param srcReg Ô´¼Ä´æÆ÷
-/// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-/// @param disp Æ«ÒÆ
-/// @param tmp_reg_no ¿ÉÄÜĞèÒªÁÙÊ±¼Ä´æÆ÷±àºÅ
-void ILocArm64::store_base(int src_reg_no, int base_reg_no, int disp, int tmp_reg_no)
+void ILocArm64::store_base(int src_reg_no, int base_reg_no, int offset, int tmp_reg_no)
 {
+    std::string srcReg = PlatformArm64::regName[src_reg_no];
     std::string base = PlatformArm64::regName[base_reg_no];
 
-    if (PlatformArm64::isDisp(disp)) {
-        // ÓĞĞ§µÄÆ«ÒÆ³£Á¿
-
-        // ÈôdispÎª0£¬ÔòÖ±½Ó²ÉÓÃ»ùÖ·£¬·ñÔò²ÉÓÃ»ùÖ·+Æ«ÒÆ
-        // [fp,#-16] [fp]
-        if (disp) {
-            base += "," + toStr(disp);
-        }
-    } else {
-        // ÏÈ°ÑÁ¢¼´Êı¸³Öµ¸øÖ¸¶¨µÄ¼Ä´æÆ÷tmpReg£¬È»ºó²ÉÓÃ»ùÖ·+¼Ä´æÆ÷µÄ·½Ê½½øĞĞ
-
-        // ldr r9,=-4096
-        load_imm(tmp_reg_no, disp);
-
-        // fp,r9
-        base += "," + PlatformArm64::regName[tmp_reg_no];
+    if (offset != 0) {
+        base += "," + toStr(offset);
     }
 
-    // ÄÚ´æ¼ä½ÓÑ°Ö·
     base = "[" + base + "]";
-
-    // str r8,[fp,#-16]
-    // str r8,[fp,r9]
-    emit("str", PlatformArm64::regName[src_reg_no], base);
+    emit("str", srcReg, base);
 }
 
-/// @brief ¼Ä´æÆ÷Mov²Ù×÷
-/// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-/// @param src_reg_no Ô´¼Ä´æÆ÷
+/// @brief å¯„å­˜å™¨Movæ“ä½œ
+/// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+/// @param src_reg_no æºå¯„å­˜å™¨
 void ILocArm64::mov_reg(int rs_reg_no, int src_reg_no)
 {
     emit("mov", PlatformArm64::regName[rs_reg_no], PlatformArm64::regName[src_reg_no]);
 }
 
-/// @brief ¼ÓÔØ±äÁ¿µ½¼Ä´æÆ÷£¬±£Ö¤½«±äÁ¿·Åµ½regÖĞ
-/// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-/// @param src_var Ô´²Ù×÷Êı
+/// @brief åŠ è½½å˜é‡åˆ°å¯„å­˜å™¨ï¼Œä¿è¯å°†å˜é‡æ”¾åˆ°regä¸­
+/// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+/// @param src_var æºæ“ä½œæ•°
 void ILocArm64::load_var(int rs_reg_no, Value * src_var)
 {
 
     if (Instanceof(constVal, ConstInt *, src_var)) {
-        // ÕûĞÍ³£Á¿
+        // æ•´å‹å¸¸é‡
 
-        // TODO Ä¿Ç°Ö»¿¼ÂÇÕûÊıÀàĞÍ 100
+        // TODO ç›®å‰åªè€ƒè™‘æ•´æ•°ç±»å‹ 100
         // ldr r8,#100
         load_imm(rs_reg_no, constVal->getVal());
     } else if (src_var->getRegId() != -1) {
 
-        // Ô´²Ù×÷ÊıÎª¼Ä´æÆ÷±äÁ¿
+        // æºæ“ä½œæ•°ä¸ºå¯„å­˜å™¨å˜é‡
         int32_t src_regId = src_var->getRegId();
 
         if (src_regId != rs_reg_no) {
 
-            // mov r8,r2 | ÕâÀïÓĞÓÅ»¯¿Õ¼ä¡ª¡ªÏû³ır8
+            // mov r8,r2 | è¿™é‡Œæœ‰ä¼˜åŒ–ç©ºé—´â€”â€”æ¶ˆé™¤r8
             emit("mov", PlatformArm64::regName[rs_reg_no], PlatformArm64::regName[src_regId]);
         }
     } else if (Instanceof(globalVar, GlobalVariable *, src_var)) {
-        // È«¾Ö±äÁ¿
+        // å…¨å±€å˜é‡
 
-        // ¶ÁÈ¡È«¾Ö±äÁ¿µÄµØÖ·
+        // è¯»å–å…¨å±€å˜é‡çš„åœ°å€
         // movw r8, #:lower16:a
         // movt r8, #:lower16:a
         load_symbol(rs_reg_no, globalVar->getName());
@@ -386,9 +349,9 @@ void ILocArm64::load_var(int rs_reg_no, Value * src_var)
 
     } else {
 
-        // Õ»+Æ«ÒÆµÄÑ°Ö··½Ê½
+        // æ ˆ+åç§»çš„å¯»å€æ–¹å¼
 
-        // Õ»Ö¡Æ«ÒÆ
+        // æ ˆå¸§åç§»
         int32_t var_baseRegId = -1;
         int64_t var_offset = -1;
 
@@ -397,25 +360,25 @@ void ILocArm64::load_var(int rs_reg_no, Value * src_var)
             minic_log(LOG_ERROR, "BUG");
         }
 
-        // ¶ÔÓÚÕ»ÄÚ·ÖÅäµÄ¾Ö²¿Êı×é£¬¿ÉÖ±½ÓÔÚÕ»Ö¸ÕëÉÏ½øĞĞÒÆ¶¯ÓëÔËËã
-        // µ«¶ÔÓÚĞÎ²Î£¬Æä±£´æµÄÊÇµ÷ÓÃº¯ÊıÕ»µÄÊı×éµÄµØÖ·£¬ĞèÒª¶ÁÈ¡³öÀ´
+        // å¯¹äºæ ˆå†…åˆ†é…çš„å±€éƒ¨æ•°ç»„ï¼Œå¯ç›´æ¥åœ¨æ ˆæŒ‡é’ˆä¸Šè¿›è¡Œç§»åŠ¨ä¸è¿ç®—
+        // ä½†å¯¹äºå½¢å‚ï¼Œå…¶ä¿å­˜çš„æ˜¯è°ƒç”¨å‡½æ•°æ ˆçš„æ•°ç»„çš„åœ°å€ï¼Œéœ€è¦è¯»å–å‡ºæ¥
 
         // ldr r8,[sp,#16]
         load_base(rs_reg_no, var_baseRegId, var_offset);
     }
 }
 
-/// @brief ¼ÓÔØ±äÁ¿µØÖ·µ½¼Ä´æÆ÷
+/// @brief åŠ è½½å˜é‡åœ°å€åˆ°å¯„å­˜å™¨
 /// @param rs_reg_no
 /// @param var
 void ILocArm64::lea_var(int rs_reg_no, Value * var)
 {
-    // ±»¼ÓÔØµÄ±äÁ¿¿Ï¶¨²»ÊÇ³£Á¿£¡
-    // ±»¼ÓÔØµÄ±äÁ¿¿Ï¶¨²»ÊÇ¼Ä´æÆ÷±äÁ¿£¡
+    // è¢«åŠ è½½çš„å˜é‡è‚¯å®šä¸æ˜¯å¸¸é‡ï¼
+    // è¢«åŠ è½½çš„å˜é‡è‚¯å®šä¸æ˜¯å¯„å­˜å™¨å˜é‡ï¼
 
-    // Ä¿Ç°Ö»¿¼ÂÇ¾Ö²¿±äÁ¿
+    // ç›®å‰åªè€ƒè™‘å±€éƒ¨å˜é‡
 
-    // Õ»Ö¡Æ«ÒÆ
+    // æ ˆå¸§åç§»
     int32_t var_baseRegId = -1;
     int64_t var_offset = -1;
 
@@ -428,32 +391,32 @@ void ILocArm64::lea_var(int rs_reg_no, Value * var)
     leaStack(rs_reg_no, var_baseRegId, var_offset);
 }
 
-/// @brief ±£´æ¼Ä´æÆ÷µ½±äÁ¿£¬±£Ö¤½«¼ÆËã½á¹û£¨r8£©±£´æµ½±äÁ¿
-/// @param src_reg_no Ô´¼Ä´æÆ÷
-/// @param dest_var  ±äÁ¿
-/// @param tmp_reg_no µÚÈı·½¼Ä´æÆ÷
+/// @brief ä¿å­˜å¯„å­˜å™¨åˆ°å˜é‡ï¼Œä¿è¯å°†è®¡ç®—ç»“æœï¼ˆr8ï¼‰ä¿å­˜åˆ°å˜é‡
+/// @param src_reg_no æºå¯„å­˜å™¨
+/// @param dest_var  å˜é‡
+/// @param tmp_reg_no ç¬¬ä¸‰æ–¹å¯„å­˜å™¨
 void ILocArm64::store_var(int src_reg_no, Value * dest_var, int tmp_reg_no)
 {
-    // ±»±£´æÄ¿±ê±äÁ¿¿Ï¶¨²»ÊÇ³£Á¿
+    // è¢«ä¿å­˜ç›®æ ‡å˜é‡è‚¯å®šä¸æ˜¯å¸¸é‡
 
     if (dest_var->getRegId() != -1) {
 
-        // ¼Ä´æÆ÷±äÁ¿
+        // å¯„å­˜å™¨å˜é‡
 
-        // -1±íÊ¾·Ç¼Ä´æÆ÷£¬ÆäËû±íÊ¾¼Ä´æÆ÷µÄË÷ÒıÖµ
+        // -1è¡¨ç¤ºéå¯„å­˜å™¨ï¼Œå…¶ä»–è¡¨ç¤ºå¯„å­˜å™¨çš„ç´¢å¼•å€¼
         int dest_reg_id = dest_var->getRegId();
 
-        // ¼Ä´æÆ÷²»Ò»Ñù²ÅĞèÒªmov²Ù×÷
+        // å¯„å­˜å™¨ä¸ä¸€æ ·æ‰éœ€è¦movæ“ä½œ
         if (src_reg_no != dest_reg_id) {
 
-            // mov r2,r8 | ÕâÀïÓĞÓÅ»¯¿Õ¼ä¡ª¡ªÏû³ır8
+            // mov r2,r8 | è¿™é‡Œæœ‰ä¼˜åŒ–ç©ºé—´â€”â€”æ¶ˆé™¤r8
             emit("mov", PlatformArm64::regName[dest_reg_id], PlatformArm64::regName[src_reg_no]);
         }
 
     } else if (Instanceof(globalVar, GlobalVariable *, dest_var)) {
-        // È«¾Ö±äÁ¿
+        // å…¨å±€å˜é‡
 
-        // ¶ÁÈ¡·ûºÅµÄµØÖ·µ½¼Ä´æÆ÷r10
+        // è¯»å–ç¬¦å·çš„åœ°å€åˆ°å¯„å­˜å™¨r10
         load_symbol(tmp_reg_no, globalVar->getName());
 
         // str r8, [r10]
@@ -461,11 +424,11 @@ void ILocArm64::store_var(int src_reg_no, Value * dest_var, int tmp_reg_no)
 
     } else {
 
-        // ¶ÔÓÚ¾Ö²¿±äÁ¿£¬ÔòÖ±½Ó´ÓÕ»»ùÖ·+Æ«ÒÆÑ°Ö·
+        // å¯¹äºå±€éƒ¨å˜é‡ï¼Œåˆ™ç›´æ¥ä»æ ˆåŸºå€+åç§»å¯»å€
 
-        // TODO Ä¿Ç°Ö»¿¼ÂÇ¾Ö²¿±äÁ¿
+        // TODO ç›®å‰åªè€ƒè™‘å±€éƒ¨å˜é‡
 
-        // Õ»Ö¡Æ«ÒÆ
+        // æ ˆå¸§åç§»
         int32_t dest_baseRegId = -1;
         int64_t dest_offset = -1;
 
@@ -480,10 +443,10 @@ void ILocArm64::store_var(int src_reg_no, Value * dest_var, int tmp_reg_no)
     }
 }
 
-/// @brief ¼ÓÔØÕ»ÄÚ±äÁ¿µØÖ·
-/// @param rsReg ½á¹û¼Ä´æÆ÷ºÅ
-/// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-/// @param off Æ«ÒÆ
+/// @brief åŠ è½½æ ˆå†…å˜é‡åœ°å€
+/// @param rsReg ç»“æœå¯„å­˜å™¨å·
+/// @param base_reg_no åŸºå€å¯„å­˜å™¨
+/// @param off åç§»
 void ILocArm64::leaStack(int rs_reg_no, int base_reg_no, int off)
 {
     std::string rs_reg_name = PlatformArm64::regName[rs_reg_no];
@@ -501,23 +464,23 @@ void ILocArm64::leaStack(int rs_reg_no, int base_reg_no, int off)
     }
 }
 
-/// @brief º¯ÊıÄÚÕ»ÄÚ¿Õ¼ä·ÖÅä£¨¾Ö²¿±äÁ¿¡¢ĞÎ²Î±äÁ¿¡¢º¯Êı²ÎÊı´«Öµ£¬»ò²»ÄÜ¼Ä´æÆ÷·ÖÅäµÄÁÙÊ±±äÁ¿µÈ£©
-/// @param func º¯Êı
+/// @brief å‡½æ•°å†…æ ˆå†…ç©ºé—´åˆ†é…ï¼ˆå±€éƒ¨å˜é‡ã€å½¢å‚å˜é‡ã€å‡½æ•°å‚æ•°ä¼ å€¼ï¼Œæˆ–ä¸èƒ½å¯„å­˜å™¨åˆ†é…çš„ä¸´æ—¶å˜é‡ç­‰ï¼‰
+/// @param func å‡½æ•°
 /// @param tmp_reg_No
 void ILocArm64::allocStack(Function * func, int tmp_reg_no)
 {
-    // ³¬¹ıËÄ¸öµÄº¯Êıµ÷ÓÃ²ÎÊı¸öÊı£¬¶àÓà4¸ö£¬ÔòĞèÒªÕ»´«Öµ
+    // è¶…è¿‡å››ä¸ªçš„å‡½æ•°è°ƒç”¨å‚æ•°ä¸ªæ•°ï¼Œå¤šä½™4ä¸ªï¼Œåˆ™éœ€è¦æ ˆä¼ å€¼
     int funcCallArgCnt = func->getMaxFuncCallArgCnt() - 4;
     if (funcCallArgCnt < 0) {
         funcCallArgCnt = 0;
     }
 
-    // ¼ÆËãÕ»Ö¡´óĞ¡
+    // è®¡ç®—æ ˆå¸§å¤§å°
     int off = func->getMaxDep();
 
     off += funcCallArgCnt * 4;
 
-    // ²»ĞèÒªÔÚÕ»ÄÚ¶îÍâ·ÖÅä¿Õ¼ä£¬ÔòÊ²Ã´¶¼²»×ö
+    // ä¸éœ€è¦åœ¨æ ˆå†…é¢å¤–åˆ†é…ç©ºé—´ï¼Œåˆ™ä»€ä¹ˆéƒ½ä¸åš
     if (0 == off)
         return;
 
@@ -532,28 +495,28 @@ void ILocArm64::allocStack(Function * func, int tmp_reg_no)
         emit("sub", "sp", "sp", PlatformArm64::regName[tmp_reg_no]);
     }
 
-    // º¯Êıµ÷ÓÃÍ¨¹ıÕ»´«µİµÄ»ùÖ·¼Ä´æÆ÷ÉèÖÃ
+    // å‡½æ•°è°ƒç”¨é€šè¿‡æ ˆä¼ é€’çš„åŸºå€å¯„å­˜å™¨è®¾ç½®
     inst("add", PlatformArm64::regName[ARM64_FP_REG_NO], "sp", toStr(funcCallArgCnt * 4));
 }
 
-/// @brief µ÷ÓÃº¯Êıfun
+/// @brief è°ƒç”¨å‡½æ•°fun
 /// @param fun
 void ILocArm64::call_fun(std::string name)
 {
-    // º¯Êı·µ»ØÖµÔÚr0,²»ĞèÒª±£»¤
+    // å‡½æ•°è¿”å›å€¼åœ¨r0,ä¸éœ€è¦ä¿æŠ¤
     emit("bl", name);
 }
 
-/// @brief NOP²Ù×÷
+/// @brief NOPæ“ä½œ
 void ILocArm64::nop()
 {
-    // FIXME ÎŞ²Ù×÷·û£¬ÒªÈ·ÈÏÊÇ·ñÓÃnopÖ¸Áî
+    // FIXME æ— æ“ä½œç¬¦ï¼Œè¦ç¡®è®¤æ˜¯å¦ç”¨nopæŒ‡ä»¤
     emit("");
 }
 
 ///
-/// @brief ÎŞÌõ¼şÌø×ªÖ¸Áî
-/// @param label Ä¿±êLabelÃû³Æ
+/// @brief æ— æ¡ä»¶è·³è½¬æŒ‡ä»¤
+/// @param label ç›®æ ‡Labelåç§°
 ///
 void ILocArm64::jump(std::string label)
 {

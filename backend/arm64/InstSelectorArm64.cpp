@@ -143,7 +143,6 @@ void InstSelectorArm64::translate_goto(Instruction * inst)
 /// @param inst IR指令
 void InstSelectorArm64::translate_entry(Instruction * inst)
 {
-    // 查看保护的寄存器
     auto & protectedRegNo = func->getProtectedReg();
     auto & protectedRegStr = func->getProtectedRegStr();
 
@@ -152,7 +151,7 @@ void InstSelectorArm64::translate_entry(Instruction * inst)
         if (first) {
             protectedRegStr = PlatformArm64::regName[regno];
             first = false;
-        } else if (!first) {
+        } else {
             protectedRegStr += "," + PlatformArm64::regName[regno];
         }
     }
@@ -161,38 +160,29 @@ void InstSelectorArm64::translate_entry(Instruction * inst)
         iloc.inst("push", "{" + protectedRegStr + "}");
     }
 
-    // 为fun分配栈帧，含局部变量、函数调用值传递的空间等
     iloc.allocStack(func, ARM64_XR_REG_NO);
 }
 
-/// @brief 函数出口指令翻译成ARM64汇编
-/// @param inst IR指令
 void InstSelectorArm64::translate_exit(Instruction * inst)
 {
     if (inst->getOperandsNum()) {
-        // 存在返回值
         Value * retVal = inst->getOperand(0);
-
-        // 赋值给寄存器R0
         iloc.load_var(0, retVal);
     }
 
     auto & protectedRegStr = func->getProtectedRegStr();
 
-    // 恢复栈空间
     iloc.inst("add",
               PlatformArm64::regName[ARM64_FP_REG_NO],
               PlatformArm64::regName[ARM64_FP_REG_NO],
               iloc.toStr(func->getMaxDep()));
-
     iloc.inst("mov", "sp", PlatformArm64::regName[ARM64_FP_REG_NO]);
 
-    // 保护寄存器的恢复
     if (!protectedRegStr.empty()) {
         iloc.inst("pop", "{" + protectedRegStr + "}");
     }
 
-    iloc.inst("bx", "lr");
+    iloc.inst("ret", "lr");
 }
 
 /// @brief 赋值指令翻译成ARM64汇编

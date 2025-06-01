@@ -1,6 +1,4 @@
-.arch armv7ve
-.arm
-.fpu vfpv4
+	.arch armv8-a
 .text
 .align 1
 .global main

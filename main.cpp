@@ -128,7 +128,7 @@ lb_check:
             case 'T':
                 gShowAST = true;
                 break;
-            case 'I':
+            case 'L':
                 // 产生中间IR
                 gShowLineIR = true;
                 break;
@@ -327,9 +327,9 @@ int compile(std::string inputFile, std::string outputFile)
 
             CodeGenerator * generator = nullptr;
 
-			if (gCPUTarget == "ARM64") {
-                generator = new CodeGeneratorArm64(module);
-                generator->run(outputFile);
+            if (gCPUTarget == "ARM64") {
+                // generator = new CodeGeneratorArm64(module);
+                // generator->run(outputFile);
             }
             // 不支持指定的CPU架构
             else {

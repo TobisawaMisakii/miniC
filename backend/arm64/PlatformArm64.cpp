@@ -59,19 +59,15 @@ RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
 /// @return
 bool PlatformArm64::constExpr(int num)
 {
-    // immediate 生成逻辑
-
-    return true;
+    // 检查立即数是否在有效范围内
+    return num >= -0x80000000 && num <= 0x7FFFFFFF;
 }
 
-/// @brief 判定是否是合法的偏移
-/// @param num
-/// @return
 bool PlatformArm64::isDisp(int num)
 {
-    return num < 0x80000 && num > -0x80000;
+    // 检查偏移量是否在有效范围内
+    return num >= -0x80000000 && num <= 0x7FFFFFFF;
 }
-
 /// @brief 判断是否是合法的寄存器名
 /// @param s 寄存器名字
 /// @return 是否是

@@ -47,9 +47,9 @@ CodeGeneratorArm64::~CodeGeneratorArm64()
 /// @brief 产生汇编头部分
 void CodeGeneratorArm64::genHeader()
 {
-    fprintf(fp, "%s\n", ".arch armv7ve");
-    fprintf(fp, "%s\n", ".arm");
-    fprintf(fp, "%s\n", ".fpu vfpv4");
+    fprintf(fp, "%s\n", "	.arch armv8-a");
+    // fprintf(fp, "%s\n", ".arm");
+    // fprintf(fp, "%s\n", ".fpu vfpv4");
 }
 
 /// @brief 全局变量Section，主要包含初始化的和未初始化过的
@@ -58,31 +58,34 @@ void CodeGeneratorArm64::genDataSection()
     // 生成代码段
     fprintf(fp, ".text\n");
 
-    // 可直接操作文件指针fp进行写操作
-
-    // 目前不支持全局变量和静态变量，以及字符串常量
-    // 全局变量分两种情况：初始化的全局变量和未初始化的全局变量
-    // TODO 这里先处理未初始化的全局变量
     for (auto var: module->getGlobalVariables()) {
-
         if (var->isInBSSSection()) {
-
-            // 在BSS段的全局变量，可以包含初值全是0的变量
+            // 未初始化的全局变量，位于 BSS 段
+            fprintf(fp, ".section .bss\n");
             fprintf(fp, ".comm %s, %d, %d\n", var->getName().c_str(), var->getType()->getSize(), var->getAlignment());
         } else {
-
-            // 有初值的全局变量
+            // 已初始化的全局变量，位于 data 段
+            fprintf(fp, ".section .data\n");
             fprintf(fp, ".global %s\n", var->getName().c_str());
-            fprintf(fp, ".data\n");
             fprintf(fp, ".align %d\n", var->getAlignment());
             fprintf(fp, ".type %s, %%object\n", var->getName().c_str());
-            fprintf(fp, "%s\n", var->getName().c_str());
-            // TODO 后面设置初始化的值，具体请参考ARM的汇编
+            fprintf(fp, "%s:\n", var->getName().c_str());
+
+            if (var->getType()->isIntegerType()) {
+                // 获取初始化值
+                Value * initialValue = var->getInitialValue();
+                if (initialValue) {
+                    //
+                    // int value = initialValue->getValue();
+                    // fprintf(fp, ".quad %d\n", value); // 使用 .quad 存储 64 位整数
+                } else {
+                    // 如果没有初始化值，可以设置为 0
+                    fprintf(fp, ".quad 0\n");
+                }
+            }
         }
     }
 }
-
-///
 /// @brief 获取IR变量相关信息字符串
 /// @param str
 ///
@@ -118,38 +121,27 @@ void CodeGeneratorArm64::getIRValueStr(Value * val, std::string & str)
 /// @param func 要处理的函数
 void CodeGeneratorArm64::genCodeSection(Function * func)
 {
-    // 寄存器分配以及栈内局部变量的站内地址重新分配
     registerAllocation(func);
 
-    // 获取函数的指令列表
     std::vector<Instruction *> & IrInsts = func->getInterCode().getInsts();
 
-    // 汇编指令输出前要确保Label的名字有效，必须是程序级别的唯一，而不是函数内的唯一。要全局编号。
     for (auto inst: IrInsts) {
         if (inst->getOp() == IRInstOperator::IRINST_OP_LABEL) {
             inst->setName(IR_LABEL_PREFIX + std::to_string(labelIndex++));
         }
     }
 
-    // ILOC代码序列
     ILocArm64 iloc(module);
-
-    // 指令选择生成汇编指令
     InstSelectorArm64 instSelector(IrInsts, iloc, func, linearScanRegisterAllocator);
     instSelector.run();
-
-    // 删除无用的Label指令
     iloc.deleteUsedLabel();
 
-    // ILOC代码输出为汇编代码
     fprintf(fp, ".align %d\n", func->getAlignment());
     fprintf(fp, ".global %s\n", func->getName().c_str());
     fprintf(fp, ".type %s, %%function\n", func->getName().c_str());
     fprintf(fp, "%s:\n", func->getName().c_str());
 
-    // 开启时输出IR指令作为注释
     if (gAsmAlsoShowIR) {
-        // 输出有关局部变量的注释，便于查找问题
         for (auto localVar: func->getVarValues()) {
             std::string str;
             getIRValueStr(localVar, str);
@@ -158,7 +150,6 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
             }
         }
 
-        // 输出指令关联的临时变量信息
         for (auto inst: func->getInterCode().getInsts()) {
             if (inst->hasResultValue()) {
                 std::string str;
