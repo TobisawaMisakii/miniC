@@ -36,7 +36,6 @@ public:
     /// @param str
     std::string toString()
     {
-        // 指针类型（包括数组退化的指针）或数组类型
         if (type->isPointerType() || type->isArrayType()) {
             return type->toString() + "* " + IRName;
         }

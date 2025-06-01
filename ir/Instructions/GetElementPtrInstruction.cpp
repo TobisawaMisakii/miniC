@@ -1,5 +1,6 @@
 #include "GetElementPtrInstruction.h"
-#include "Types/PointerType.h"
+#include "PointerType.h"
+
 GetElementPtrInstruction::GetElementPtrInstruction(Function * func,
                                                    Value * basePtr,
                                                    const std::vector<Value *> & indices,
@@ -14,19 +15,23 @@ GetElementPtrInstruction::GetElementPtrInstruction(Function * func,
 
 void GetElementPtrInstruction::toString(std::string & str)
 {
-    str = getIRName() + " = getelementptr inbounds ";
-    if (resultType->isIntegerType()) {
-        str += resultType->toString() + ", ";
-    } else {
-        str += basePtr->getType()->toString() + ", ";
+    // 展开 basePtr 类型的指针层数
+    Type * t = basePtr->getType();
+    int pointerLevel = 0;
+    while (t->isPointerType()) {
+        pointerLevel++;
+        t = const_cast<Type *>(static_cast<const PointerType *>(t)->getPointeeType());
     }
-    if (resultType->isPointerType() && basePtr->getType()->isArrayType()) {
-        str += basePtr->getType()->toString() + "* " + basePtr->getIRName();
-    } else {
-        str += basePtr->getType()->toString() + " " + basePtr->getIRName();
+    std::string typeStr = t->toString();
+    for (int i = 0; i < pointerLevel - 1; ++i) {
+        typeStr += "*";
     }
 
-    for (auto & idx: indices) {
-        str += ", " + idx->getType()->toString() + " " + idx->getIRName();
+    str = getIRName() + " = getelementptr inbounds ";
+    str += typeStr + ", ";
+    str += typeStr + "* " + basePtr->getIRName();
+    for (auto idx: indices) {
+        str += ", " + idx->getType()->toString() + " ";
+        str += idx->getIRName();
     }
 }

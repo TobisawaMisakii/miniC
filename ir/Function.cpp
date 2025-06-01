@@ -108,7 +108,7 @@ void Function::toString(std::string & str)
         } else {
             str += ", ";
         }
-        str += param->getType()->toString() + " " + param->getIRName();
+        str += param->toString();
     }
     str += ")\n";
     str += "{\n";
@@ -116,25 +116,48 @@ void Function::toString(std::string & str)
     // 输出局部变量的名字与IR名字
     for (auto & var: this->varsVector) {
 
-        if (var->getType()->isPointerType()) { // 指针类型变量声明
-            str += "\t" + var->getIRName() + " = alloca " + var->getType()->toString() + ", align 8";
+        // 检查变量是否为数组类型
+        if (var->getType()->isPointerType()) {
+            Type * t = var->getType();
+            std::string typeStr;
+            int pointerLevel = 0;
+
+            // 统计指针层数
+            while (t->isPointerType()) {
+                pointerLevel++;
+                t = const_cast<Type *>(static_cast<const PointerType *>(t)->getPointeeType());
+            }
+            // 基础类型字符串
+            typeStr = t->toString();
+            // 拼接指针层数
+            for (int i = 0; i < pointerLevel; ++i) {
+                typeStr += "*";
+            }
+
+            // 推荐：根据类型自动设置对齐
+            int align = (pointerLevel > 0) ? 8 : 4;
+
+            str += "\t" + var->getIRName() + " = alloca " + typeStr + ", align " + std::to_string(align);
+
             std::string realName = var->getName();
             if (!realName.empty()) {
                 str += " ; " + std::to_string(var->getScopeLevel()) + ":" + realName;
             }
-        } else if (var->getType()->isArrayType()) { // 检查变量是否为数组类型
+        } else if (var->getType()->isArrayType()) {
             ArrayType * arrayType = dynamic_cast<ArrayType *>(var->getType());
             if (arrayType) {
                 str += "\t" + var->getIRName() + " = alloca " + arrayType->toString() + ", align 16";
                 str += " ;  " + std::to_string(var->getScopeLevel()) + ":" + var->getName();
             }
-        } else { // 普通变量声明
+        } else {
+            // 普通变量声明
             str += "\t" + var->getIRName() + " = alloca " + var->getType()->toString() + ", align 4";
             std::string realName = var->getName();
             if (!realName.empty()) {
                 str += " ; " + std::to_string(var->getScopeLevel()) + ":" + realName;
             }
         }
+
         str += "\n";
     }
 
@@ -289,7 +312,6 @@ LocalVariable * Function::newLocalVarValue(Type * type, std::string name, int32_
 {
     // 创建变量并加入符号表
     LocalVariable * varValue = new LocalVariable(type, name, scope_level);
-
     // varsVector表中可能存在变量重名的信息
     varsVector.push_back(varValue);
 

@@ -70,4 +70,7 @@ protected:
 
     /// @brief 查找用于溢出的寄存器
     int findSpillRegister();
+
+public:
+    ~LinearScanRegisterAllocator();
 };

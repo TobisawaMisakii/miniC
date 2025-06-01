@@ -59,4 +59,7 @@ public:
 
     /// @brief 对寄存器分配Value，记录位置
     static RegVariable * intRegVal[maxRegNum];
+
+public:
+    ~PlatformArm64();
 };

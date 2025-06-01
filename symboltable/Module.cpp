@@ -30,6 +30,45 @@ Module::Module(std::string _name) : name(_name)
 
     // 确保全局变量作用域入栈，这样全局变量才可以加入
     scopeStack->enterScope();
+    // 注册内置函数
+    (void) newFunction("getint", IntegerType::getTypeInt(), {}, true);
+    (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
+    (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
+
+    (void) newFunction("getarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+    (void) newFunction("getfarray",
+                       IntegerType::getTypeInt(),
+                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+    (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
+    (void) newFunction("putch", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
+
+    (void) newFunction("putarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    (void) newFunction("putfarray",
+                       VoidType::getType(),
+                       {new FormalParam{IntegerType::getTypeInt(), ""},
+                        new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
+                       true);
+
+    // 输出字符数组 char []
+    (void) newFunction("putf",
+                       VoidType::getType(),
+                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
+                       true);
+
+    // 用户调用无需参数，在IR生成阶段展开，插入line_no
+    (void) newFunction("starttime", VoidType::getType(), {}, true);
+    (void) newFunction("stoptime", VoidType::getType(), {}, true);
 }
 
 /// @brief 进入作用域，如进入函数体块、语句块等
@@ -214,7 +253,8 @@ ConstFloat * Module::findConstFloat(float val)
 /// @param type 变量类型
 /// @param name 变量ID 局部变量时可以为空，目的为了SSA时创建临时的局部变量，
 /// @return nullptr则说明变量已存在，否则为新建的变量
-Value * Module::newVarValue(Type * type, std::string name, Value * initValue)
+Value *
+Module::newVarValue(Type * type, std::string name, Value * initValue, ConstInt * intValue, ConstFloat * floatValue)
 {
     Value * retVal;
     std::string varName;
@@ -247,7 +287,7 @@ Value * Module::newVarValue(Type * type, std::string name, Value * initValue)
 
     } else {
         printf("创建全局变量%s\n", name.c_str());
-        retVal = newGlobalVariable(type, name, initValue);
+        retVal = newGlobalVariable(type, name, initValue, intValue, floatValue);
     }
 
     // 增加做作用域中
@@ -331,7 +371,11 @@ Value * Module::newArrayValue(Type * type, std::string name, const std::vector<i
 /// @param initValue 初始化值，默认nullptr
 /// @return Value* 全局变量
 ///
-GlobalVariable * Module::newGlobalVariable(Type * type, std::string name, Value * initValue)
+GlobalVariable * Module::newGlobalVariable(Type * type,
+                                           std::string name,
+                                           Value * initValue,
+                                           ConstInt * intValue,
+                                           ConstFloat * floatValue)
 {
     GlobalVariable * val = new GlobalVariable(type, name);
     if (initValue) {
@@ -340,6 +384,10 @@ GlobalVariable * Module::newGlobalVariable(Type * type, std::string name, Value 
             delete val;
             return nullptr;
         }
+        if (intValue)
+            val->setIntValue(intValue);
+        else if (floatValue)
+            val->setFloatValue(floatValue);
         val->setInitialValue(initValue);
     }
     insertGlobalValueDirectly(val);

@@ -104,7 +104,7 @@ public:
     ///
     [[nodiscard]] std::string toString() const override
     {
-        return pointeeType->toString() + "*";
+        return pointeeType->toString();
     }
 
 private:

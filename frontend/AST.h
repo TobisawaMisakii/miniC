@@ -26,7 +26,8 @@
 #include "IRCode.h"
 #include "Value.h"
 #include "VoidType.h"
-
+#include "ConstInt.h"
+#include "ConstFloat.h"
 ///
 /// @brief AST节点的类型
 ///
@@ -98,17 +99,19 @@ public:
     ast_operator_type node_type; // 节点类型
     int64_t line_no;             // 行号信息
     Type * type;                 // 节点值的类型
-    bool store; //该节点是否可以store, 即是否为赋值语句的左值，至于是否为数组或指针，在左值节点判断
+    bool store; // 该节点是否可以store, 即是否为赋值语句的左值，至于是否为数组或指针，在左值节点判断
     union {
         uint32_t integer_val; // 整数值
         float float_val;      // 浮点值
     };
-    std::string name;             // 变量名或函数名
-    ast_node * parent;            // 父节点
-    std::vector<ast_node *> sons; // 子节点
-    InterCode blockInsts;         // 线性IR指令块，可包含多条IR指令，用于线性IR指令产生用
-    Value * val = nullptr;        // 线性IR指令或者运行产生的Value，用于线性IR指令产生用
-    bool needScope = true;        // 是否需要作用域管理， 默认需要
+    ConstInt * intValue = nullptr;     // 整数字面量的值
+    ConstFloat * floatValue = nullptr; // 浮点数字面量的值
+    std::string name;                  // 变量名或函数名
+    ast_node * parent;                 // 父节点
+    std::vector<ast_node *> sons;      // 子节点
+    InterCode blockInsts;              // 线性IR指令块，可包含多条IR指令，用于线性IR指令产生用
+    Value * val = nullptr;             // 线性IR指令或者运行产生的Value，用于线性IR指令产生用
+    bool needScope = true;             // 是否需要作用域管理， 默认需要
 
     /// @brief 构造函数
     ast_node(ast_operator_type _node_type,
@@ -162,7 +165,7 @@ public:
 // AST相关函数声明
 void free_ast(ast_node * root); // AST资源清理
 
-extern ast_node * ast_root; //抽象语法树的根节点指针
+extern ast_node * ast_root; // 抽象语法树的根节点指针
 
 /// @brief 创建AST的内部节点，请注意可追加孩子节点，请按次序依次加入，最多3个
 /// @param node_type 节点类型

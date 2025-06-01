@@ -13,6 +13,7 @@
 /// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>新做
 /// </table>
 ///
+
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -58,7 +59,7 @@ void CodeGeneratorArm64::genDataSection()
     // 生成代码段
     fprintf(fp, ".text\n");
 
-    for (auto var: module->getGlobalVariables()) {
+    for (GlobalVariable * var: module->getGlobalVariables()) {
         if (var->isInBSSSection()) {
             // 未初始化的全局变量，位于 BSS 段
             fprintf(fp, ".section .bss\n");
@@ -73,15 +74,8 @@ void CodeGeneratorArm64::genDataSection()
 
             if (var->getType()->isIntegerType()) {
                 // 获取初始化值
-                Value * initialValue = var->getInitialValue();
-                if (initialValue) {
-                    //
-                    // int value = initialValue->getValue();
-                    // fprintf(fp, ".quad %d\n", value); // 使用 .quad 存储 64 位整数
-                } else {
-                    // 如果没有初始化值，可以设置为 0
-                    fprintf(fp, ".quad 0\n");
-                }
+                int value = var->GetintValue();
+                fprintf(fp, ".quad %d\n", value);
             }
         }
     }

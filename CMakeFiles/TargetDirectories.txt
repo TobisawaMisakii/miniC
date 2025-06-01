@@ -1,0 +1,9 @@
+/home/lwx/Complier/miniC/CMakeFiles/minic.dir
+/home/lwx/Complier/miniC/CMakeFiles/package.dir
+/home/lwx/Complier/miniC/CMakeFiles/package_source.dir
+/home/lwx/Complier/miniC/CMakeFiles/edit_cache.dir
+/home/lwx/Complier/miniC/CMakeFiles/rebuild_cache.dir
+/home/lwx/Complier/miniC/CMakeFiles/list_install_components.dir
+/home/lwx/Complier/miniC/CMakeFiles/install.dir
+/home/lwx/Complier/miniC/CMakeFiles/install/local.dir
+/home/lwx/Complier/miniC/CMakeFiles/install/strip.dir

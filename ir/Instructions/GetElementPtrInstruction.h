@@ -16,6 +16,10 @@ public:
     {
         return basePtr;
     }
+    Type * getResultType() const
+    {
+        return resultType;
+    }
     const std::vector<Value *> & getIndices() const
     {
         return indices;

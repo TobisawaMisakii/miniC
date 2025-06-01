@@ -290,5 +290,12 @@
 		"semaphore": "cpp",
 		"stop_token": "cpp",
 		"*.inc": "cpp"
+		"*.def": "cpp",
+		"compare": "cpp",
+		"concepts": "cpp",
+		"numbers": "cpp",
+		"semaphore": "cpp",
+		"stop_token": "cpp",
+		"*.inc": "cpp"
 	}
 }

@@ -48,13 +48,14 @@ void FuncCallInstruction::toString(std::string & str)
     if (calledFunction->isBuiltin() && operandsNum == 1) {
         // 函数没有参数
         if (type->isInt32Type()) {
-			str = getIRName() + " = call i32 (...) " + calledFunction->getIRName() + "()";
-			return;
-		} else if (type->isFloatType()) {
-			str = getIRName() + " = call float (...) " + calledFunction->getIRName() + "()";
-			return;
-		}
+            str = getIRName() + " = call i32 (...) " + calledFunction->getIRName() + "()";
+            return;
+        } else if (type->isFloatType()) {
+            str = getIRName() + " = call float (...) " + calledFunction->getIRName() + "()";
+            return;
+        }
     }
+    // }
 
     if (type->isVoidType()) {
         // 函数没有返回值设置
@@ -73,10 +74,32 @@ void FuncCallInstruction::toString(std::string & str)
     if (!type->isVoidType()) {
         operandsNum = operandsNum - 1;
     }
+    auto & formalParams = calledFunction->getParams();
     for (int32_t k = 0; k < operandsNum; ++k) {
 
         auto operand = getOperand(k);
-        str += operand->getType()->toString() + " " + operand->getIRName();
+        // str += operand->getType()->toString() + " " + operand->getIRName();
+        // if (k != (operandsNum - 1)) {
+        //     str += ", ";
+        // }
+        std::string paramTypeStr;
+        if (k < formalParams.size()) {
+            // 用形参类型，拼接规则同 FormalParam::toString()
+            auto * formal = formalParams[k];
+            if (formal->getType()->isPointerType() || formal->getType()->isArrayType()) {
+                paramTypeStr = formal->getType()->toString() + "*";
+            } else {
+                paramTypeStr = formal->getType()->toString();
+            }
+        } else {
+            // fallback
+            if (operand->getType()->isPointerType() || operand->getType()->isArrayType()) {
+                paramTypeStr = operand->getType()->toString() + "*";
+            } else {
+                paramTypeStr = operand->getType()->toString();
+            }
+        }
+        str += paramTypeStr + " " + operand->getIRName();
         if (k != (operandsNum - 1)) {
             str += ", ";
         }

@@ -1,799 +1,938 @@
-# 1. MiniC编译器-表达式版
+# dev_CPY开发文档
 
-## 1.1. 编译器的功能
+## WebSite
 
-在基本版的基础上，还支持如下的功能：
-1. 支持int类型的全局变量定义，不支持变量初始化设值；
-2. 函数可定义多个，但不支持形参，函数返回值仍然是int类型；
-3. 函数内支持int类型的局部变量定义，不必在语句块的开头；
-4. 支持赋值语句，不支持连续赋值；
-6. 支持语句块；
-5. 表达式支持加减、函数调用、带括号的运算；
-7. 支持内置函数putint，通过它可在终端显示对应的十进制值；
-8. 变量可重名，支持变量分层管理。
+- [比赛官网]<https://compiler.educg.net/?token=TPOczAJinR2aJABo2cxpNeD1BnGPTmsJkWpd1yDh0A#/index?TYPE=2025COM>
+- [ARM64架构文档]<https://www.kernel.org/doc/html/latest/translations/zh_CN/arch/arm64/index.html>
+- [2024Compiler（包括测例）]<https://gitlab.eduxiji.net/csc1/nscscc/compiler2024/-/tree/main>
+- [LLVM IR Manual]<[LLVM Language Reference Manual — LLVM 21.0.0git documentation](https://llvm.org/docs/LangRef.html)>
 
-源代码位置：<https://github.com/NPUCompiler/exp03-minic-expr.git>
+##  TODO
 
-## 1.2. 编译器的文法
+- 已经加入类型转换指令，在 assign/add/sub/mul/eq 节点试用暂未发现问题，需继续添加到其他判断（ne/lt/...）和其他需要的的地方
 
-### 1.2.1. antlr4格式的文法
+- 加入ir_condition，合并条件表达式的处理，以防止多处同时修改。condition node应该出现在：if/while参数，and/or子节点，eq/ne等判断的子节点
+- 支持 `if (1 < 8 != 7 % 2)` ，对于condition stmt是bool类型的情况也要有所考虑
 
-antlr4解析器使用了Adaptive LL(*)的全新解析技术，采用动态分析技术，可主动帮助用户解决文法的直接左递归问题，
-也就是antlr4内部采用一定的策略改造文法解决直接左递归问题，不需用户手动改造文法。
+## BUG RECORD
 
-antlr4实现的文法相比文法LL(1)，简单了很多，大家可通过阅读下文的递归下降分析法使用的文法内容就可知道antlr4的好处。
+- (fixed)关系/加法/乘法表达式左值不识别
+- (fixed)float type无法识别
+- (fixed)空语句（只有一个分号）不显示在AST中
+- (fixed)创建AST node的ast_node::New(ast_operator_type, ...)方法尾部添加nullptr表示全部孩子识别完成
+- (fixed)var_decl 和 var_def 节点的关系错误，一个decl应该对应一个type + 多个def
+- (fixed)AST节点的line_no行号属性？哪些节点有行号，哪些不需要
+- (fixed)minic_log在哪？直接输出到命令行
+- (fixed)unary op 测评平台未通过
+- (fixed)全局变量赋值为-1出错：shell输出main函数返回值时，按i8输出，-1输出255
+- llvm的多维数组定义错误
+- 数组的赋值和比较等其他情况，比如Type::PointerTyID = Type::IntegerTyID时需要处理，已经处理了assign，还有lt等需要处理
 
-```antlr
-// 源文件编译单元定义
-compileUnit: (funcDef | varDecl)* EOF;
+## 一、前端理解及配置
 
-// 函数定义，目前不支持形参，也不支持返回void类型等
-funcDef: T_INT T_ID T_L_PAREN T_R_PAREN block;
+从源程序到语法树的转换过程
 
-// 语句块看用作函数体，这里允许多个语句，并且不含任何语句
-block: T_L_BRACE blockItemList? T_R_BRACE;
+### 1. 环境配置
+-    打开.zshrc
 
-// 每个ItemList可包含至少一个Item
-blockItemList: blockItem+;
+     ```shell
+     vim ~/.zshrc
+     ```
 
-// 每个Item可以是一个语句，或者变量声明语句
-blockItem: statement | varDecl;
+- 在文件末尾添加三行语句
 
-// 变量声明，目前不支持变量含有初值
-varDecl: basicType varDef (T_COMMA varDef)* T_SEMICOLON;
+  ```shell
+  export CLASSPATH=".:$HOME/Compiler/exp04-minic-expr/thirdparty/antlr4/antlr-4.12.0-complete.jar:$CLASSPATH"
+  alias antlr4='java -jar $HOME/Compiler/exp04-minic-expr/thirdparty/antlr4/antlr-4.12.0-complete.jar'
+  alias grun='java org.antlr.v4.gui.TestRig'
+  ```
 
-// 基本类型
-basicType: T_INT;
+-    sourse一下
 
-// 变量定义
-varDef: T_ID;
+     ```shell
+     source ~/.zshrc
+     ```
 
+-    测试一下，输入antlr4
+
+     ```shell
+     antlr4
+     ```
+
+### 2. Grammar Debug
+调整vscode/lauch.json，对tests/test1-1.c，使用Debug minic Antlr4 Grammar可以生成语法分析树
+
+
+### 3.antlr4生成AST流程（以添加乘法语法为例）：
+- 语法分析器的语法文件：`*.g4`，包含了词法分析器和语法分析器的规则，需要自己添加规则
+- 对`.g4`文件进行编译，生成词法分析器和语法分析器的代码
+- 运行词法分析器，读取输入文件，生成token流
+- 运行语法分析器，读取token流，生成语法树
+- 运行语法树遍历器，遍历语法树，执行相应的操作
+
+
+#### 3.1 g4文件
+词法和语法部分可分开放置,也可放置在一个文件中。若分开放置,一般情况下,一个文件名为 xxxLexer.g4,另一个文件名为 xxxParser.g4。若合并放置,一般情况下文件名为 `xxx.g4`。
+
+其中，**语法是由一系列的 EBNF 范式或产生式组成,词法由一系列的正规式或正则表达式组成**
+
+>
+> EBNF特点
+> 1. EBNF 范式支持的元符号比 BNF 范式多了可选运算符?、闭包运算符*、正闭包运算符+等
+> 2. 对于非终结符的产生式,若只有一个,则非常简单,只要把::或者→修改为冒号（即用冒号表示“定义为”）,  非终结符用小写字母开头,终结符号用大写字母开头,最后面追加分号
+>
+
+对于**对应多个产生式的非终结符**，如
+
+```antlr4
 // 目前语句支持return和赋值语句
 statement:
-	T_RETURN expr T_SEMICOLON           # returnStatement
-	| lVal T_ASSIGN expr T_SEMICOLON    # assignStatement
-	| block                             # blockStatement
-	| expr? T_SEMICOLON                 # expressionStatement;
-
-// 表达式文法 expr : AddExp 表达式目前只支持加法与减法运算
-expr: addExp;
-
-// 加减表达式
-addExp: unaryExp (addOp unaryExp)*;
-
-// 加减运算符
-addOp: T_ADD | T_SUB;
-
-// 一元表达式
-unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN;
-
-// 基本表达式：括号表达式、整数、左值表达式
-primaryExp: T_L_PAREN expr T_R_PAREN | T_DIGIT | lVal;
-
-// 实参列表
-realParamList: expr (T_COMMA expr)*;
-
-// 左值表达式
-lVal: T_ID;
-
-// 用正规式来进行词法规则的描述
-
-T_L_PAREN: '(';
-T_R_PAREN: ')';
-T_SEMICOLON: ';';
-T_L_BRACE: '{';
-T_R_BRACE: '}';
-
-T_ASSIGN: '=';
-T_COMMA: ',';
-
-T_ADD: '+';
-T_SUB: '-';
-
-// 要注意关键字同样也属于T_ID，因此必须放在T_ID的前面，否则会识别成T_ID
-T_RETURN: 'return';
-T_INT: 'int';
-T_VOID: 'void';
-
-T_ID: [a-zA-Z_][a-zA-Z0-9_]*;
-T_DIGIT: '0' | [1-9][0-9]*;
-
-/* 空白符丢弃 */
-WS: [ \r\n\t]+ -> skip;
+	T_RETURN expr T_SEMICOLON			# returnStatement
+	| lVal T_ASSIGN expr T_SEMICOLON	# assignStatement
+	| block								# blockStatement
+	| expr? T_SEMICOLON					# expressionStatement;
 ```
 
-### 1.2.2. flex词法
+可以针对 statement的每个产生式起一个别名,用于后续遍历时方便定位到底 stmt 用哪个产生式来推导。该别名类似一个非终结符号名,需以小写字母开头,并且不能和其它的非终结符重名
 
-这里只是返回Token类别的Flex脚本。
+词法部分由一系列的正规式定义组成。每条正规式定义冒号前为大写字母开头的  非终结符,冒号后给出它的正规式定义,需要时还可通过符号”->”引入一些动作符号 (比如skip), 最后以分号结尾，例如
 
-```lex
-"("         { return T_L_PAREN; }
-")"         { return T_R_PAREN; }
-"{"         { return T_L_BRACE; }
-"}"         { return T_R_BRACE; }
-
-";"         { return T_SEMICOLON; }
-","         { return T_COMMA; }
-
-"="         { return T_ASSIGN; }
-"+"         { return T_ADD; }
-"-"         { return T_SUB; }
-
-"0"|[1-9][0-9]*	{ return T_DIGIT; }
-
-"int"       { return T_INT; }
-"return"    { return T_RETURN; }
-[a-zA-Z_]+[0-9a-zA-Z_]* { return T_ID; }
-
-[\t\040]+   { ; }
-[\r\n]+     { ; }
+```antlr4
+T_DIGIT: [0-9][0-9]*;  
+LineComment: '//' ~ [\r\n]* -> skip;
 ```
 
-### 1.2.3. Bison语法
 
-要想使用Bison进行语法的识别，文法必须满足LR(1)文法。如不能满足，则在y脚本中指定优先级规则，
-依据Bison提供的算法优先级指定策略、移进优先归约等规则消除二义性，满足文法的要求。
 
-```bison
+测试修改g4文件，添加乘法文法，尝试跑通从g4文件到AST的流程：；
 
-// 文法的开始符号
-%start  CompileUnit
 
-// 指定文法的终结符号，<>可指定文法属性
-// 对于单个字符的算符或者分隔符，在词法分析时可直返返回对应的ASCII码值，bison预留了255以内的值
-// %token开始的符号称之为终结符，需要词法分析工具如flex识别后返回
-// %type开始的符号称之为非终结符，需要通过文法产生式来定义
-// %token或%type之后的<>括住的内容成为文法符号的属性，定义在前面的%union中的成员名字。
-%token T_DIGIT
-%token T_ID
-%token T_INT
+```antlr4
+// 表达式文法 expr : AddExp 表达式目前只支持加法与减法运算 新增了乘法运算测试 mulExp
+expr: addExp | mulExp;
 
-// 关键或保留字 一词一类 不需要赋予语义属性
-%token T_RETURN
+// 乘法表达式定义
+mulExp: unaryExp (mulOp unaryExp)*;
 
-// 分隔符 一词一类 不需要赋予语义属性
-%token T_SEMICOLON T_L_PAREN T_R_PAREN T_L_BRACE T_R_BRACE
+// 乘法运算符
+mulOp: T_MUL;
 
-// 运算符
-%token T_ASSIGN T_COMMA T_SUB T_ADD
-
-// 非终结符
-// %type指定文法的非终结符号，<>可指定文法属性
-%type CompileUnit
-%type FuncDef
-%type Block
-%type BlockItemList
-%type BlockItem
-%type Statement
-%type Expr
-%type LVal
-%type VarDecl VarDeclExpr VarDef
-%type AddExp UnaryExp PrimaryExp
-%type RealParamList
-%type BasicType
-%type AddOp
-%%
-
-// 编译单元可包含若干个函数与全局变量定义。要在语义分析时检查main函数存在
-// compileUnit: (funcDef | varDecl)* EOF;
-// bison不支持闭包运算，为便于追加修改成左递归方式
-// compileUnit: funcDef | varDecl | compileUnit funcDef | compileUnit varDecl
-CompileUnit : FuncDef | VarDecl | CompileUnit FuncDef | CompileUnit VarDecl ;
-
-// 函数定义，目前支持整数返回类型，不支持形参
-FuncDef : T_INT T_ID T_L_PAREN T_R_PAREN Block ;
-
-// 语句块的文法Block ： T_L_BRACE BlockItemList? T_R_BRACE
-// 其中?代表可有可无，在bison中不支持，需要拆分成两个产生式
-// Block ： T_L_BRACE T_R_BRACE | T_L_BRACE BlockItemList T_R_BRACE
-Block : T_L_BRACE T_R_BRACE | T_L_BRACE BlockItemList T_R_BRACE ;
-
-// 语句块内语句列表的文法：BlockItemList : BlockItem+
-// Bison不支持正闭包，需修改成左递归形式，便于属性的传递与孩子节点的追加
-// 左递归形式的文法为：BlockItemList : BlockItem | BlockItemList BlockItem
-BlockItemList : BlockItem | BlockItemList BlockItem ;
-
-// 语句块中子项的文法：BlockItem : Statement
-// 目前只支持语句,后续可增加支持变量定义
-BlockItem : Statement | VarDecl ;
-
-// 变量声明语句
-// 语法：varDecl: basicType varDef (T_COMMA varDef)* T_SEMICOLON
-// 因Bison不支持闭包运算符，因此需要修改成左递归，修改后的文法为：
-// VarDecl : VarDeclExpr T_SEMICOLON
-// VarDeclExpr: BasicType VarDef | VarDeclExpr T_COMMA varDef
-VarDecl : VarDeclExpr T_SEMICOLON ;
-
-// 变量声明表达式，可支持逗号分隔定义多个
-VarDeclExpr: BasicType VarDef | VarDeclExpr T_COMMA VarDef ;
-
-// 变量定义包含变量名，实际上还有初值，这里没有实现。
-VarDef : T_ID ;
-
-// 基本类型，目前只支持整型
-BasicType: T_INT ;
-
-// 语句文法：statement:T_RETURN expr T_SEMICOLON | lVal T_ASSIGN expr T_SEMICOLON
-// | block | expr? T_SEMICOLON
-// 支持返回语句、赋值语句、语句块、表达式语句
-// 其中表达式语句可支持空语句，由于bison不支持?，修改成两条
-Statement : T_RETURN Expr T_SEMICOLON | LVal T_ASSIGN Expr T_SEMICOLON | Block | Expr T_SEMICOLON | T_SEMICOLON ;
-
-// 表达式文法 expr : AddExp
-// 表达式目前只支持加法与减法运算
-Expr : AddExp ;
-
-// 加减表达式文法：addExp: unaryExp (addOp unaryExp)*
-// 由于bison不支持用闭包表达，因此需要拆分成左递归的形式
-// 改造后的左递归文法：
-// addExp : unaryExp | unaryExp addOp unaryExp | addExp addOp unaryExp
-AddExp : UnaryExp | UnaryExp AddOp UnaryExp | AddExp AddOp UnaryExp ;
-
-// 加减运算符
-AddOp: T_ADD | T_SUB ;
-
-// 目前一元表达式可以为基本表达式、函数调用，其中函数调用的实参可有可无
-// 其文法为：unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN
-// 由于bison不支持？表达，因此变更后的文法为：
-// unaryExp: primaryExp | T_ID T_L_PAREN T_R_PAREN | T_ID T_L_PAREN realParamList T_R_PAREN
-UnaryExp : PrimaryExp | T_ID T_L_PAREN T_R_PAREN | T_ID T_L_PAREN RealParamList T_R_PAREN ;
-
-// 基本表达式支持无符号整型字面量、带括号的表达式、具有左值属性的表达式
-// 其文法为：primaryExp: T_L_PAREN expr T_R_PAREN | T_DIGIT | lVal
-PrimaryExp :  T_L_PAREN Expr T_R_PAREN | T_DIGIT | LVal ;
-
-// 实参表达式支持逗号分隔的若干个表达式
-// 其文法为：realParamList: expr (T_COMMA expr)*
-// 由于Bison不支持闭包运算符表达，修改成左递归形式的文法
-// 左递归文法为：RealParamList : Expr | 左递归文法为：RealParamList T_COMMA expr
-RealParamList : Expr | RealParamList T_COMMA Expr ;
-
-// 左值表达式，目前只支持变量名，实际上还有下标变量
-LVal : T_ID ;
-
+T_MUL: '*';
 ```
 
-### 1.2.3. 递归下降分析法使用的文法
+g4修改后可以支持乘法文法，写一个测例tests/test-mul.c
 
-要想通过递归下降分析法实现语法的识别，其文法必须满足LL(1)文法的要求。
+```cpp
+int main()
+{
+    int a;
+    int b;
+    int c,d;
+    a = 2;
+    b = 3;
 
-以antlr4的文法为基础，下面阐述如何构造出满足LL(1)文法要求的文法。
-
-1. 非终结符compileUnit的分析
-
-编译单元识别，也就是文法的开始符号，其antlr4中定义的文法如下：
-```antlr
-compileUnit: (funcDef | varDecl)* EOF
-funcDef: T_INT T_ID T_L_PAREN T_R_PAREN block
-varDecl: basicType varDef (T_COMMA varDef)* T_SEMICOLON
+    return a * b;
+}
 ```
 
-因funcDef的First集合为T_INT，varDecl的First集合也为T_INT，不可区分，不是LL(1)文法，
-继续检查两者定义的第二个记号都为T_ID，不可区分；再检查第三个记号，funcDef为左小括号，
-变量声明varDecl可以为逗号，可以为等号，可以为分号，从中可以看出从第三个记号开始funcDef和varDecl可以区分。
+使用debug的Debug minic Antlr4 Grammar模式测试（需要在编辑器中打开g4文件），如果文法正确可以生成一颗AST
 
-因此可改造后的compileUnit的产生式为：
-```antlr
-compileUnit : { T_INT T_ID idtail }
-```
-其中大括号代表闭包，类似上面的antlr或者EBNF的*。
+![image-20250416202209328](README.assets/image-20250416202209328.png)
 
-非终结符idtail代表T_ID尾部可能的符号串，因此idtail的产生式可定义为：
-```antlr
-idtail : varDeclList | T_L_PAREN T_R_PAREN block
+其中包含mulExp。如果将`tests/test-mul.c`中的return语句改为
+
+```cpp
+return a / b;
 ```
 
-非终结符varDeclList可以定义多个变量，每次都在尾部增加一个逗号和标识符，直到最后一个记号为分号，即
-```antlr
-varDeclList : T_COMMA T_ID <varDeclList> | T_SEMICOLON
-```
+debug后会显示错误
 
-经过分析最终适合LL(1)文法的产生式为：
+![image-20250416202145105](README.assets/image-20250416202145105.png)
 
-```antlr
-compileUnit -> { T_INT T_ID idtail } EOF
-idtail : varDeclList | T_L_PAREN T_R_PAREN block
-varDeclList : T_COMMA T_ID varDeclList | T_SEMICOLON
-```
-
-2. 非终结符block的分析
-
-block的antlr4中的文法：
-```antlr
-block: T_L_BRACE blockItemList? T_R_BRACE;
-```
-只有一个产生式，满足LL(1)文法，不需要改造，可通过分支来区分?。
-
-3. 非终结符blockItemList的分析
-
-blockItemList的antlr4中的文法：
-```antlr
-blockItemList: blockItem+;
-```
-只有一个产生式，满足LL(1)文法，不需要改造，可通过循环来实现+。
-
-4. 非终结符blockItem、varDecl和statement的分析
-
-blockItem的antlr4中的文法：
-```antlr
-blockItem: statement | varDecl;
-varDecl : T_INT T_ID varDeclList
-statement:T_RETURN expr T_SEMICOLON | lVal T_ASSIGN expr T_SEMICOLON | block | expr? T_SEMICOLON
-lVal: T_ID;
-```
-
-分析非终结符的FISRT集合：
-```
-FIRST(varDecl)=FIRST(T_INT T_ID varDeclList)={T_INT}
-FIRST(T_RETURN expr T_SEMICOLON) = {T_RETURN}
-FIRST(lVal T_ASSIGN expr T_SEMICOLON) = FIRST(lVal) = {T_ID}
-FIRST(block) = FIRST(T_L_BRACE blockItemList? T_R_BRACE) = {T_L_BRACE}
-FIRST(expr? T_SEMICOLON) = FIRST(expr) ∪ {T_SEMICOLON} = {T_ID, T_L_PAREN, T_SEMICOLON}
-FIRST(statement)
-= FIRST(T_RETURN expr T_SEMICOLON) ∪ FIRST(lVal T_ASSIGN expr T_SEMICOLON) ∪ FIRST(block) ∪ FIRST(expr? T_SEMICOLON)
-= {T_RETURN} ∪ {T_ID} ∪ {T_L_BRACE} ∪ {T_ID, T_L_PAREN, T_SEMICOLON}
-= {T_RETURN，T_ID，T_L_BRACE, T_L_PAREN，T_SEMICOLON}
-```
-
-从中可以看出FIRST(varDecl)与FIRST(statement)的集合不交，因此，非终结符号blockItem满足LL(1)文法。
-
-非终结符varDecl只有一个产生式，满足LL(1)文法要求。
-
-非终结符statement的各个产生式的FRIST集合存在交集的可能，即：FIRST(lVal T_ASSIGN expr T_SEMICOLON) ∩ FIRST(expr? T_SEMICOLON) = {T_ID}，
-因此非终结符statement相关的文法必须改造。
-
-因lVal也就是T_ID，属于非终结符expr的子集，消除lVal都放到expr中，但是存在语义错误的可能，只有左值的才能被赋值，需要在语义分析时检查。
-引入非终结符assignExprStmtTail，代表赋值右侧表达式（含赋值运算符）和空串。
-
-改造后的文法为：
-```antlr
-statement: returnStatement | block | T_SEMICOLON | assignExprStmt T_SEMICOLON
-returnStatement : T_RETURN expr T_SEMICOLON
-assignExprStmt : expr assignExprStmtTail
-assignExprStmtTail : T_ASSIGN expr | ε
-```
-
-分析FIRST集合和FOLLOW集合，可得：
-```
-FOLLOW(assignExprStmtTail) = {T_SEMICOLON}
-FIRST(T_ASSIGN expr) = {T_ASSIGN}
-```
-
-两者不交，可得，非终结符assignExprStmtTail满足LL(1)文法的要求。
-
-同时非终结符statement也明显满足LL(1)文法的要求。
-
-因此改造后满足LL(1)文法要求的文法为：
-```antlr
-blockItem: statement | varDecl;
-varDecl : T_INT T_ID varDeclList
-statement: returnStatement | block | T_SEMICOLON | assignExprStmt T_SEMICOLON
-returnStatement : T_RETURN expr T_SEMICOLON
-assignExprStmt : expr assignExprStmtTail
-assignExprStmtTail : T_ASSIGN expr | ε
-```
-
-5. 非终结符expr的分析
-
-下面是antlr中的文法：
-```antlr
-expr: addExp;
-addExp: unaryExp (addOp unaryExp)*;
-unaryExp: primaryExp | T_ID T_L_PAREN realParamList? T_R_PAREN ;
-primaryExp: T_DIGIT | T_L_PAREN expr T_R_PAREN | lVal ;
-lVal: T_ID
-```
-
-对于非终结符unaryExp的产生式右侧的FIRST集合有FIRST(primaryExp)和FIRST(T_ID T_L_PAREN realParamList? T_R_PAREN)。
-只要两者的FIRST集合不交，就可满足LL(1)文法要求。
-
-```
-FIRST(primaryExp) = FIRST(T_DIGIT) ∪ FIRST(T_L_PAREN expr T_R_PAREN) ∪ FIRST(lVal)
-FIRST(T_DIGIT) = {T_DIGIT}
-FIRST(T_L_PAREN expr T_R_PAREN) = {T_L_PAREN}
-FIRST(lVal) = FIRST(T_ID) = {T_ID}
-```
-
-从上面的计算可得
-```
-FIRST(primaryExp) = {T_DIGIT, T_L_PAREN, T_ID}
-FIRST(T_ID T_L_PAREN realParamList? T_R_PAREN) = {T_ID}
-```
-
-从中可知非终结符unaryExp的产生式右侧符号串的FIRST集合有交集，即
-```
-FIRST(primaryExp) ∩ {T_ID T_L_PAREN realParamList? T_R_PAREN}
-= {T_DIGIT, T_L_PAREN, T_ID} ∩ {T_ID}
-= {T_ID}
-```
-
-因unaryExp不满足LL(1)文法要求，必须改造，改造后的文法为：
-```antlr
-expr: addExp;
-addExp: unaryExp (addOp unaryExp)*;
-unaryExp: T_DIGIT | T_L_PAREN expr T_R_PAREN | T_ID idTail ;
-idTail: T_L_PAREN realParamList? T_R_PAREN | ε ;
-realParamList: expr (T_COMMA expr)*;
-addOp: T_ADD | T_SUB;
-```
-
-其中idTail表示标识符ID后可以是括号，代表函数调用；可以是空串，代表简单变量；可以是中括号，代表数组（暂不支持）。
-
-这里必须要确保FOLLOW(idTail) ∩ FIRST(T_L_PAREN realParamList? T_R_PAREN)为空集，否则还不是LL(1)文法。
-
-```
-FIRST(T_L_PAREN realParamList? T_R_PAREN) = {T_L_PAREN}
-FOLLOW(idTail) = {T_ADD, T_SUB, T_R_PAREN, T_ASSIGN, T_SEMICOLON}。
-```
-
-T_ADD或T_SUB代表T_ID作为变量可进行加减法运算；
-
-T_R_PAREN代表T_ID可以在括号表达式里面；
-
-T_ASSIGN代表T_ID可作为左值进行被赋值；
-
-T_SEMICOLON代表一个语句尾部的表达式。
-
-从中可以看出FOLLOW(idTail) ∩ FIRST(T_L_PAREN realParamList? T_R_PAREN)为空集，满足LL(1)文法要求。
-
-很明显realParamList和addOp皆满足LL(1)文法要求。
-
-6. 最终的LL(1)文法
-
-```antlr
-compileUnit -> { T_INT T_ID idtail } EOF
-idtail : varDeclList | T_L_PAREN T_R_PAREN block
-varDeclList : T_COMMA T_ID varDeclList | T_SEMICOLON
-
-block: T_L_BRACE blockItemList? T_R_BRACE;
-blockItemList: blockItem+;
-
-blockItem: statement | varDecl;
-varDecl : T_INT T_ID varDeclList
-statement: returnStatement | block | T_SEMICOLON | assignExprStmt T_SEMICOLON
-returnStatement : T_RETURN expr T_SEMICOLON
-assignExprStmt : expr assignExprStmtTail
-assignExprStmtTail : T_ASSIGN expr | ε
-
-expr: addExp;
-addExp: unaryExp (addOp unaryExp)*;
-unaryExp: T_DIGIT | T_L_PAREN expr T_R_PAREN | T_ID idTail ;
-realParamList: expr (T_COMMA expr)*;
-addOp: T_ADD | T_SUB;
-```
-
-## 1.3. 编译器的命令格式
-
-命令格式：
-minic -S [-A | -D] [-T | -I] [-o output] [-O level] [-t cpu] source
-
-选项-S为必须项，默认输出汇编。
-
-选项-O level指定时可指定优化的级别，0为未开启优化。
-选项-o output指定时可把结果输出到指定的output文件中。
-选项-t cpu指定时，可指定生成指定cpu的汇编语言。
-
-选项-A 指定时通过 antlr4 进行词法与语法分析。
-选项-D 指定时可通过递归下降分析法实现语法分析。
-选项-A与-D都不指定时按默认的flex+bison进行词法与语法分析。
-
-选项-T指定时，输出抽象语法树，默认输出的文件名为ast.png，可通过-o选项来指定输出的文件。
-选项-I指定时，输出中间IR(DragonIR)，默认输出的文件名为ir.txt，可通过-o选项来指定输出的文件。
-选项-T和-I都不指定时，按照默认的汇编语言输出，默认输出的文件名为asm.s，可通过-o选项来指定输出的文件。
-
-## 1.4. 源代码构成
-
-```text
-├── CMake
-├── backend                     编译器后端
-│   └── arm32                   ARM32后端
-├── doc                         文档资料
-│   ├── figures
-│   └── graphviz
-├── frontend                    前端
-│   ├── antlr4                  Antlr4实现
-│   ├── flexbison               Flex/bison实现
-│   └── recursivedescent        递归下降分析法实现
-├── ir                          中间IR
-│   ├── Generator               中间IR的产生器
-│   ├── Instructions            中间IR的指令
-│   ├── Types                   中间IR的类型
-│   └── Values                  中间IR的值
-├── symboltable                 符号表
-├── tests                       测试用例
-├── thirdparty                  第三方工具
-│   └── antlr4                  antlr4工具
-├── tools                       工具
-│   ├── IRCompiler              中间IR解析执行器
-│   │   └── Linux-x86_64
-│   │       ├── Ubuntu-20.04    Ubuntu-20.04下的工具
-│   │       └── Ubuntu-22.04    Ubuntu-22.04下的工具
-│   └── pictures                相关图片
-└── utils                       集合、位图等共同的代码
-```
-
-## 1.5. 程序构建
-
-请使用VSCode + WSL/Container/SSH + Ubuntu 22.04/20.04进行编译与程序构建。
-
-请注意代码使用clang-format、clang-tidy和clangd进行代码格式化、静态分析等，请使用最新版。
-
-请在实验一的环境上进行，若没有，请务必先执行。
-
-clang-format和clang-tidy会利用根文件夹下的.clang-format和.clang-tidy进行代码格式化与静态检查。
-大家可执行查阅资料进行修改与调整。
-
-在Ubuntu系统下可通过下面的命令来安装。clangd请根据安装clangd插件提示自动安装最新版的，不建议用系统包提供的clangd。
+修改完成后，还要重新生成antlr4相关文件，采用命令如下：
 
 ```shell
-sudo apt install -y clang-format clang-tidy
+antlr4 -Dlanguage=Cpp -visitor -no-listener /home/cpy/Compiler/miniC/frontend/antlr4/SysY.g4
+```
+参数说明（依据exp04选择的参数）：
+
+-    -Dlanguage=Cpp 表示生成的语言为C++
+-    -visitor 表示生成visitor模式的C++文件
+-    -no-listener 表示不生成listener模式的文件
+-    /home/cpy/Compiler/exp04-minic-expr/frontend/antlr4/MiniC.g4 这是g4文件的路径
+
+会生成以下自动文件（放入autogenerated文件夹）：
+
+<img src="README.assets/image-20250416170341465.png" alt="image-20250416170341465"  />
+
+包含词法分析程序 MiniCLexer.cpp 与 MiniCLexer.h,语法分析程序  MiniCParser.cpp 与 MiniCParser.h, Visitor 模式基类程序 MiniCVisitor.cpp、  MiniCVisitor.h、MiniCBaseVisitor.cpp 与 MiniCBaseVisitor.h 等。用户可**继承实现类 MiniCBaseVisitor ，并重载实现虚函数，增加动作来实现对语法分析程序生成的具体语法树进行遍历实现特定的功能**。
+
+#### 3.2 修改Antlr4CSTVisitor
+
+实现一个MiniCBaseVisitor 的子类,重载需要的虚函数, 在这里子类的名称为 Antlr4CSTVisitor。
+
+需要注意的是,**对于一个非终结符包含多个产生式并且对每个产生式起名的,需要做特殊处理**,如上面的非终结符号 statement,父类中并没有提供对 statement 的直接 visit 函数:visitStatement,但是却提供了 visitReturnStatement、visitAssignStatement、visitBlockStatement与  visitExpressionStatement 函数,因此在 Antlr4CSTVisitor 中需要定义  visitStatement 的包含函数或者私有函数,在该函数中实现对语法节点的遍历。
+
+```cpp
+// MiniCBaseVisitor Class Operations for Statement
+  virtual std::any visitReturnStatement(MiniCParser::ReturnStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAssignStatement(MiniCParser::AssignStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBlockStatement(MiniCParser::BlockStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpressionStatement(MiniCParser::ExpressionStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
 ```
 
-### 1.5.1. cmake插件构建
+那么针对乘法文法的添加，MiniCBaseVisitor 中自动生成了如下虚函数定义：
 
-在导入本git代码后，VSCode在右下角提示安装推荐的插件，一定要确保安装。若没有提示，重新打开尝试。
+```cpp
+ virtual std::any visitMulExp(MiniCParser::MulExpContext *ctx) override {
+    return visitChildren(ctx);
+  }
 
-若实在不行，请根据.vscode/extensions.json文件的内容手动逐个安装插件。
+  virtual std::any visitMulOp(MiniCParser::MulOpContext *ctx) override {
+    return visitChildren(ctx);
+  }
+```
 
-因cmake相关的插件需要用dotnet，若没有安装请安装，并在.vscode/settings.json中指定。
+对应地，在Antlr4CSTVisitor类中添加如下定义：
 
-在使用VScode的cmake插件进行程序构建时，请先选择clang编译器，然后再进行程序的构建。
+```cpp
+	///
+	/// @brief 非终结符MulExp的分析
+	/// @param ctx  CST上下文
+	/// @return std::any  AST的节点
+	///
+    std::any visitMulExp(MiniCParser::MulExpContext * ctx) override;
 
-当然，也可以通过命令行来进行构建，具体的命令如下：
+	///
+	/// @brief 	非终结符MulOp的分析
+	/// @param ctx 	CST上下文
+	/// @return std::any  AST的节点
+	///
+    std::any visitMulOp(MiniCParser::MulOpContext * ctx) override;
+```
+
+需要在Antlr4CSTVisitor.cpp进行实现
+
+```cpp
+/// @brief 非终结运算符expr的遍历，加入mulExp
+std::any MiniCCSTVisitor::visitExpr(MiniCParser::ExprContext * ctx)
+{
+    // 识别产生式：expr: addExp | mulExp;
+    if (ctx->mulExp()) {
+        return visitMulExp(ctx->mulExp());
+    } else if (ctx->addExp()) {
+        return visitAddExp(ctx->addExp());
+    }
+}
+
+std::any MiniCCSTVisitor::visitMulOp(MiniCParser::MulOpContext * ctx)
+{
+    // 识别的文法产生式：mulOp : T_MUL
+    if (ctx->T_MUL()) {
+        return ast_operator_type::AST_OP_MUL; // 对应乘法操作符
+    }
+    return ast_operator_type::AST_OP_MAX; // 对应非法操作符
+}
+
+std::any MiniCCSTVisitor::visitMulExp(MiniCParser::MulExpContext * ctx)
+{
+    // 识别的文法产生式：mulExp : unaryExp (mulOp unaryExp)*;
+
+    if (ctx->mulOp().empty()) {
+        // 没有mulOp运算符，则说明闭包识别为0，只识别了第一个非终结符unaryExp
+        return visitUnaryExp(ctx->unaryExp()[0]);
+    }
+
+    ast_node *left, *right;
+
+    // 存在mulOp运算符
+    auto opsCtxVec = ctx->mulOp();
+
+    // 有操作符，肯定会进循环，使得right设置正确的值
+    for (int k = 0; k < (int) opsCtxVec.size(); k++) {
+        // 获取运算符
+        ast_operator_type op = std::any_cast<ast_operator_type>(visitMulOp(opsCtxVec[k]));
+
+        if (k == 0) {
+            // 左操作数
+            left = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()[k]));
+        }
+
+        // 右操作数
+        right = std::any_cast<ast_node *>(visitUnaryExp(ctx->unaryExp()[k + 1]));
+
+        // 新建结点作为下一个运算符的右操作符
+        left = ast_node::New(op, left, right, nullptr);
+    }
+
+    return left;
+}
+```
+
+#### 3.3 Antlr4Executor 前端主程序
+
+这是词法与语法分析的执行主程序实现。
+
+其中 filename 为词法分析的对象文件路径,其中 MiniCLexer 为词法分析器、MiniCParser 为语法分析器,这两个类都是 antlr4 根据 g4 文件自动生成的,而 MiniCCSTVisitor 为用户实现的分析树或具体语法树的遍历从而实现特定的功能,这里实现的是生成抽象语法树 AST。
+
+#### 3.4 AST图形输出显示
+
+通过 graphviz 提供的 API 实现抽象语法树图形的显示。具体实现在 graph.cpp 与 graph.h,递归遍历抽象语法树,利用 graphviz 提供的 C 语言 API 进行产生图形的结点以及边等信息,直接输出到指定的文件中
+
+```cpp
+/// @brief 抽象语法树AST的图形化显示，这里用C语言实现
+/// @param root 抽象语法树的根
+/// @param filePath 转换成图形的文件名，主要要通过文件名后缀来区分图片的类型，如png，svg，pdf等皆可
+///
+void OutputAST(ast_node * root, std::string filePath);
+```
+
+在`main.cpp`中，可以设定
+
+```cpp
+///
+/// @brief 显示抽象语法树，非线性IR
+///
+bool gShowAST = true;
+```
+
+`./build/minic`执行的可选参数如下
+
+```cpp
+// 指定参数解析的选项，可识别-h、-o、-S、-T、-I、-A、-D等选项
+// -S必须项，输出中间IR、抽象语法树或汇编
+// -T指定时输出AST，-I输出中间IR，不指定则默认输出汇编
+// -A指定按照antlr4进行词法与语法分析，-D指定按照递归下降分析法执行，不指定时按flex+bison执行
+// -o要求必须带有附加参数，指定输出的文件
+// -O要求必须带有附加整数，指明优化的级别
+// -t要求必须带有目标CPU，指明目标CPU的汇编
+// -c选项在输出汇编时有效，附带输出IR指令内容
+```
+
+那么可以使用以下命令来输出AST图形到./tests/test-mul-AST.png路径
 
 ```shell
 # cmake根据CMakeLists.txt进行配置与检查，这里使用clang编译器并且是Debug模式
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
 # cmake，其中--parallel说明是并行编译，也可用-j选项
 cmake --build build --parallel
+
+./build/minic -S -T -A -o ./tests/test-mul-AST.png ./tests/test-mul.c
 ```
 
-## 1.6. 使用方法
+![test-mul-AST](README.assets/test-mul-AST.png)
 
-在Ubuntu 22.04平台上运行。支持的命令如下所示：
+#### 3.5 其他修改
+
+在`AST.h`中添加符号`*`
+
+```cpp
+///
+/// @brief AST节点的类型。C++专门运用枚举类来区分C语言的结构体
+///
+enum class ast_operator_type : int {
+    /* 以下为AST的叶子节点 */
+    	...
+    /* 以下为AST的内部节点，含根节点 */
+        ...
+    // TODO 抽象语法树其它内部节点运算符追加
+
+    /// @brief 二元运算符*
+    AST_OP_MUL,
+
+    /// @brief 最大标识符，表示非法运算符
+    AST_OP_MAX,
+};
+```
+
+在`Graph.cpp`中，加入作图时节点的名字，否则输出图在乘号节点会显示unknown
+
+```cpp
+string getNodeName(ast_node * astnode)
+{
+    string nodeName;
+    switch (astnode->node_type) {
+            // TODO 这里追加其它类型的结点，返回对应结点的字符串
+        case ast_operator_type::AST_OP_MUL:
+            nodeName = "*";
+            break;
+        default:
+            nodeName = "unknown";
+            break;
+    }
+    ...
+}
+```
+
+#### 3.6 Debug AST
+
+或者采用Debug AST模式，在launch.json中修改对应的参数(注意在修改代码以后先点 `“（齿轮）生成”` 修改才能生效)
+
+```json
+{
+	"args": ["-S", "-A", "-T", "-o", "tests/test-mul-AST.png", "tests/test-mul.c"],
+}
+```
+
+在主函数中即可从compile进入编译
+
+```cpp
+result = compile(gInputFile, gOutputFile);
+```
+
+再从frontEndExecutor->run()进入
+
+```cpp
+ // 前端执行：词法分析、语法分析后产生抽象语法树，其root为全局变量ast_root
+ subResult = frontEndExecutor->run();
+```
+
+即可逐步调试观察AST的遍历，或在出现错误时通过调用堆栈找出错误来源
+
+
+## 二、从SysY文法到AST
+
+### 1.建立SysY.g4文法
+
+内容按照`Grammar_SysY2022.pdf`所要求的文法实现，但未实现 *SysY 语言的语义约束* 部分，按照流程生成了autogenerated文件。
+
+
+### 2. float类型加入
+
+- 浮点数只需要实现32位单精度，已经在`ir/Types/`中加入新的类型 `FloatType`，在`ir/Types/FloatType.h`和`ir/Types/FloatType.cpp`中实现。
+
+
+- 在`AttrType.h`中实现新的数据结构实数型
+
+  ```cpp
+  ///
+  /// @brief 基本类型枚举类
+  ///
+  enum class BasicType : int {
+      TYPE_NONE,  // 节点不存在类型
+      TYPE_VOID,  // void型，仅用于函数返回值
+      TYPE_INT,   // 整型
+      TYPE_FLOAT, // Float类型
+      TYPE_MAX,   // 其它类型，未知类型
+  };
+  
+  ///
+  /// @brief 词法与语法通信的单精度浮点数字面量属性
+  ///
+  typedef struct digit_real_attr {
+      double val;     // C语言默认实数为double类型
+      int64_t lineno; // 行号
+  } digit_real_attr;
+  ```
+- 修改AST中节点数值的描述方式（在**AST类**说明）
+
+
+### 3. AST类
+
+- 在`AST.cpp`中实现浮点数字面量的构造函数
+
+  ```cpp
+  /// @brief 针对浮点数字面量的构造函数
+  /// @param attr 浮点数字面量
+  ast_node::ast_node(digit_real_attr attr)
+      : ast_node(ast_operator_type::AST_OP_LEAF_LITERAL_FLOAT, IntegerType::getTypeInt(), attr.lineno)
+  {
+      float_val = attr.val;
+  }
+  ```
+
+- 在`AST.cpp`中实现浮点数字叶节点的创建
+
+  ```cpp
+  /// @brief 创建浮点数字的叶子节点
+  /// @param attr 浮点数字面量
+  ast_node * ast_node::New(digit_real_attr attr)
+  {
+      ast_node * node = new ast_node(attr);
+  
+      return node;
+  }
+  ```
+
+- `AST.h`中新增`ast_operator_type`
+
+  ```cpp
+  ///
+  /// @brief AST节点的类型
+  ///
+  enum class ast_operator_type : int {
+      ...
+  
+      /* 声明和定义节点 */
+      AST_OP_COMPILE_UNIT,       // 编译单元
+      AST_OP_FUNC_DEF,           // 函数定义
+      AST_OP_FUNC_FORMAL_PARAMS, // 形参列表
+      AST_OP_FUNC_FORMAL_PARAM,  // 形参
+      AST_OP_FUNC_CALL,          // 函数调用
+      AST_OP_FUNC_REAL_PARAMS,   // 实参列表
+      AST_OP_DECL_STMT,          // 声明语句
+      AST_OP_VAR_DECL,           // 变量声明
+      AST_OP_CONST_DECL,         // 常量声明
+      AST_OP_VAR_DEF,            // 变量定义
+      AST_OP_CONST_DEF,          // 常量定义
+  
+      /* 控制流节点 */
+      AST_OP_BLOCK,    // 语句块
+      AST_OP_IF,       // if语句
+      AST_OP_WHILE,    // while语句
+      AST_OP_BREAK,    // break语句
+      AST_OP_CONTINUE, // continue语句
+      AST_OP_RETURN,   // return语句
+  
+      /* 表达式节点 */
+      AST_OP_ASSIGN,        // 赋值
+      AST_OP_LVAL,          // 左值
+      AST_OP_ARRAY_DIMS,    // 数组维度
+      AST_OP_ARRAY_INDICES, // 数组索引
+      AST_OP_ARRAY_INIT,    // 数组初始化
+  
+      /* 运算符节点 */
+      AST_OP_POS, // 正号
+      AST_OP_NEG, // 负号
+      AST_OP_NOT, // 逻辑非
+      AST_OP_ADD, // 加法
+      AST_OP_SUB, // 减法
+      AST_OP_MUL, // 乘法
+      AST_OP_DIV, // 除法
+      AST_OP_MOD, // 取模
+      AST_OP_LT,  // 小于
+      AST_OP_GT,  // 大于
+      AST_OP_LE,  // 小于等于
+      AST_OP_GE,  // 大于等于
+      AST_OP_EQ,  // 等于
+      AST_OP_NE,  // 不等于
+      AST_OP_AND, // 逻辑与
+      AST_OP_OR,  // 逻辑或
+  
+      AST_OP_MAX // 最大标识符
+  };
+  ```
+
+  修改数值部分，用联合体描述int/float类型
+
+  ```cpp
+  class ast_node {
+  public:
+      ast_operator_type node_type; // 节点类型
+      int64_t line_no;             // 行号信息
+      Type * type;                 // 节点值的类型
+      union {
+          uint32_t integer_val; // 整数值
+          float float_val;      // 浮点值
+      };
+      std::string name;             // 变量名或函数名
+      ast_node * parent;            // 父节点
+      std::vector<ast_node *> sons; // 子节点
+      InterCode blockInsts;         // 线性IR指令块，可包含多条IR指令，用于线性IR指令产生用
+      Value * val = nullptr;        // 线性IR指令或者运行产生的Value，用于线性IR指令产生用
+      bool needScope = true;        // 是否需要作用域管理， 默认需要
+      ...
+  }
+  ```
+
+  另外，创建AST节点的函数也需要在此处定义
+
+### 4.SysYCSTVisitor类
+
+在`Antlr4CSTVisitor.h`中定义了**SysYCSTVisitor**类。
+
+其函数包括：
+
+1. 继承了**SysYBaseVisitor**类中所有虚函数
+
+2. 对于具有多种生成式的非终结式，创建了选择函数。比如：
+
+   ```antlr4
+   // 基本表达式
+   primaryExp:
+   	'(' exp ')'	# groupedExpression
+   	| lVal		# leftValueExpression
+   	| number	# numberExpression;
+   ```
+
+   在**BaseVisitor**要求实现的**visitGroupedExpression**、**visitLeftValueExpression**、**visitNumberExpression**之外，为了方便定义了**visitPrimaryExp**作为一个选择生成式的函数，具体实现也很简单：
+
+   ```cpp
+   /// @brief 非终结运算符primaryExp的遍历
+   std::any SysYCSTVisitor::visitPrimaryExp(SysYParser::PrimaryExpContext * ctx)
+   {
+       if (Instanceof(groupedExpCtx, SysYParser::GroupedExpressionContext *, ctx)) {
+           return visitGroupedExpression(groupedExpCtx);
+       } else if (Instanceof(leftValueExpCtx, SysYParser::LeftValueExpressionContext *, ctx)) {
+           return visitLeftValueExpression(leftValueExpCtx);
+       } else if (Instanceof(numberExpCtx, SysYParser::NumberExpressionContext *, ctx)) {
+           return visitNumberExpression(numberExpCtx);
+       } else {
+           // 处理其他情况
+           throw std::runtime_error("Error: Unknown primary expression type");
+       }
+   }
+   ```
+
+# 三、IR
+
+针对每一个AST node，需要一个`ast2ir_handler_t`类型的操作函数， 集成在：
+
+```cpp
+/// @brief AST节点运算符与动作函数关联的映射表
+    std::unordered_map<ast_operator_type, ast2ir_handler_t> ast2ir_handlers;
+```
+
+在`main.cpp`中，初始化了一个符号表，传入IRGenerator中，需要在操作函数中完成符号表的写入
+
+```cpp
+// 符号表，保存所有的变量以及函数等信息
+Module * module = new Module(inputFile);
+
+// 遍历抽象语法树产生线性IR，相关信息保存到符号表中
+IRGenerator ast2IR(astRoot, module);
+subResult = ast2IR.run();
+if (!subResult) {
+
+    // 输出错误信息
+    minic_log(LOG_ERROR, "中间IR生成错误");
+
+    break;
+}
+```
+
+## 1. Value--(Use)-->User
+
+**Use类**: 保存一个user一个usee，即保存一条表示使用关系的边。如果用Use->remove()，在user和usee内部清理相关资源，但并未删除use类，需要手动清理。
+
+```cpp
+class Use {
+protected:
+    /// @brief 指向要使用的value
+    Value * usee = nullptr;
+    /// @brief 使用val的使用者或者用户
+    User * user = nullptr;
+}
+```
+
+**Value类**: 值操作类型，所有的变量、函数、常量都是Value，一个Value对象有Name和IRName，可以通过addUse和removeUse来操作**被使用关系**的记录。Use向量存在value中。作为usee的时候有这个vector，但作为user的时候不考虑uses。
+
+```cpp
+class Value {
+protected:
+    /// @brief 变量名，函数名等原始的名字，可能为空串
+    std::string name;
+    /// @brief IR名字，用于文本IR的输出
+    std::string IRName;
+    /// @brief 类型
+    Type * type;
+    /// @brief define-use链，这个定值被使用的所有边，即所有的User
+    std::vector<Use *> uses;
+}
+```
+
+**User类**：使用Value的就是User，一个User本身也同时是一个Value。**函数、指令都是User**。
+
+## 2. (User-->)Constant-->GlobalValue-->Function
+
+> 常量是在运行时不可更改(immutable)的值
+>
+> 常量可以是基本类型的值，如整数或浮点类型的值，也可以是复杂的，如结构体或数组
+>
+> 或者是基于表达式运算得到的，可以用其它常量的值计算得到
+>
+> 函数是常量，这是因为函数的地址运行时不可更改
+>
+> 全局变量也是常量，也是因为全局变量的地址运行时不可更改
+
+Const没有User基础之外的内容
+
+GlobalValue:
+
+```cpp
+class GlobalValue : public Constant {
+    /// @brief 用于区分函数或变量是否是static，或者外部都可见
+    enum LinkageTypes {
+        ExternalLinkage = 0, ///< Externally visible function
+        InternalLinkage,     ///< Rename collisions when linking (static functions).
+    };
+    /// 全局对象的作用域，可见，或者只对文件可见，也就是隐藏的
+    enum VisibilityTypes {
+        DefaultVisibility = 0, ///< The GlobalValue is visible
+        HiddenVisibility,      ///< The GlobalValue is hidden
+        ProtectedVisibility    ///< The GlobalValue is protected
+    };
+protected:
+    /// @brief The linkage of this global
+    LinkageTypes linkage;
+    /// @brief The visibility style of this global
+    VisibilityTypes visibility;
+    /// @brief 默认对齐大小为4字节
+    int32_t alignment = 4;
+};
+```
+
+Function:
+
+```cpp
+class Function : public GlobalValue {
+private:
+    /// @brief 函数的返回值类型，有点冗余，可删除，直接从type中取得即可
+    Type * returnType;
+    /// @brief 形式参数列表
+    std::vector<FormalParam *> params;
+    /// @brief 是否是内置函数或者外部库函数
+    bool builtIn = false;
+    /// @brief 线性IR指令块，可包含多条IR指令
+    InterCode code;
+    /// @brief 函数内变量的向量表，可能重名，请注意
+    std::vector<LocalVariable *> varsVector;
+    /// @brief 内存型Value
+    std::vector<MemVariable *> memVector;
+    /// @brief 函数出口Label指令
+    Instruction * exitLabel = nullptr;
+    /// @brief 函数返回值变量，不能是临时变量，必须是局部变量
+    LocalVariable * returnValue = nullptr;
+    /// @brief 由于局部变量、前4个形参需站内空间分配而导致的栈帧大小
+    int maxDepth = 0;
+    /// @brief 由于函数调用需要栈传递而导致的栈空间大小
+    int maxExtraStackSize = 0;
+    /// @brief 是否存在函数调用
+    bool funcCallExist = false;
+    /// @brief 本函数内函数调用的参数个数最大值
+    int maxFuncCallArgCnt = 0;
+    /// @brief 函数是否需要重定位，栈帧发生变化
+    bool relocated = false;
+    /// @brief 被保护的寄存器编号
+    std::vector<int32_t> protectedRegs;
+    /// @brief 被保护寄存器字符串
+    std::string protectedRegStr;
+    /// @brief 累计的实参个数，用于ARG指令的统计
+    int32_t realArgCount = 0;
+};
+
+```
+
+
+
+## 3.  (User-->)Instruction=>IRCode
+
+**IRCode**保存一个指令序列
+
+```cpp
+class InterCode {
+protected:
+    /// @brief 指令块的指令序列
+    std::vector<Instruction *> code;
+}
+```
+
+`InterCode::addInst(InterCode & block)`: 可以将一个代码块block的内容添加到调用此方法的intercode类的code vector末端，并且清理原始的block块
+
+`InterCode::addInst(Instruction * inst)`: 可以添加一条instruction
+
+**Instruction**是一个**User**，每条指令都是IRInstOperator中的一种：
+
+```cpp
+/// @brief IR指令操作码
+enum class IRInstOperator {
+	/// @brief 函数入口指令，对应函数的prologue，用户栈空间分配、寄存器保护等
+    IRINST_OP_ENTRY,
+    /// @brief 函数出口指令，对应函数的epilogue，用于栈空间的恢复与清理、寄存器恢复等
+    IRINST_OP_EXIT,
+    ...
+}
+```
+
+Instruction中需要保存的内容有：
+
+```cpp
+class Instruction : public User {
+protected:
+    /// @brief IR指令操作码
+    enum IRInstOperator op = IRInstOperator::IRINST_OP_MAX;
+    /// @brief 是否是Dead指令
+    bool dead = false;
+    /// @brief 当前指令属于哪个函数
+    Function * func = nullptr;
+    /// @brief 寄存器编号，-1表示没有分配寄存器，大于等于0代表是寄存器型Value
+    int32_t regId = -1;
+    /// @brief 变量在栈内的偏移量，对于全局变量默认为0，临时变量没有意义
+    int32_t offset = 0;
+    /// @brief 栈内寻找时基址寄存器编号
+    int32_t baseRegNo = -1;
+    /// @brief 栈内寻找时基址寄存器名字
+    std::string baseRegName;
+    /// @brief 变量加载到寄存器中时对应的寄存器编号
+    int32_t loadRegNo = -1;
+};
+```
+
+# 四、LLVM IR
+
+生成llvm的ir表示（均在tests/文件夹下）
 
 ```shell
-
-./build/minic -S -T -o ./tests/test1-1.png ./tests/test1-1.c
-
-./build/minic -S -T -A -o ./tests/test1-1.png ./tests/test1-1.c
-
-./build/minic -S -T -D -o ./tests/test1-1.png ./tests/test1-1.c
-
-./build/minic -S -I -o ./tests/test1-1.ir ./tests/test1-1.c
-
-./build/minic -S -I -A -o ./tests/test1-1.ir ./tests/test1-1.c
-
-./build/minic -S -I -D -o ./tests/test1-1.ir ./tests/test1-1.c
-
-./build/minic -S -o ./tests/test1-1.s ./tests/test1-1.c
-
-./build/minic -S -A -o ./tests/test1-1.s ./tests/test1-1.c
-
-./build/minic -S -D -o ./tests/test1-1.s ./tests/test1-1.c
-
+clang -S -emit-llvm -o test.ll test.c
 ```
 
-## 1.7. 工具
-
-本实验所需要的工具或软件在实验一环境准备中已经安装，这里不需要再次安装。
-
-这里主要介绍工具的功能。
-
-### 1.7.1. Flex 与 Bison
-
-#### 1.7.1.1. Windows
-
-在Widnows平台上请使用MinGW进行开发，不建议用 Visual Studio。若确实想用，请用win_flex和win_bison工具。
-
-#### 1.7.1.2. MinGW、Linux or Mac
+可能会报错
 
 ```shell
-flex -o MiniCFlex.cpp --header-file=MiniCFlex.h minic.l
-bison -o MinicBison.cpp --header=MinicBison.h -d minic.y
+implicit declaration of function 'xxx'
 ```
 
-请注意 bison 的--header 在某些平台上可能是--defines，要根据情况调整指定。
+但仍能生成ll文件
 
-### 1.7.2. Antlr 4.12.0
-
-要确认java15 以上版本的 JDK，否则编译不会通过。默认已经安装了JDK 17的版本。
-
-由于cmake的bug可能会导致适配不到15以上的版本，请删除旧版的JDK。
-
-编写 g4 文件然后通过 antlr 生成 C++代码，用 Visitor 模式。
+链接sysy runtime library 生成可执行文件
 
 ```shell
-java -jar tools/antlr-4.12.0-complete.jar -Dlanguage=Cpp -no-listener -visitor -o frontend/antlr4 frontend/antlr4/minic.g4
+clang -o test test.ll ../thirdparty/syslib/std.c
 ```
 
-C++使用 antlr 时需要使用 antlr 的头文件和库，在 msys2 下可通过如下命令安装 antlr 4.12.0 版即可。
+运行可执行文件
 
 ```shell
-pacman -U https://mirrors.ustc.edu.cn/msys2/mingw/mingw64/mingw-w64-x86_64-antlr4-runtime-cpp-4.12.0-1-any.pkg.tar.zst
+./test < test.in
 ```
 
-### 1.7.3. Graphviz
+## 需要额外实现的指令list
 
-借助该工具提供的C语言API实现抽象语法树的绘制。
+- 类型转换
 
-### 1.7.4. doxygen
+  **bitcast**： 用于**相同大小**的类型转换
 
-借助该工具分析代码中的注释，产生详细分析的文档。这要求注释要满足一定的格式。具体可参考实验文档。
+  **zext**：零扩展（bool的扩展必须使用zext）
 
-### 1.7.5. texlive
+  **sext**：符号扩展
 
-把doxygen生成的文档转换成pdf格式。
+  **sitofp**（整数转浮点）或 **fptosi**（浮点转整数）：i32 与 float 的类型转换，其中si表示signed int （不考虑unsigned）
 
-## 1.8. 根据注释生成文档
+- 数组取值
 
-请按照实验的文档要求编写注释，可通过doxygen工具生成网页版的文档，借助latex可生成pdf格式的文档。
+  **getelementptr**
 
-请在本实验以及后续的实验按照格式进行注释。
+```llvm
+; grammar
+%ptr = getelementptr <array_type>, <array_type>* <array_ptr>, i64 <index>
 
-执行的下面的命令后会在doc文件夹下生成html和latex文件夹，通过打开index.html可浏览。
+; 获取 arr[3] 的地址
+%element_ptr = getelementptr [10 x i32], [10 x i32]* %arr, i64 0, i64 3
 
-```shell
-doxygen Doxygen.config
+; load value from ptr
+%value = load i32, i32* %element_ptr  ; 读取 arr[3] 的值
 ```
 
-在安装texlive等latex工具后，可通过执行的下面的命令产生refman.pdf文件。
-```shell
-cd doc/latex
-make
+​	多维数组
+
+```llvm
+; 定义一个 3x4 的二维数组
+%arr2d = alloca [3 x [4 x i32]]
+
+; 初始化（假设 arr2d[1][2] = 99）
+%row_ptr = getelementptr [3 x [4 x i32]], [3 x [4 x i32]]* %arr2d, i64 0, i64 1
+%element_ptr = getelementptr [4 x i32], [4 x i32]* %row_ptr, i64 0, i64 2
+store i32 99, i32* %element_ptr
+
+; 读取 arr2d[1][2]
+%val = load i32, i32* %element_ptr  ; 返回 99
 ```
 
-## 1.9. 实验运行
+​	`getelementptr` 的索引层级：**GEP 的索引是**分层的，每一层对应一个类型的解引用（dereference）。对于数组访问：
 
-tests 目录下存放了一些简单的测试用例。
-
-由于 qemu 的用户模式在 Window 系统下不支持，因此要么在真实的开发板上运行，或者用 Linux 系统下的 qemu 来运行。
-
-### 1.9.1. 调试运行
-
-由于默认的gdb或者lldb调试器对C++的STL模版库提供的类如string、map等的显示不够友好，
-因此请大家确保安装vadimcn.vscode-lldb插件，也可以更新最新的代码后vscode会提示安装推荐插件后自动安装。
-
-如安装不上请手动下载后安装，网址如下：
-<https://github.com/vadimcn/codelldb/releases/>
-
-调试运行配置可参考.vscode/launch.json中的配置。
-
-### 1.9.2. 生成中间IR(DragonIR)与运行
-
-前提需要下载并安装IRCompiler工具。
-
-```shell
-# 翻译 test1-1.c 成 ARM32 汇编
-./build/minic -S -I -o tests/test1-1.ir tests/test1-1.c
-./IRCompiler -R tests/test1-1.ir
+```llvm
+%ptr = getelementptr [10 x i32], [10 x i32]* %arr, i64 0, i64 3
 ```
 
-第一条指令通过minic编译器来生成的汇编test1-1.ir
-第二条指令借助IRCompiler工具实现对生成IR的解释执行。
+- **`[10 x i32]* %arr`**：这是一个指向数组的指针（类型是 `[10 x i32]*`）。
+- **`i64 0`**：处理指针本身的偏移（跳过 0 个 `[10 x i32]`，即直接解引用 `%arr`）。
+- **`i64 3`**：在解引用后的数组中，访问第 3 个元素（索引从 0 开始）。
 
-### 1.9.3. 生成 ARM32 的汇编
+因为数组取值的索引都是i64格式，所以需要对i32格式的索引进行符号扩展
 
-```shell
-# 翻译 test1-1.c 成 ARM32 汇编
-./build/minic -S -o tests/test1-1-0.s tests/test1-1.c
-# 把 test1-1.c 通过 arm 版的交叉编译器 gcc 翻译成汇编
-arm-linux-gnueabihf-gcc -S -o tests/test1-1-1.s tests/test1-1.c
-```
-第一条命令通过minic编译器来生成的汇编test1-1-0.s
-第二条指令是通过arm-linux-gnueabihf-gcc编译器生成的汇编语言test1-1-1.s。
-
-在调试运行时可通过对比检查所实现编译器的问题。
-
-### 1.9.4. 生成可执行程序
-
-通过 gcc 的 arm 交叉编译器对生成的汇编进行编译，生成可执行程序。
-
-```shell
-# 通过 ARM gcc 编译器把汇编程序翻译成可执行程序，目标平台 ARM32
-arm-linux-gnueabihf-gcc -static -g -o tests/test1-1-0 tests/test1-1-0.s
-# 通过 ARM gcc 编译器把汇编程序翻译成可执行程序，目标平台 ARM32
-arm-linux-gnueabihf-gcc -static -g -o tests/test1-1-1 tests/test1-1-1.s
+```cpp
+int findfa(int a) {
+	return array[a];
+}
 ```
 
-有以下几个点需要注意：
-
-1. 这里必须用-static 进行静态编译，不依赖动态库，否则后续通过 qemu-arm-static 运行时会提示动态库找不到的错误
-2. 可通过网址<https://godbolt.org/>输入 C 语言源代码后查看各种目标后端的汇编。下图是选择 ARM GCC 11.4.0 的源代码与汇编对应。
-
-![godbolt 效果图](./doc/figures/godbolt-test1-1-arm32-gcc.png)
-
-### 1.9.5. 运行可执行程序
-
-借助用户模式的 qemu 来运行，arm 架构可使用 qemu-arm-static 命令。
-
-```shell
-qemu-arm-static tests/test1-1-0
-echo $?
-qemu-arm-static tests/test1-1-1
-echo $?
-```
-用`echo $?`查看上一个命令的返回值
-
-这里可比较运行的结果，如果两者不一致，则编写的编译器程序有问题。
-
-如果测试用例源文件程序需要输入，假定输入的内容在文件A.in中，则可通过以下方式运行。
-
-```shell
-qemu-arm-static tests/test1-1-0 < A.in
-qemu-arm-static tests/test1-1-1 < A.in
+```llvm
+define dso_local i32 @findfa(i32 %0) #0 {
+  %2 = alloca i32, align 4; varaible: a
+  store i32 %0, i32* %2, align 4
+  // 扩展
+  %3 = load i32, i32* %2, align 4
+  %4 = sext i32 %3 to i64
+  
+  %5 = getelementptr inbounds [110 x i32], [110 x i32]* @array, i64 0, i64 %4
+  %6 = load i32, i32* %5, align 4
+  ret i32 %6
+}
 ```
 
-如果想把输出的内容写到文件中，可通过重定向符号>来实现，假定输入到B.out文件中。
+## SEXT
 
-```shell
-qemu-arm-static tests/test1-1-0 < A.in > A.out
-qemu-arm-static tests/test1-1-1 < A.in > A.out
+将**有符号整数**从小宽度类型转换为大宽度类型时，**保留符号位**（负数高位补 `1`，正数补 `0`）
+
+适用于场景有符号整数（如 `i8`、`i16`、`i32` ）的扩展。
+
+语法：
+
+```llvm
+%result = sext <source_type> <value> to <target_type>
 ```
 
-## 1.10. qemu 的用户模式
+e.g
 
-qemu 的用户模式下可直接运行交叉编译的用户态程序。这种模式只在 Linux 和 BSD 系统下支持，Windows 下不支持。
-因此，为便于后端开发与调试，请用 Linux 系统进行程序的模拟运行与调试。
-
-## 1.11. qemu 用户程序调试
-
-### 1.11.1. 安装 gdb 调试器
-
-该软件 gdb-multiarch 在前面工具安装时已经安装。如没有，则通过下面的命令进行安装。
-
-```shell
-sudo apt-get install -y gdb-multiarch
+```llvm
+%x = sext i8 -10 to i32  ; -10 (i8: 0xF6) → -10 (i32: 0xFFFFFFF6)
+%y = sext i8 127 to i32  ; 127 (i8: 0x7F) → 127 (i32: 0x0000007F)
 ```
 
-### 1.11.2. 启动具有 gdbserver 功能的 qemu
+## ZEXT
 
-假定通过交叉编译出的程序为 tests/test1，执行的命令如下：
+将**无符号整数**从小宽度类型转换为大宽度类型时，**高位补 `0`**
 
-```shell
-# 启动 gdb server，监视的端口号为 1234
-qemu-arm-static -g 1234 tests/test1
-```
+## NOT
 
-其中-g 指定远程调试的端口，这里指定端口号为 1234，这样 qemu 会开启 gdb 的远程调试服务。
+ `!flag` 看到两种实现方式 （flag指针为`%l1`）：
 
-### 1.11.3. 启动 gdb 作为客户端远程调试
+1. ```llvm
+   %t1 = load i32, i32* %l1, align 4 
+   %t2 = icmp ne i32 %t1, 0
+   %t3 = xor i1 %t2, true
+   %t4 = zext i1 %t3 to i32
+   store i32 %t4, i32 %l1, align 4
+   ```
 
-建议通过 vscode 的调试，选择 Qemu Debug 进行调试，可开启图形化调试界面。
+   这是clang的方式，如果多个 not 运算连一起，只需要等量增加 xor 指令即可
 
-可根据需要修改相关的配置，如 miDebuggerServerAddress、program 等选项。
+2. ```llvm
+   %t1 = load i32, i32* %l1, align 4 
+   %t2 = icmp eq i32 %t1, 0
+   %t3 = zext i1 %t2 to i32
+   store i32 %t3, i32 %l1, align 4
+   ```
 
-也可以在命令行终端上启动 gdb 进行远程调试，需要指定远程机器的主机与端口。
+   这是IRCompiler的方式，少用一条xor指令，但在多个 not 指令相连时需要复制（IRCompiler的目前实现是错的）
 
-注意这里的 gdb 要支持目标 CPU 的 gdb-multiarch，而不是本地的 gdb。
+3. ```llvm
+   %t1 = load i32, i32* %l1, align 4
+   %t2 = icmp eq i32 %t1, 0
+   %t3 = zext i1 %t2 to i32
+   store i32 %t3, i32* %l1, align 4
+   ```
 
-```shell
-gdb-multiarch tests/test1
-# 输入如下的命令，远程连接 qemu 的 gdb server
-target remote localhost:1234
-# 在 main 函数入口设置断点
-b main
-# 继续程序的运行
-c
-# 之后可使用 gdb 的其它命令进行单步运行与调试
-```
+   这是GDD的实现，多个 not 指令只需要增加 icmp eq i1指令（其实就是xor）
 
-在调试完毕后前面启动的 qemu-arm-static 程序会自动退出。因此，要想重新调试，请启动第一步的 qemu-arm-static 程序。
-
-## 1.12. 源程序打包
-
-在执行前，请务必通过cmake进行build成功，这样会在build目录下生成CPackSourceConfig.cmake文件。
-
-进入build目录下执行如下的命令可产生源代码压缩包，用于实验源代码的提交
-```shell
-cd build
-cpack --config CPackSourceConfig.cmake
-```
-
-在build目录下默认会产生zip和tar.gz格式的文件。
-
-可根据需要调整CMakeLists.txt文件的CPACK_SOURCE_IGNORE_FILES用于忽略源代码文件夹下的某些文件夹或者文件。
-
-## 1.13. 二进制程序打包
-
-可在VScode页面下的状态栏上单击Run Cpack即可在build产生zip和tar.gz格式的压缩包，里面包含编译出的可执行程序。

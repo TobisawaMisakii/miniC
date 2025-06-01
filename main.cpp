@@ -109,7 +109,7 @@ int ArgsAnalysis(int argc, char * argv[])
     // -O要求必须带有附加整数，指明优化的级别
     // -t要求必须带有目标CPU，指明目标CPU的汇编
     // -c选项在输出汇编时有效，附带输出IR指令内容
-    const char options[] = "ho:STIADO:t:c";
+    const char options[] = "ho:STILADO:t:c";
 
     opterr = 1;
 
@@ -129,9 +129,8 @@ lb_check:
                 gShowAST = true;
                 break;
             case 'L':
-                // 产生中间IR
+                // 产生中间IR(llvm)
                 gShowLineIR = true;
-                break;
                 break;
             case 'A':
                 // 选用antlr4
@@ -156,8 +155,9 @@ lb_check:
                 gAsmAlsoShowIR = true;
                 break;
             default:
+                minic_log(LOG_ERROR, "Unknown option: %c", optopt); // 记录未知选项
                 return -1;
-                break; /* no break */
+                // break; /* no break */
         }
     }
 
@@ -250,18 +250,15 @@ int compile(std::string inputFile, std::string outputFile)
         // 前端执行：词法分析、语法分析后产生抽象语法树，其root为全局变量ast_root
         subResult = frontEndExecutor->run();
         if (!subResult) {
-
             minic_log(LOG_ERROR, "前端分析错误");
             // 退出循环
             break;
         }
-
         // 获取抽象语法树的根节点
         ast_node * astRoot = frontEndExecutor->getASTRoot();
 
         // 清理前端资源
         delete frontEndExecutor;
-
         // 这里可进行非线性AST的优化
 
         if (gShowAST) {
@@ -286,7 +283,9 @@ int compile(std::string inputFile, std::string outputFile)
 
         // 遍历抽象语法树产生线性IR，相关信息保存到符号表中
         IRGenerator ast2IR(astRoot, module);
+
         subResult = ast2IR.run();
+
         if (!subResult) {
 
             // 输出错误信息
@@ -317,7 +316,6 @@ int compile(std::string inputFile, std::string outputFile)
             // 对IR的名字重命名
             module->renameIR();
         }
-
         // 这里可追加中间代码优化，体系结果无关的优化等
 
         // 后端处理，体系结果相关的操作
@@ -328,8 +326,8 @@ int compile(std::string inputFile, std::string outputFile)
             CodeGenerator * generator = nullptr;
 
             if (gCPUTarget == "ARM64") {
-                // generator = new CodeGeneratorArm64(module);
-                // generator->run(outputFile);
+                generator = new CodeGeneratorArm64(module);
+                generator->run(outputFile);
             }
             // 不支持指定的CPU架构
             else {
@@ -365,7 +363,6 @@ int main(int argc, char * argv[])
 #ifdef _WIN32
     SetConsoleOutputCP(65001);
 #endif
-
     // 参数解析
     result = ArgsAnalysis(argc, argv);
     if (result < 0) {
@@ -384,7 +381,6 @@ int main(int argc, char * argv[])
 
         return 0;
     }
-
     // 参数解析正确，进行编译处理，目前只支持一个文件的编译。
     result = compile(gInputFile, gOutputFile);
 

@@ -19,6 +19,7 @@
 #include "GlobalValue.h"
 #include "IRConstant.h"
 #include "ArrayType.h"
+#include "Constant.h"
 
 ///
 /// @brief 全局变量，寻址时通过符号名或变量名来寻址
@@ -54,7 +55,10 @@ public:
     ///
     [[nodiscard]] bool isInBSSSection() const
     {
-        return this->inBSSSection;
+        if (initialValue)
+            return false;
+        else
+            return isInBSSSection;
     }
 
     ///
@@ -94,6 +98,46 @@ public:
         return initialValue;
     }
 
+    int GetintValue() const
+    {
+        if (IntValue) {
+            return IntValue->getVal();
+        }
+        return 0;
+    }
+    void setIntValue(ConstInt * value)
+    {
+        IntValue = value;
+    }
+    float GetfloatValue() const
+    {
+        if (FloatValue) {
+            return FloatValue->getVal();
+        }
+        return 0;
+    }
+    void setFloatValue(ConstFloat * value)
+    {
+        FloatValue = value;
+    }
+
+    ///
+    /// @brief 设置是否在BSS段
+    /// @param inBSSSection 是否在BSS段
+    ///
+    void setInBSSSection(bool inBSSSection)
+    {
+        this->inBSSSection = inBSSSection;
+    }
+
+    ///
+    /// @brief 获取变量的寄存器编号
+    /// @return int32_t 寄存器编号
+    ///
+    int32_t getRegId() override
+    {
+        return loadRegNo;
+    }
     ///
     /// @brief Declare指令IR显示
     /// @param str
@@ -127,6 +171,8 @@ public:
 private:
     /// @brief 初始值
     Value * initialValue = nullptr;
+    ConstInt * IntValue = nullptr;
+    ConstFloat * FloatValue = nullptr;
 
     ///
     /// @brief 变量加载到寄存器中时对应的寄存器编号
