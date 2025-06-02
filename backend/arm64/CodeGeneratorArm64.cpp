@@ -24,7 +24,7 @@
 #include "PlatformArm64.h"
 #include "CodeGeneratorArm64.h"
 #include "InstSelectorArm64.h"
-#include "LinearScanRegisterAllocator.h"
+
 #include "ILocArm64.h"
 #include "RegVariable.h"
 #include "FuncCallInstruction.h"
@@ -126,7 +126,7 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
     }
 
     ILocArm64 iloc(module);
-    InstSelectorArm64 instSelector(IrInsts, iloc, func, linearScanRegisterAllocator);
+    InstSelectorArm64 instSelector(IrInsts, iloc, func, simpleRegisterAllocator);
     instSelector.run();
     iloc.deleteUsedLabel();
 
@@ -177,10 +177,10 @@ void CodeGeneratorArm64::registerAllocation(Function * func)
     //  (3) R10寄存器用于立即数过大时要通过寄存器寻址，这里简化处理进行预留
 
     std::vector<int32_t> & protectedRegNo = func->getProtectedReg();
-    protectedRegNo.push_back(ARM64_XR_REG_NO);
+    protectedRegNo.push_back(ARM64_FP_REG_NO);
     protectedRegNo.push_back(ARM64_FP_REG_NO);
     if (func->getExistFuncCall()) {
-        protectedRegNo.push_back(ARM64_IP0_REG_NO);
+        protectedRegNo.push_back(ARM64_LR_REG_NO);
     }
 
     // 调整函数调用指令，主要是前四个寄存器传值，后面用栈传递
@@ -250,18 +250,18 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
         // 检查是否是函数调用指令，并且含有返回值
         if (Instanceof(callInst, FuncCallInstruction *, *pIter)) {
 
-            // 实参前四个要寄存器传值，其它参数通过栈传递
+            // 实参前8个要寄存器传值，其它参数通过栈传递
 
-            // 前四个的后面参数采用栈传递
+            // 前8个的后面参数采用栈传递
             int esp = 0;
-            for (int32_t k = 4; k < callInst->getOperandsNum(); k++) {
+            for (int32_t k = 8; k < callInst->getOperandsNum(); k++) {
 
                 auto arg = callInst->getOperand(k);
 
                 // 新建一个内存变量，用于栈传值到形参变量中
                 LocalVariable * newVal = func->newLocalVarValue(IntegerType::getTypeInt());
-                newVal->setMemoryAddr(ARM64_XR_REG_NO, esp);
-                esp += 4;
+                newVal->setMemoryAddr(ARM64_SP_REG_NO, esp);
+                esp += 8;
 
                 Instruction * assignInst = new MoveInstruction(func, newVal, arg);
 
@@ -272,7 +272,7 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
                 pIter++;
             }
 
-            for (int k = 0; k < callInst->getOperandsNum() && k < 4; k++) {
+            for (int k = 0; k < callInst->getOperandsNum() && k < 8; k++) {
 
                 // 检查实参的类型是否是临时变量。
                 // 如果是临时变量，该变量可更改为寄存器变量即可，或者设置寄存器号

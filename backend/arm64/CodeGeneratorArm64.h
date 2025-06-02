@@ -14,7 +14,7 @@
 /// </table>
 ///
 #include "CodeGeneratorAsm.h"
-#include "LinearScanRegisterAllocator.h"
+#include "SimpleRegisterAllocator.h"
 
 class CodeGeneratorArm64 : public CodeGeneratorAsm {
 public:
@@ -38,7 +38,7 @@ protected:
 
     /// @brief 寄存器分配
     /// @param func 要处理的函数
-    void registerAllocation(Function * func) override;
+    void registerAllocation(Function * func);
 
     /// @brief 栈空间分配
     /// @param func 要处理的函数
@@ -62,5 +62,5 @@ private:
     ///
     /// @brief 线性扫描寄存器分配方法
     ///
-    LinearScanRegisterAllocator linearScanRegisterAllocator;
+    SimpleRegisterAllocator simpleRegisterAllocator;
 };

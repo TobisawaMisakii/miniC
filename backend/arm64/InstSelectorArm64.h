@@ -22,12 +22,12 @@
 #include "ILocArm64.h"
 #include "Instruction.h"
 #include "PlatformArm64.h"
-#include "LinearScanRegisterAllocator.h"
+#include "SimpleRegisterAllocator.h"
 #include "RegVariable.h"
 
 using namespace std;
 
-/// @brief 指令选择器-ARM32
+/// @brief 指令选择器-ARM64
 class InstSelectorArm64 {
 
 private:
@@ -41,7 +41,7 @@ private:
     Function * func;
 
 protected:
-    /// @brief 指令翻译成ARM32汇编
+    /// @brief 指令翻译成ARM64汇编
     /// @param inst IR指令
     void translate(Instruction * inst);
 
@@ -77,6 +77,22 @@ protected:
     /// @param inst IR指令
     void translate_sub_int64(Instruction * inst);
 
+    /// @brief 整数乘法指令翻译成ARM64汇编
+    /// @param inst IR指令
+    void translate_mul_int64(Instruction * inst);
+
+    /// @brief 浮点数乘法指令翻译成ARM64汇编
+    /// @param inst IR指令
+    void translate_mul_float(Instruction * inst);
+
+    /// @brief 整数除法指令翻译成ARM64汇编
+    /// @param inst IR指令
+    void translate_div_int64(Instruction * inst);
+
+    /// @brief 浮点数除法指令翻译成ARM64汇编
+    /// @param inst IR指令
+    void translate_div_float(Instruction * inst);
+
     /// @brief 二元操作指令翻译成ARM32汇编
     /// @param inst IR指令
     /// @param operator_name 操作码
@@ -106,7 +122,7 @@ protected:
     ///
     /// @brief 简单的朴素寄存器分配方法
     ///
-    LinearScanRegisterAllocator & linearScanRegisterAllocator;
+    SimpleRegisterAllocator & simpleRegisterAllocator;
 
     ///
     /// @brief 函数实参累计
@@ -121,11 +137,11 @@ public:
     /// @param _irCode IR指令
     /// @param _func 函数
     /// @param _iloc 后端指令
+public:
     InstSelectorArm64(std::vector<Instruction *> & _irCode,
                       ILocArm64 & _iloc,
                       Function * _func,
-                      LinearScanRegisterAllocator & allocator);
-
+                      SimpleRegisterAllocator & allocator);
     ~InstSelectorArm64();
 
     /// @brief 指令选择

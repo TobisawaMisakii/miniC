@@ -14,12 +14,11 @@
 /// </table>
 ///
 #include "PlatformArm64.h"
-
 #include "IntegerType.h"
 
 const std::string PlatformArm64::regName[PlatformArm64::maxRegNum] = {
-    "x0",  "x1",  "x2", "x3",  "x4",  "x5",  "x6",  "x7",  "xr",  "x9",  "x10", "x11", "x12", "x13", "x14", "x15",
-    "ip0", "ip1", "pr", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "fp",  "lp"};
+    "x0",  "x1",  "x2",  "x3",  "x4",  "x5",  "x6",  "x7",  "x8",  "x9",  "x10", "x11", "x12", "x13", "x14", "x15",
+    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "lr",  "sp"};
 
 RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[0], 0),
@@ -51,31 +50,60 @@ RegVariable * PlatformArm64::intRegVal[PlatformArm64::maxRegNum] = {
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[26], 26),
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[27], 27),
     new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[28], 28),
-    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[29], 29),
-    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[30], 30)};
+    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[29], 29), // fp
+    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[30], 30), // lr
+    new RegVariable(IntegerType::getTypeInt(), PlatformArm64::regName[31], 31)  // sp
+};
 
-/// @brief 判断是否是常数表达式，ARM64支持更复杂的立即数生成
-/// @param num
-/// @return
-bool PlatformArm64::constExpr(int num)
+void PlatformArm64::roundLeftShiftTwoBit(unsigned int & num)
 {
-    // 检查立即数是否在有效范围内
-    return num >= -0x80000000 && num <= 0x7FFFFFFF;
+    const unsigned int overFlow = num & 0xc0000000;
+    num = (num << 2) | (overFlow >> 30);
 }
 
-bool PlatformArm64::isDisp(int num)
+// 将64位寄存器名(x0-x30)转换为32位形式(w0-w30)
+std::string PlatformArm64::toWReg(const std::string & xreg)
 {
-    // 检查偏移量是否在有效范围内
-    return num >= -0x80000000 && num <= 0x7FFFFFFF;
+    // 仅当寄存器名以'x'开头时进行转换
+    if (!xreg.empty() && xreg[0] == 'x') {
+        return "w" + xreg.substr(1);
+    }
+    // 特殊处理sp和lr
+    if (xreg == "sp")
+        return "wsp";
+    if (xreg == "lr")
+        return "w30";
+
+    // 无法转换则返回原名
+    return xreg;
 }
-/// @brief 判断是否是合法的寄存器名
-/// @param s 寄存器名字
-/// @return 是否是
+
+bool PlatformArm64::__constExpr(int64_t num)
+{
+    uint64_t new_num = (uint64_t) num;
+    for (int i = 0; i < 32; i++) {
+        if (new_num <= 0xfff)
+            return true;
+        roundLeftShiftTwoBit((unsigned int &) new_num);
+    }
+    return false;
+}
+
+bool PlatformArm64::constExpr(int64_t num)
+{
+    return __constExpr(num) || __constExpr(-num);
+}
+
+bool PlatformArm64::isDisp(int64_t num)
+{
+    return num < 4096 && num > -4096;
+}
+
 bool PlatformArm64::isReg(std::string name)
 {
-    return name == "x0" || name == "x1" || name == "x2" || name == "x3" || name == "x4" || name == "x5" ||
-           name == "x6" || name == "x7" || name == "xr" || name == "x9" || name == "x10" || name == "x11" ||
-           name == "x12" || name == "x13" || name == "x14" || name == "x15" || name == "ip0" || name == "ip1" ||
-           name == "pr" || name == "x19" || name == "x20" || name == "x21" || name == "x22" || name == "x23" ||
-           name == "x24" || name == "x25" || name == "x26" || name == "x27" || name == "lp" || name == "fp";
+    for (int i = 0; i < maxRegNum; ++i) {
+        if (name == regName[i])
+            return true;
+    }
+    return false;
 }

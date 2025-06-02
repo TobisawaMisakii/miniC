@@ -128,8 +128,12 @@ lb_check:
             case 'T':
                 gShowAST = true;
                 break;
+            case 'I':
+                // 产生中间IR
+                gShowLineIR = true;
+                break;
             case 'L':
-                // 产生中间IR(llvm)
+                // 产生中间IR
                 gShowLineIR = true;
                 break;
             case 'A':
@@ -155,9 +159,8 @@ lb_check:
                 gAsmAlsoShowIR = true;
                 break;
             default:
-                minic_log(LOG_ERROR, "Unknown option: %c", optopt); // 记录未知选项
                 return -1;
-                // break; /* no break */
+                break; /* no break */
         }
     }
 

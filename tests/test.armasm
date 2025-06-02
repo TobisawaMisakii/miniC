@@ -1,0 +1,38 @@
+	.text
+	.file	"test.ll"
+	.globl	main                            // -- Begin function main
+	.p2align	2
+	.type	main,@function
+main:                                   // @main
+	.cfi_startproc
+// %bb.0:
+	sub	sp, sp, #16
+	.cfi_def_cfa_offset 16
+	mov	w8, #5                          // =0x5
+	str	w8, [sp, #12]
+	b	.LBB0_1
+.LBB0_1:                                // %.L2
+	ldr	w0, [sp, #12]
+	add	sp, sp, #16
+	ret
+.Lfunc_end0:
+	.size	main, .Lfunc_end0-main
+	.cfi_endproc
+                                        // -- End function
+	.type	a,@object                       // @a
+	.data
+	.globl	a
+	.p2align	2, 0x0
+a:
+	.word	10                              // 0xa
+	.size	a, 4
+
+	.type	b,@object                       // @b
+	.globl	b
+	.p2align	2, 0x0
+b:
+	.word	5                               // 0x5
+	.size	b, 4
+
+	.section	".note.GNU-stack","",@progbits
+	.addrsig
