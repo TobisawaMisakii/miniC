@@ -75,7 +75,7 @@ struct ArmInst64 {
 
     /// @brief 设置死指令
     void setDead();
-
+    void load_imm(int rs_reg_no, int constant);
     /// @brief 指令字符串输出函数
     /// @return
     std::string outPut();

@@ -58,7 +58,7 @@ public:
         if (initialValue)
             return false;
         else
-            return isInBSSSection;
+            return true;
     }
 
     ///

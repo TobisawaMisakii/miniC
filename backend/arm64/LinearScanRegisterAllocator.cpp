@@ -5,6 +5,9 @@
 LinearScanRegisterAllocator::LinearScanRegisterAllocator()
 {}
 
+LinearScanRegisterAllocator::~LinearScanRegisterAllocator()
+{}
+
 int LinearScanRegisterAllocator::Allocate(Value * var, int32_t no)
 {
     if (var && (var->getLoadRegId() != -1)) {

@@ -17,14 +17,13 @@
 #include "LinearScanRegisterAllocator.h"
 
 class CodeGeneratorArm64 : public CodeGeneratorAsm {
-
 public:
     /// @brief 构造函数
     /// @param tab 符号表
     CodeGeneratorArm64(Module * module);
 
     /// @brief 析构函数
-    ~CodeGeneratorArm64() override;
+    ~CodeGeneratorArm64();
 
 protected:
     /// @brief 产生汇编头部分

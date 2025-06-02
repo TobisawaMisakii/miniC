@@ -30,6 +30,7 @@ using namespace std;
 /// @brief 指令选择器-ARM32
 class InstSelectorArm64 {
 
+private:
     /// @brief 所有的IR指令
     std::vector<Instruction *> & ir;
 

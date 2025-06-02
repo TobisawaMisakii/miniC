@@ -203,6 +203,11 @@ std::string ILocArm64::toStr(int num, bool flag)
 
     return ret;
 }
+void ILocArm64::load_imm(int rs_reg_no, int constant)
+{
+    // ARM64: movz/movk 组合加载64位立即数，简化为mov
+    emit("mov", PlatformArm64::regName[rs_reg_no], toStr(constant));
+}
 
 /*
     产生标签
@@ -246,23 +251,6 @@ void ILocArm64::inst(std::string op, std::string rs, std::string arg1, std::stri
 void ILocArm64::comment(std::string str)
 {
     emit("@", str);
-}
-
-/*
-    加载立即数 ldr r0,=#100
-*/
-void ILocArm64::load_imm(int rs_reg_no, int constant)
-{
-    // movw:把 16 位立即数放到寄存器的低16位，高16位清0
-    // movt:把 16 位立即数放到寄存器的高16位，低 16位不影响
-    if (0 == ((constant >> 16) & 0xFFFF)) {
-        // 如果高16位本来就为0，直接movw
-        emit("movw", PlatformArm64::regName[rs_reg_no], "#:lower16:" + std::to_string(constant));
-    } else {
-        // 如果高16位不为0，先movw，然后movt
-        emit("movw", PlatformArm64::regName[rs_reg_no], "#:lower16:" + std::to_string(constant));
-        emit("movt", PlatformArm64::regName[rs_reg_no], "#:upper16:" + std::to_string(constant));
-    }
 }
 
 /// @brief 加载符号值 ldr r0,=g ldr r0,=.L1

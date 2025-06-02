@@ -1,3 +1,5 @@
+// File: LinearScanRegisterAllocator.h
+
 #pragma once
 
 #include <vector>
@@ -11,7 +13,9 @@ public:
     /// @brief 构造函数
     LinearScanRegisterAllocator();
 
-    /// @brief 分配寄存器
+    /// @brief 析构函数 (Changed from protected to public)
+    ~LinearScanRegisterAllocator();
+
     /// @param var 变量指针
     /// @param no 指定的寄存器编号
     /// @return 返回分配的寄存器编号
@@ -70,7 +74,4 @@ protected:
 
     /// @brief 查找用于溢出的寄存器
     int findSpillRegister();
-
-public:
-    ~LinearScanRegisterAllocator();
 };
