@@ -53,7 +53,9 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     translator_handlers[IRInstOperator::IRINST_OP_ASSIGN] = &InstSelectorArm64::translate_assign;
 
     translator_handlers[IRInstOperator::IRINST_OP_ADD_I] = &InstSelectorArm64::translate_add_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ADD_F] = &InstSelectorArm64::translate_add_float;
     translator_handlers[IRInstOperator::IRINST_OP_SUB_I] = &InstSelectorArm64::translate_sub_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_SUB_F] = &InstSelectorArm64::translate_sub_float;
 
     // 乘除法
     translator_handlers[IRInstOperator::IRINST_OP_MUL_I] = &InstSelectorArm64::translate_mul_int64;
@@ -343,40 +345,52 @@ void InstSelectorArm64::translate_add_int64(Instruction * inst)
 {
     translate_two_operator(inst, "add");
 }
+/// @brief 浮点加法指令翻译成ARM64汇编
+/// @param inst IR指令
+void InstSelectorArm64::translate_add_float(Instruction * inst)
+{
+    // todo
+}
 
 /// @brief 整数减法指令翻译成ARM64汇编
 /// @param inst IR指令
 void InstSelectorArm64::translate_sub_int64(Instruction * inst)
 {
-    // todo
+    translate_two_operator(inst, "sub");
 }
 
+/// @brief 浮点减法指令翻译成ARM64汇编
+/// @param inst IR指令
+void InstSelectorArm64::translate_sub_float(Instruction * inst)
+{
+    // translate_two_operator(inst, "fsub");todo
+}
 /// @brief 整数乘法指令翻译成ARM64汇编
 /// @param inst IR指令
 void InstSelectorArm64::translate_mul_int64(Instruction * inst)
 {
-    // todo
+    translate_two_operator(inst, "smul");
 }
 
 /// @brief 浮点数乘法指令翻译成ARM64汇编
 /// @param inst IR指令
 void InstSelectorArm64::translate_mul_float(Instruction * inst)
 {
-    // todo
+    // translate_two_operator(inst, "fmul");寄存器分配有问题
 }
 
 /// @brief 整数除法指令翻译成ARM64汇编
 /// @param inst IR指令
 void InstSelectorArm64::translate_div_int64(Instruction * inst)
 {
-    // todo
+    translate_two_operator(inst, "sdiv");
 }
 
 /// @brief 浮点数除法指令翻译成ARM64汇编
 /// @param inst IR指令
 void InstSelectorArm64::translate_div_float(Instruction * inst)
 {
-    translate_two_operator(inst, "divf");
+    // translate_two_operator(inst, "fdiv");寄存器分配有问题
 }
 
 /// @brief 函数调用指令翻译成ARM64汇编

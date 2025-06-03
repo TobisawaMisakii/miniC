@@ -34,5 +34,7 @@ public:
     static const int maxUsableRegNum = 16; // x0-x15 可用通用寄存器
 
     static const std::string regName[maxRegNum];
+    static const std::string floatregName[maxRegNum];
     static RegVariable * intRegVal[PlatformArm64::maxRegNum];
+    static RegVariable * floatRegVal[PlatformArm64::maxRegNum];
 };

@@ -156,3 +156,134 @@ void SimpleRegisterAllocator::bitmapSet(int32_t no)
     regBitmap.set(no);
     usedBitmap.set(no);
 }
+
+// float寄存器设置
+int SimpleRegisterAllocator::floatAllocate(Value * var, int32_t no)
+{
+    if (var && (var->getLoadRegId() != -1)) {
+        // 该变量已经分配了Load寄存器了，不需要再次分配
+        return var->getLoadRegId();
+    }
+
+    int32_t regno = -1;
+
+    // 尝试指定的寄存器是否可用
+    if ((no != -1) && !floatregBitmap.test(no)) {
+
+        // 可用
+        regno = no;
+    } else {
+
+        // 查询空闲的寄存器
+        for (int k = 0; k < PlatformArm64::maxUsableRegNum; ++k) {
+
+            if (!floatregBitmap.test(k)) {
+
+                // 找到空闲寄存器
+                regno = k;
+                break;
+            }
+        }
+    }
+
+    if (regno != -1) {
+
+        // 找到空闲的寄存器
+
+        // 占用
+        floatbitmapSet(regno);
+
+    } else {
+
+        // 没有可用的寄存器分配，需要溢出一个变量的寄存器
+
+        // 溢出的策略：选择最迟加入队列的变量
+        Value * oldestVar = floatregValues.front();
+
+        // 获取Load寄存器编号，设置该变量不再占用Load寄存器
+        regno = oldestVar->getLoadRegId();
+
+        // 设置该变量不再占用寄存器
+        oldestVar->setLoadRegId(-1);
+
+        // 从队列中删除
+        floatregValues.erase(floatregValues.begin());
+    }
+
+    if (var) {
+        // 加入新的变量
+        var->setLoadRegId(regno);
+        floatregValues.push_back(var);
+    }
+
+    return regno;
+}
+
+///
+/// @brief 强制占用一个指定的寄存器。如果寄存器被占用，则强制寄存器关联的变量溢出
+/// @param no 要分配的寄存器编号
+///
+void SimpleRegisterAllocator::floatAllocate(int32_t no)
+{
+    if (floatregBitmap.test(no)) {
+
+        // 指定的寄存器已经被占用
+
+        // 释放该寄存器
+        free(no);
+    }
+
+    // 占用该寄存器
+    floatbitmapSet(no);
+}
+
+///
+/// @brief 将变量对应的load寄存器标记为空闲状态
+/// @param var 变量
+///
+void SimpleRegisterAllocator::floatfree(Value * var)
+{
+    if (var && (var->getLoadRegId() != -1)) {
+
+        // 清除该索引的寄存器，变得可使用
+        floatregBitmap.reset(var->getLoadRegId());
+        floatregValues.erase(std::find(floatregValues.begin(), floatregValues.end(), var));
+        var->setLoadRegId(-1);
+    }
+}
+
+///
+/// @brief 将寄存器no标记为空闲状态
+/// @param no 寄存器编号
+///
+void SimpleRegisterAllocator::floatfree(int32_t no)
+{
+    // 无效寄存器，什么都不做，直接返回
+    if (no == -1) {
+        return;
+    }
+
+    // 清除该索引的寄存器，变得可使用
+    floatregBitmap.reset(no);
+
+    // 查找寄存器编号
+    auto pIter = std::find_if(floatregValues.begin(), floatregValues.end(), [=](auto val) {
+        return val->getLoadRegId() == no; // 存器编号与 no 匹配
+    });
+
+    if (pIter != floatregValues.end()) {
+        // 查找到，则清除，并设置为-1
+        (*pIter)->setLoadRegId(-1);
+        floatregValues.erase(pIter);
+    }
+}
+
+///
+/// @brief 寄存器被置位，使用过的寄存器被置位
+/// @param no
+///
+void SimpleRegisterAllocator::floatbitmapSet(int32_t no)
+{
+    floatregBitmap.set(no);
+    floatusedBitmap.set(no);
+}

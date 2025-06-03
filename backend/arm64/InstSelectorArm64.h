@@ -72,10 +72,17 @@ protected:
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_add_int64(Instruction * inst);
+    /// @brief 整数加法指令翻译成ARM32汇编
+    /// @param inst IR指令
+    void translate_add_float(Instruction * inst);
 
     /// @brief 整数减法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_sub_int64(Instruction * inst);
+
+    /// @brief 浮点数减法指令翻译成ARM32汇编
+    /// @param inst IR指令
+    void translate_sub_float(Instruction * inst);
 
     /// @brief 整数乘法指令翻译成ARM64汇编
     /// @param inst IR指令
