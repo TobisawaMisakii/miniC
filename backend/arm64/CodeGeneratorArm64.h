@@ -38,7 +38,7 @@ protected:
 
     /// @brief 寄存器分配
     /// @param func 要处理的函数
-    void registerAllocation(Function * func);
+    void registerAllocation(Function * func) override;
 
     /// @brief 栈空间分配
     /// @param func 要处理的函数

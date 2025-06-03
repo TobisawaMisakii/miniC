@@ -65,6 +65,8 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
 
     translator_handlers[IRInstOperator::IRINST_OP_FUNC_CALL] = &InstSelectorArm64::translate_call;
     translator_handlers[IRInstOperator::IRINST_OP_ARG] = &InstSelectorArm64::translate_arg;
+    // load
+    translator_handlers[IRInstOperator::IRINST_OP_LOAD] = &InstSelectorArm64::translate_load;
 }
 
 ///
@@ -101,9 +103,9 @@ void InstSelectorArm64::translate(Instruction * inst)
     }
 
     // 开启时输出IR指令作为注释
-    if (gAsmAlsoShowIR) {
-        outputIRInstruction(inst);
-    }
+    // if (gAsmAlsoShowIR) {
+    //     outputIRInstruction(inst);
+    // }
 
     (this->*(pIter->second))(inst);
 }
@@ -349,7 +351,66 @@ void InstSelectorArm64::translate_add_int64(Instruction * inst)
 /// @param inst IR指令
 void InstSelectorArm64::translate_add_float(Instruction * inst)
 {
-    // todo
+    Value * result = inst;
+    Value * arg1 = inst->getOperand(0);
+    Value * arg2 = inst->getOperand(1);
+
+    int32_t arg1_reg_no = arg1->getRegId();
+    int32_t arg2_reg_no = arg2->getRegId();
+    int32_t result_reg_no = inst->getRegId();
+    int32_t load_result_reg_no, load_arg1_reg_no, load_arg2_reg_no;
+
+    // 看arg1是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg1_reg_no == -1) {
+
+        // 分配一个寄存器r8
+        load_arg1_reg_no = simpleRegisterAllocator.floatAllocate(arg1);
+
+        // arg1 -> r8，这里可能由于偏移不满足指令的要求，需要额外分配寄存器
+        iloc.load_var(load_arg1_reg_no, arg1);
+    } else {
+        load_arg1_reg_no = arg1_reg_no;
+    }
+
+    // 看arg2是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg2_reg_no == -1) {
+
+        // 分配一个寄存器r9
+        load_arg2_reg_no = simpleRegisterAllocator.floatAllocate(arg2);
+
+        // arg2 -> r9
+        iloc.load_var(load_arg2_reg_no, arg2);
+    } else {
+        load_arg2_reg_no = arg2_reg_no;
+    }
+
+    // 看结果变量是否是寄存器，若不是则需要分配一个新的寄存器来保存运算的结果
+    if (result_reg_no == -1) {
+        // 分配一个寄存器r10，用于暂存结果
+        load_result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    } else {
+        load_result_reg_no = result_reg_no;
+    }
+    std::string op_name = "fadd";
+    // r8 + r9 -> r10
+    iloc.inst(op_name,
+              PlatformArm64::floatregName[load_result_reg_no],
+              PlatformArm64::floatregName[load_arg1_reg_no],
+              PlatformArm64::floatregName[load_arg2_reg_no]);
+
+    // 结果不是寄存器，则需要把rs_reg_name保存到结果变量中
+    if (result_reg_no == -1) {
+
+        // 这里使用预留的临时寄存器，因为立即数可能过大，必须借助寄存器才可操作。
+
+        // r10 -> result
+        iloc.store_var(load_result_reg_no, result, ARM64_TMP_REG_NO);
+    }
+
+    // 释放寄存器
+    simpleRegisterAllocator.floatfree(arg1);
+    simpleRegisterAllocator.floatfree(arg2);
+    simpleRegisterAllocator.floatfree(result);
 }
 
 /// @brief 整数减法指令翻译成ARM64汇编
@@ -364,6 +425,66 @@ void InstSelectorArm64::translate_sub_int64(Instruction * inst)
 void InstSelectorArm64::translate_sub_float(Instruction * inst)
 {
     // translate_two_operator(inst, "fsub");todo
+    Value * result = inst;
+    Value * arg1 = inst->getOperand(0);
+    Value * arg2 = inst->getOperand(1);
+
+    int32_t arg1_reg_no = arg1->getRegId();
+    int32_t arg2_reg_no = arg2->getRegId();
+    int32_t result_reg_no = inst->getRegId();
+    int32_t load_result_reg_no, load_arg1_reg_no, load_arg2_reg_no;
+
+    // 看arg1是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg1_reg_no == -1) {
+
+        // 分配一个寄存器r8
+        load_arg1_reg_no = simpleRegisterAllocator.floatAllocate(arg1);
+
+        // arg1 -> r8，这里可能由于偏移不满足指令的要求，需要额外分配寄存器
+        iloc.load_var(load_arg1_reg_no, arg1);
+    } else {
+        load_arg1_reg_no = arg1_reg_no;
+    }
+
+    // 看arg2是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg2_reg_no == -1) {
+
+        // 分配一个寄存器r9
+        load_arg2_reg_no = simpleRegisterAllocator.floatAllocate(arg2);
+
+        // arg2 -> r9
+        iloc.load_var(load_arg2_reg_no, arg2);
+    } else {
+        load_arg2_reg_no = arg2_reg_no;
+    }
+
+    // 看结果变量是否是寄存器，若不是则需要分配一个新的寄存器来保存运算的结果
+    if (result_reg_no == -1) {
+        // 分配一个寄存器r10，用于暂存结果
+        load_result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    } else {
+        load_result_reg_no = result_reg_no;
+    }
+    std::string op_name = "fsub";
+    // r8 + r9 -> r10
+    iloc.inst(op_name,
+              PlatformArm64::floatregName[load_result_reg_no],
+              PlatformArm64::floatregName[load_arg1_reg_no],
+              PlatformArm64::floatregName[load_arg2_reg_no]);
+
+    // 结果不是寄存器，则需要把rs_reg_name保存到结果变量中
+    if (result_reg_no == -1) {
+
+        // 这里使用预留的临时寄存器，因为立即数可能过大，必须借助寄存器才可操作。
+
+        // r10 -> result
+        iloc.store_var(load_result_reg_no, result, ARM64_TMP_REG_NO);
+    }
+
+    // 释放寄存器
+    simpleRegisterAllocator.floatfree(arg1);
+    simpleRegisterAllocator.floatfree(arg2);
+    simpleRegisterAllocator.floatfree(result);
 }
 /// @brief 整数乘法指令翻译成ARM64汇编
 /// @param inst IR指令
@@ -377,6 +498,66 @@ void InstSelectorArm64::translate_mul_int64(Instruction * inst)
 void InstSelectorArm64::translate_mul_float(Instruction * inst)
 {
     // translate_two_operator(inst, "fmul");寄存器分配有问题
+    Value * result = inst;
+    Value * arg1 = inst->getOperand(0);
+    Value * arg2 = inst->getOperand(1);
+
+    int32_t arg1_reg_no = arg1->getRegId();
+    int32_t arg2_reg_no = arg2->getRegId();
+    int32_t result_reg_no = inst->getRegId();
+    int32_t load_result_reg_no, load_arg1_reg_no, load_arg2_reg_no;
+
+    // 看arg1是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg1_reg_no == -1) {
+
+        // 分配一个寄存器r8
+        load_arg1_reg_no = simpleRegisterAllocator.floatAllocate(arg1);
+
+        // arg1 -> r8，这里可能由于偏移不满足指令的要求，需要额外分配寄存器
+        iloc.load_var(load_arg1_reg_no, arg1);
+    } else {
+        load_arg1_reg_no = arg1_reg_no;
+    }
+
+    // 看arg2是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg2_reg_no == -1) {
+
+        // 分配一个寄存器r9
+        load_arg2_reg_no = simpleRegisterAllocator.floatAllocate(arg2);
+
+        // arg2 -> r9
+        iloc.load_var(load_arg2_reg_no, arg2);
+    } else {
+        load_arg2_reg_no = arg2_reg_no;
+    }
+
+    // 看结果变量是否是寄存器，若不是则需要分配一个新的寄存器来保存运算的结果
+    if (result_reg_no == -1) {
+        // 分配一个寄存器r10，用于暂存结果
+        load_result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    } else {
+        load_result_reg_no = result_reg_no;
+    }
+    std::string op_name = "fmul";
+    // r8 + r9 -> r10
+    iloc.inst(op_name,
+              PlatformArm64::floatregName[load_result_reg_no],
+              PlatformArm64::floatregName[load_arg1_reg_no],
+              PlatformArm64::floatregName[load_arg2_reg_no]);
+
+    // 结果不是寄存器，则需要把rs_reg_name保存到结果变量中
+    if (result_reg_no == -1) {
+
+        // 这里使用预留的临时寄存器，因为立即数可能过大，必须借助寄存器才可操作。
+
+        // r10 -> result
+        iloc.store_var(load_result_reg_no, result, ARM64_TMP_REG_NO);
+    }
+
+    // 释放寄存器
+    simpleRegisterAllocator.floatfree(arg1);
+    simpleRegisterAllocator.floatfree(arg2);
+    simpleRegisterAllocator.floatfree(result);
 }
 
 /// @brief 整数除法指令翻译成ARM64汇编
@@ -391,6 +572,66 @@ void InstSelectorArm64::translate_div_int64(Instruction * inst)
 void InstSelectorArm64::translate_div_float(Instruction * inst)
 {
     // translate_two_operator(inst, "fdiv");寄存器分配有问题
+    Value * result = inst;
+    Value * arg1 = inst->getOperand(0);
+    Value * arg2 = inst->getOperand(1);
+
+    int32_t arg1_reg_no = arg1->getRegId();
+    int32_t arg2_reg_no = arg2->getRegId();
+    int32_t result_reg_no = inst->getRegId();
+    int32_t load_result_reg_no, load_arg1_reg_no, load_arg2_reg_no;
+
+    // 看arg1是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg1_reg_no == -1) {
+
+        // 分配一个寄存器r8
+        load_arg1_reg_no = simpleRegisterAllocator.floatAllocate(arg1);
+
+        // arg1 -> r8，这里可能由于偏移不满足指令的要求，需要额外分配寄存器
+        iloc.load_var(load_arg1_reg_no, arg1);
+    } else {
+        load_arg1_reg_no = arg1_reg_no;
+    }
+
+    // 看arg2是否是寄存器，若是则寄存器寻址，否则要load变量到寄存器中
+    if (arg2_reg_no == -1) {
+
+        // 分配一个寄存器r9
+        load_arg2_reg_no = simpleRegisterAllocator.floatAllocate(arg2);
+
+        // arg2 -> r9
+        iloc.load_var(load_arg2_reg_no, arg2);
+    } else {
+        load_arg2_reg_no = arg2_reg_no;
+    }
+
+    // 看结果变量是否是寄存器，若不是则需要分配一个新的寄存器来保存运算的结果
+    if (result_reg_no == -1) {
+        // 分配一个寄存器r10，用于暂存结果
+        load_result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    } else {
+        load_result_reg_no = result_reg_no;
+    }
+    std::string op_name = "fdiv";
+    // r8 + r9 -> r10
+    iloc.inst(op_name,
+              PlatformArm64::floatregName[load_result_reg_no],
+              PlatformArm64::floatregName[load_arg1_reg_no],
+              PlatformArm64::floatregName[load_arg2_reg_no]);
+
+    // 结果不是寄存器，则需要把rs_reg_name保存到结果变量中
+    if (result_reg_no == -1) {
+
+        // 这里使用预留的临时寄存器，因为立即数可能过大，必须借助寄存器才可操作。
+
+        // r10 -> result
+        iloc.store_var(load_result_reg_no, result, ARM64_TMP_REG_NO);
+    }
+
+    // 释放寄存器
+    simpleRegisterAllocator.floatfree(arg1);
+    simpleRegisterAllocator.floatfree(arg2);
+    simpleRegisterAllocator.floatfree(result);
 }
 
 /// @brief 函数调用指令翻译成ARM64汇编
@@ -513,3 +754,10 @@ void InstSelectorArm64::translate_arg(Instruction * inst)
 
     realArgCount++;
 }
+
+///
+/// @brief laod指令翻译成ARM64汇编
+/// @param inst
+///
+void InstSelectorArm64::translate_load(Instruction * inst)
+{}

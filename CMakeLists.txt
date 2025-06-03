@@ -113,6 +113,8 @@ set(BACKEND_SRCS
 	backend/arm64/CodeGeneratorArm64.h
 	backend/arm64/LinearScanRegisterAllocator.cpp
 	backend/arm64/LinearScanRegisterAllocator.h
+	backend/arm64/SimpleRegisterAllocator.cpp
+	backend/arm64/SimpleRegisterAllocator.h
 )
 
 # 中间IR(ir)源代码集合
@@ -308,7 +310,6 @@ add_custom_command(
 	OUTPUT
 	${ANTLR4_OUTPUT}
 	COMMAND
-	${Java_JAVA_EXECUTABLE} -jar ${ANTLR4_JAR_LOCATION} -Dlanguage=Cpp -no-listener -visitor -o ${ANTLR4_GEN_DIR} SysY.g4
 	${Java_JAVA_EXECUTABLE} -jar ${ANTLR4_JAR_LOCATION} -Dlanguage=Cpp -no-listener -visitor -o ${ANTLR4_GEN_DIR} SysY.g4
 	DEPENDS
 	${ANTLR4_INPUT}

@@ -8,11 +8,11 @@ cmake --build build --parallel
 # # 生成标准ir
 # clang -S -emit-llvm -o tests/test_std1.ll tests/test.c
 # # 用自己的编译器生成ir
-# ./build/minic -S -A -L -o tests/test.ll tests/test.c
+./build/minic -S -A -L -o tests/test2-1.ll tests/test2-1.c
 # 生成ARM64汇编
-clang -S -target aarch64-linux-gnu -o tests/test.armasm tests/test.ll
+clang -S -target aarch64-linux-gnu -o tests/test2-1.s tests/test2-1.ll
 # 编译生成ARM64汇编文件
-aarch64-linux-gnu-gcc -o tests/test_arm tests/test.arm -no-pie
+# aarch64-linux-gnu-gcc -o tests/test_arm tests/test.arm -no-pie
 # 运行ARM64程序
-qemu-aarch64 ./tests/test_arm
+# qemu-aarch64 ./tests/test_arm
 echo $?
