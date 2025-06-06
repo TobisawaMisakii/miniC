@@ -121,6 +121,11 @@ protected:
     ///
     void translate_load(Instruction * inst);
     ///
+    /// @brief store指令翻译成ARM32汇编
+    /// @param inst
+    ///
+    void translate_store(Instruction * inst);
+    ///
     /// @brief 输出IR指令
     ///
     void outputIRInstruction(Instruction * inst);

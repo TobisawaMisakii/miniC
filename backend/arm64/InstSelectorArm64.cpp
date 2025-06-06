@@ -67,6 +67,7 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     translator_handlers[IRInstOperator::IRINST_OP_ARG] = &InstSelectorArm64::translate_arg;
     // load
     translator_handlers[IRInstOperator::IRINST_OP_LOAD] = &InstSelectorArm64::translate_load;
+    translator_handlers[IRInstOperator::IRINST_OP_STORE] = &InstSelectorArm64::translate_store;
 }
 
 ///
@@ -220,20 +221,47 @@ void InstSelectorArm64::translate_exit(Instruction * inst)
         Value * retVal = inst->getOperand(0);
         iloc.load_var(0, retVal);
     }
+    auto & protectedRegNo = func->getProtectedReg();
 
-    auto & protectedRegStr = func->getProtectedRegStr();
+    int funcCallArgCnt = func->getMaxFuncCallArgCnt() - 8;
+    funcCallArgCnt = std::max(funcCallArgCnt, 0);
+    int off = func->getMaxDep();
+    off += funcCallArgCnt * 8;
+    int save_size = 0;
+    if (protectedRegNo.size() == 2)
+        save_size = 16;
+    else if (protectedRegNo.size() == 1)
+        save_size = 8;
+    int frame_size = off + save_size;
+    if (frame_size % 16 != 0)
+        frame_size += 16 - (frame_size % 16);
 
-    iloc.inst("add",
-              PlatformArm64::regName[ARM64_FP_REG_NO],
-              PlatformArm64::regName[ARM64_FP_REG_NO],
-              iloc.toStr(func->getMaxDep()));
-    iloc.inst("mov", "sp", PlatformArm64::regName[ARM64_FP_REG_NO]);
-
-    if (!protectedRegStr.empty()) {
-        iloc.inst("ldp", "{" + protectedRegStr + "}");
+    iloc.inst("mov", PlatformArm64::regName[ARM64_SP_REG_NO], PlatformArm64::regName[ARM64_FP_REG_NO]);
+    int res_size = frame_size - save_size;
+    if (res_size <= 4095) {
+        iloc.inst("add",
+                  PlatformArm64::regName[ARM64_SP_REG_NO],
+                  PlatformArm64::regName[ARM64_SP_REG_NO],
+                  iloc.toStr(res_size, false));
+    } else {
+        auto temp_regno = simpleRegisterAllocator.Allocate();
+        // iloc.load_imm(temp_regno, res_size);
+        iloc.inst("add",
+                  PlatformArm64::regName[ARM64_SP_REG_NO],
+                  PlatformArm64::regName[ARM64_SP_REG_NO],
+                  PlatformArm64::regName[temp_regno]);
+        simpleRegisterAllocator.free(temp_regno);
     }
-
-    iloc.inst("ret", "lr");
+    // 恢复fp/lr并回收栈帧
+    if (protectedRegNo.size() == 2) {
+        iloc.inst("ldp",
+                  PlatformArm64::regName[protectedRegNo[0]],
+                  PlatformArm64::regName[protectedRegNo[1]],
+                  "[sp], #" + iloc.toStr(save_size, false));
+    } else if (protectedRegNo.size() == 1) {
+        iloc.inst("ldr", PlatformArm64::regName[protectedRegNo[0]], "[sp], #" + iloc.toStr(save_size, false));
+    }
+    iloc.inst("ret", "");
 }
 
 /// @brief 赋值指令翻译成ARM64汇编
@@ -761,104 +789,64 @@ void InstSelectorArm64::translate_arg(Instruction * inst)
 ///
 void InstSelectorArm64::translate_load(Instruction * inst)
 {
-    Value * result_val = inst; // 加载操作的结果将存储在这个Value对应的位置（通常是寄存器）
-    Value * address_operand_val = inst->getOperand(0); // 这个Value持有要加载数据的内存地址（它本身是一个指针）
+    // IR 指令语义： result = LOAD address
+    // result 是指令本身代表的Value
+    // address 是第一个操作数
+    Value * result = inst;
+    Value * address = inst->getOperand(0);
 
-    int32_t dest_reg_no; // 目标寄存器号
+    int32_t result_reg_no, address_reg_no;
 
-    if (result_val->getRegId() != -1) {
-        dest_reg_no = result_val->getRegId(); // 使用已分配的目标寄存器
+    // --- 步骤 1: 将地址加载到一个寄存器中 ---
+    // 检查地址是否已在寄存器中
+    if (address->getRegId() != -1) {
+        address_reg_no = address->getRegId();
+        iloc.store_var(address_reg_no, result, ARM64_TMP_REG_NO);
+    } else if (result->getRegId() != -1) {
+        // 如果地址不在寄存器中（例如，它是一个存储在栈上的指针变量），
+        // 则分配一个临时寄存器，并使用 iloc.load_var 将地址加载进来。
+        result_reg_no = simpleRegisterAllocator.Allocate();
+        iloc.load_var(result_reg_no, address);
     } else {
-        // 为LOAD指令的结果分配新寄存器。
-        dest_reg_no = simpleRegisterAllocator.Allocate(result_val);
+        // 如果没有，分配一个新的临时寄存器来存放加载的数据
+        int32_t temp_regno = simpleRegisterAllocator.Allocate();
+        int32_t result_regno = simpleRegisterAllocator.Allocate();
+        iloc.load_var(temp_regno, address);
+        iloc.store_var(temp_regno, result, ARM64_TMP_REG_NO);
+        simpleRegisterAllocator.free(temp_regno);
+        simpleRegisterAllocator.free(result_regno);
     }
 
-    int32_t addr_holder_reg_no;       // 存储实际内存地址的寄存器编号
-    bool addr_holder_is_temp = false; // 标记地址寄存器是否为临时分配
+    // --- 步骤 3: 生成 LDR 指令 ---
+    // 生成 "ldr <结果寄存器>, [<地址寄存器>]"
+    // 这条指令从 address_reg_no 指向的内存地址加载数据到 result_reg_no
+}
 
-    if (address_operand_val->getRegId() != -1) {
-        addr_holder_reg_no = address_operand_val->getRegId(); // 直接使用现有地址寄存器
+/// @brief store指令翻译成ARM64汇编
+/// @param inst IR指令
+void InstSelectorArm64::translate_store(Instruction * inst)
+{
+    // IR 指令语义： STORE value, address
+    // value 是第一个操作数
+    // address 可能是立即数
+    Value * value_to_store = inst->getOperand(0);
+    Value * address = inst->getOperand(1); // 可能是
+
+    int32_t value_reg_no, address_reg_no;
+
+    if (value_to_store->getRegId() != -1) {
+        value_reg_no = value_to_store->getRegId();
+        iloc.store_var(value_reg_no, address, ARM64_TMP_REG_NO);
+    } else if (address->getRegId() != -1) {
+        address_reg_no = address->getRegId();
+
+        iloc.load_var(address_reg_no, address);
     } else {
-        // 分配临时寄存器并加载地址值
-        addr_holder_reg_no = simpleRegisterAllocator.Allocate();
-        addr_holder_is_temp = true;
-        iloc.load_var(addr_holder_reg_no, address_operand_val);
+        int32_t temp_regno = simpleRegisterAllocator.Allocate();
+        int32_t result_regno = simpleRegisterAllocator.Allocate();
+        iloc.load_var(temp_regno, address);
+        iloc.store_var(temp_regno, value_to_store, ARM64_TMP_REG_NO);
+        simpleRegisterAllocator.free(temp_regno);
+        simpleRegisterAllocator.free(result_regno);
     }
-
-    Type * loaded_data_type = result_val->getType(); // 获取加载数据的类型
-    std::string arm_load_inst = "ldr";               // (ldr xDest, [xAddr])
-
-    // 根据要加载数据的类型，确定具体的LDR系列指令。
-    // 注意: PlatformArm64::regName 需要能够正确地将 dest_reg_no 映射到 X, W, S, 或 D 寄存器名。
-    // 这通常意味着 simpleRegisterAllocator 必须能够从不同的寄存器池分配，
-    // 或者使用一种 PlatformArm64::regName 可以解释的编号方案。
-    // 此处假设 simpleRegisterAllocator 和 PlatformArm64::regName 能够处理这些。
-
-    if (loaded_data_type->isIntegerType()) {
-        IntegerType * int_type = static_cast<IntegerType *>(loaded_data_type);
-        switch (int_type->getBitWidth()) {
-            case 8:
-                arm_load_inst = "ldrsb"; // LDRSB Xd, [Xn] (加载字节并符号扩展到64位)
-                break;
-            case 16:
-                arm_load_inst = "ldrsh"; // LDRSH Xd, [Xn] (加载半字并符号扩展到64位)
-                break;
-            case 32:
-                // LDRSW Xd, [Xn] 加载一个32位字并将其符号扩展到64位存入X寄存器。
-                // 如果是加载到W寄存器 (目标也是32位)，则会用 "ldr Wd, [Xn]"。
-                // 考虑到其他操作多为int64，LDRSW到X寄存器是常见选择。
-                arm_load_inst = "ldrsw";
-                break;
-            case 64:
-                arm_load_inst = "ldr"; // 标准64位加载 LDR Xd, [Xn]
-                break;
-            default:
-                minic_log(LOG_ERROR, "不支持的LOAD整数位宽: %d", int_type->getBitWidth());
-                if (addr_holder_is_temp)
-                    simpleRegisterAllocator.free(addr_holder_reg_no);
-                simpleRegisterAllocator.free(result_val); // 如果是为result新分配的，也考虑释放
-                simpleRegisterAllocator.free(address_operand_val);
-                return;
-        }
-        // 对于整数类型，dest_reg_no 应该引用一个X寄存器（通用寄存器）。
-        // LDRSB, LDRSH, LDRSW 指令会正确地加载数据并符号扩展到目标X寄存器。
-        // 如果要加载到32位的W寄存器，则使用 LDR Wd, [Xn]。
-
-    } else if (loaded_data_type->isFloatType()) {
-        // LDR St, [Xn] (加载单精度浮点数)
-        arm_load_inst = "ldr";
-        // dest_reg_no 必须是从浮点寄存器池分配的 (S 寄存器)
-        // PlatformArm64::regName[dest_reg_no] 应该生成 "s<n>" 这样的名字
-    } else if (loaded_data_type->isPointerType()) {
-        arm_load_inst = "ldr"; // 指针在ARM64上是64位的，使用通用加载
-        // dest_reg_no 应该引用一个X寄存器
-    } else {
-        minic_log(LOG_ERROR, "不支持的LOAD操作类型: %s", loaded_data_type->toString().c_str());
-        if (addr_holder_is_temp)
-            simpleRegisterAllocator.free(addr_holder_reg_no);
-        simpleRegisterAllocator.free(result_val);
-        simpleRegisterAllocator.free(address_operand_val);
-        return;
-    }
-
-    // 发出实际的加载指令。
-    // 示例：LDRSW X0, [X1] (从X1寄存器中的地址加载一个有符号字到X0寄存器)
-    //    LDR  S0, [X1] (从X1寄存器中的地址加载一个单精度浮点数到S0寄存器)
-    iloc.inst(arm_load_inst,
-              PlatformArm64::regName[dest_reg_no],                     // 目标寄存器
-              "[" + PlatformArm64::regName[addr_holder_reg_no] + "]"); // 源地址，在寄存器中
-
-    // 如果为持有地址分配了临时寄存器，现在释放它
-    if (addr_holder_is_temp) {
-        simpleRegisterAllocator.free(addr_holder_reg_no);
-    }
-
-    // 为寄存器分配器的活跃性分析/释放逻辑，标记操作数已被使用。
-    // result_val (即inst) 现在的值在 dest_reg_no 中是活跃的。
-    // address_operand_val 作为地址来源，其在此指令中的使用已经结束。
-    simpleRegisterAllocator.free(address_operand_val);
-    // result_val (即inst) 的释放在你的代码模式中似乎是在其生命周期结束时，
-    // 或者如 translate_two_operator 中那样，在指令翻译完成后立即调用 free。
-    // 这里遵循你已有的模式。
-    simpleRegisterAllocator.free(result_val);
 }

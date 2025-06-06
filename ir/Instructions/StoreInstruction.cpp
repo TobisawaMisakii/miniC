@@ -6,7 +6,7 @@ StoreInstruction::StoreInstruction(Function * _func,
                                    Value * _sourcePtr,
                                    bool _isFormalRes,
                                    bool _isFormalSrc)
-    : Instruction(_func, IRInstOperator::IRINST_OP_LOAD, _result->getType()), result(_result), source(_sourcePtr),
+    : Instruction(_func, IRInstOperator::IRINST_OP_STORE, _result->getType()), result(_result), source(_sourcePtr),
       isFormalRes(_isFormalRes), isFormalSrc(_isFormalSrc)
 {
     addOperand(_result);

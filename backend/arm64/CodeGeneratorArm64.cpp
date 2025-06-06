@@ -75,7 +75,7 @@ void CodeGeneratorArm64::genDataSection()
             if (var->getType()->isIntegerType()) {
                 // 获取初始化值
                 int value = var->GetintValue();
-                fprintf(fp, ".quad %d\n", value);
+                fprintf(fp, ".word %d\n", value);
             }
         }
     }
@@ -177,7 +177,6 @@ void CodeGeneratorArm64::registerAllocation(Function * func)
     //  (3) R10寄存器用于立即数过大时要通过寄存器寻址，这里简化处理进行预留
 
     std::vector<int32_t> & protectedRegNo = func->getProtectedReg();
-    protectedRegNo.push_back(ARM64_FP_REG_NO);
     protectedRegNo.push_back(ARM64_FP_REG_NO);
     if (func->getExistFuncCall()) {
         protectedRegNo.push_back(ARM64_LR_REG_NO);
