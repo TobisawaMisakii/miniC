@@ -68,6 +68,9 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     // load
     translator_handlers[IRInstOperator::IRINST_OP_LOAD] = &InstSelectorArm64::translate_load;
     translator_handlers[IRInstOperator::IRINST_OP_STORE] = &InstSelectorArm64::translate_store;
+    // mod
+    translator_handlers[IRInstOperator::IRINST_OP_MOD_I] = &InstSelectorArm64::translate_mod_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_MOD_F] = &InstSelectorArm64::translate_mod_float;
 }
 
 ///
@@ -849,4 +852,84 @@ void InstSelectorArm64::translate_store(Instruction * inst)
         simpleRegisterAllocator.free(temp_regno);
         simpleRegisterAllocator.free(result_regno);
     }
+}
+
+void InstSelectorArm64::translate_mod_int64(Instruction * inst)
+{
+    Value * lhs = inst->getOperand(0);
+    Value * rhs = inst->getOperand(1);
+    Value * dst = inst;
+    int32_t dst_reg = dst->getRegId();
+    int32_t lhs_reg = lhs->getRegId();
+    int32_t rhs_reg = rhs->getRegId();
+    int32_t tmp_div = simpleRegisterAllocator.Allocate();
+    int32_t tmp_mul = simpleRegisterAllocator.Allocate();
+    if (lhs_reg == -1) {
+        lhs_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(lhs_reg, lhs);
+    }
+    if (rhs_reg == -1) {
+        rhs_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(rhs_reg, rhs);
+    }
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.Allocate();
+    iloc.inst("sdiv",
+              PlatformArm64::regName[tmp_div],
+              PlatformArm64::regName[lhs_reg],
+              PlatformArm64::regName[rhs_reg]);
+    iloc.inst("mul", PlatformArm64::regName[tmp_mul], PlatformArm64::regName[tmp_div], PlatformArm64::regName[rhs_reg]);
+    iloc.inst("sub", PlatformArm64::regName[dst_reg], PlatformArm64::regName[lhs_reg], PlatformArm64::regName[tmp_mul]);
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(tmp_div);
+    simpleRegisterAllocator.free(tmp_mul);
+    if (lhs->getRegId() == -1)
+        simpleRegisterAllocator.free(lhs_reg);
+    if (rhs->getRegId() == -1)
+        simpleRegisterAllocator.free(rhs_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.free(dst_reg);
+}
+
+void InstSelectorArm64::translate_mod_float(Instruction * inst)
+{
+    Value * lhs = inst->getOperand(0);
+    Value * rhs = inst->getOperand(1);
+    Value * dst = inst;
+    int32_t dst_reg = dst->getRegId();
+    int32_t lhs_reg = lhs->getRegId();
+    int32_t rhs_reg = rhs->getRegId();
+    int32_t tmp_div = simpleRegisterAllocator.Allocate();
+    int32_t tmp_mul = simpleRegisterAllocator.Allocate();
+    if (lhs_reg == -1) {
+        lhs_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(lhs_reg, lhs);
+    }
+    if (rhs_reg == -1) {
+        rhs_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(rhs_reg, rhs);
+    }
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.floatAllocate();
+    iloc.inst("fdiv",
+              PlatformArm64::floatregName[tmp_div],
+              PlatformArm64::floatregName[lhs_reg],
+              PlatformArm64::floatregName[rhs_reg]);
+    iloc.inst("fmul",
+              PlatformArm64::floatregName[tmp_mul],
+              PlatformArm64::regName[tmp_div],
+              PlatformArm64::regName[rhs_reg]);
+    iloc.inst("fsub",
+              PlatformArm64::regName[dst_reg],
+              PlatformArm64::floatregName[lhs_reg],
+              PlatformArm64::floatregName[tmp_mul]);
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.floatfree(tmp_div);
+    simpleRegisterAllocator.floatfree(tmp_mul);
+    if (lhs->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(lhs_reg);
+    if (rhs->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(rhs_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(dst_reg);
 }

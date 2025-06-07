@@ -258,10 +258,9 @@ void ILocArm64::comment(std::string str)
 /// @param name 符号名
 void ILocArm64::load_symbol(int rs_reg_no, std::string name)
 {
-    // movw r10, #:lower16:a
-    // movt r10, #:upper16:a
-    emit("movw", PlatformArm64::regName[rs_reg_no], "#:lower16:" + name);
-    emit("movt", PlatformArm64::regName[rs_reg_no], "#:upper16:" + name);
+    // ARM64: adrp/add 组合加载符号地址，简化为adrp
+    emit("adrp", PlatformArm64::regName[rs_reg_no], name);
+    emit("add", PlatformArm64::regName[rs_reg_no], PlatformArm64::regName[rs_reg_no], ":lo12:" + name);
 }
 
 /// @brief 基址寻址 ldr r0,[fp,#100]
