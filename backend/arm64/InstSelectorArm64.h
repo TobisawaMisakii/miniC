@@ -128,11 +128,36 @@ protected:
     /// @param inst
     ///
     void translate_load(Instruction * inst);
+
     ///
     /// @brief store指令翻译成ARM32汇编
     /// @param inst
     ///
     void translate_store(Instruction * inst);
+
+    ///
+    /// @brief zxet零扩展指令指令翻译成ARM32汇编
+    /// @param inst
+    ///
+    void translate_zext(Instruction * inst);
+
+    ///
+    /// @brief sxet符号扩展指令指令翻译成ARM32汇编
+    /// @param inst
+    ///
+    void translate_sext(Instruction * inst);
+
+    ///
+    /// @brief i32转浮点指令翻译成ARM32汇编
+    /// @param inst
+    ///
+    void translate_sitofp(Instruction * inst);
+
+    ///
+    /// @brief 浮点转i32指令翻译成ARM32汇编
+    /// @param inst
+    ///
+    void translate_fptosi(Instruction * inst);
     ///
     /// @brief 输出IR指令
     ///

@@ -71,6 +71,19 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     // mod
     translator_handlers[IRInstOperator::IRINST_OP_MOD_I] = &InstSelectorArm64::translate_mod_int64;
     translator_handlers[IRInstOperator::IRINST_OP_MOD_F] = &InstSelectorArm64::translate_mod_float;
+    // IRINST_OP_ZEXT,       // 零扩展指令
+    //     IRINST_OP_SEXT,   // 符号扩展指令
+    //     IRINST_OP_SITOFP, // i32转浮点指令
+    //     IRINST_OP_FPTOSI,
+    // 数据类型转换
+    // 零扩展指令
+    translator_handlers[IRInstOperator::IRINST_OP_ZEXT] = &InstSelectorArm64::translate_zext;
+    // 符号扩展指令
+    translator_handlers[IRInstOperator::IRINST_OP_SEXT] = &InstSelectorArm64::translate_sext;
+    // i32转浮点指令
+    translator_handlers[IRInstOperator::IRINST_OP_SITOFP] = &InstSelectorArm64::translate_sitofp;
+    // 浮点转i32指令
+    translator_handlers[IRInstOperator::IRINST_OP_FPTOSI] = &InstSelectorArm64::translate_fptosi;
 }
 
 ///
@@ -932,4 +945,84 @@ void InstSelectorArm64::translate_mod_float(Instruction * inst)
         simpleRegisterAllocator.floatfree(rhs_reg);
     if (dst->getRegId() == -1)
         simpleRegisterAllocator.floatfree(dst_reg);
+}
+
+void InstSelectorArm64::translate_zext(Instruction * inst)
+{
+    // 使用UXTW指令进行零扩展
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("uxtw", PlatformArm64::regName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
+}
+
+void InstSelectorArm64::translate_sext(Instruction * inst)
+{
+    // 使用SXTW指令进行符号扩展
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("sxtw", PlatformArm64::regName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
+}
+
+void InstSelectorArm64::translate_sitofp(Instruction * inst)
+{
+    // 使用SCVTF指令将32位整数转换为浮点数
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    }
+    iloc.inst("scvtf", PlatformArm64::floatregName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.floatfree(result);
+}
+
+void InstSelectorArm64::translate_fptosi(Instruction * inst)
+{
+    // 使用FCVTZS指令将浮点数转换为32位整数
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.floatAllocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("fcvtzs", PlatformArm64::regName[result_reg_no], PlatformArm64::floatregName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
 }
