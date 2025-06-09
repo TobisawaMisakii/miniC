@@ -1,16 +1,16 @@
 ///
 /// @file CodeGeneratorArm32.h
-/// @brief ARM64µÄºó¶Ë´¦ÀíÍ·ÎÄ¼ş
+/// @brief ARM64çš„åç«¯å¤„ç†å¤´æ–‡ä»¶
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #include "CodeGeneratorAsm.h"
@@ -18,49 +18,49 @@
 
 class CodeGeneratorArm64 : public CodeGeneratorAsm {
 public:
-    /// @brief ¹¹Ôìº¯Êı
-    /// @param tab ·ûºÅ±í
+    /// @brief æ„é€ å‡½æ•°
+    /// @param tab ç¬¦å·è¡¨
     CodeGeneratorArm64(Module * module);
 
-    /// @brief Îö¹¹º¯Êı
+    /// @brief ææ„å‡½æ•°
     ~CodeGeneratorArm64();
 
 protected:
-    /// @brief ²úÉú»ã±àÍ·²¿·Ö
+    /// @brief äº§ç”Ÿæ±‡ç¼–å¤´éƒ¨åˆ†
     void genHeader() override;
 
-    /// @brief È«¾Ö±äÁ¿Section£¬Ö÷Òª°üº¬³õÊ¼»¯µÄºÍÎ´³õÊ¼»¯¹ıµÄ
+    /// @brief å…¨å±€å˜é‡Sectionï¼Œä¸»è¦åŒ…å«åˆå§‹åŒ–çš„å’Œæœªåˆå§‹åŒ–è¿‡çš„
     void genDataSection() override;
 
-    /// @brief Õë¶Ôº¯Êı½øĞĞ»ã±àÖ¸ÁîÉú³É£¬·Åµ½.text´úÂë¶ÎÖĞ
-    /// @param func Òª´¦ÀíµÄº¯Êı
+    /// @brief é’ˆå¯¹å‡½æ•°è¿›è¡Œæ±‡ç¼–æŒ‡ä»¤ç”Ÿæˆï¼Œæ”¾åˆ°.textä»£ç æ®µä¸­
+    /// @param func è¦å¤„ç†çš„å‡½æ•°
     void genCodeSection(Function * func) override;
 
-    /// @brief ¼Ä´æÆ÷·ÖÅä
-    /// @param func Òª´¦ÀíµÄº¯Êı
+    /// @brief å¯„å­˜å™¨åˆ†é…
+    /// @param func è¦å¤„ç†çš„å‡½æ•°
     void registerAllocation(Function * func) override;
 
-    /// @brief Õ»¿Õ¼ä·ÖÅä
-    /// @param func Òª´¦ÀíµÄº¯Êı
+    /// @brief æ ˆç©ºé—´åˆ†é…
+    /// @param func è¦å¤„ç†çš„å‡½æ•°
     void stackAlloc(Function * func);
 
-    /// @brief ¼Ä´æÆ÷·ÖÅäÇ°¶Ôº¯ÊıÄÚµÄÖ¸Áî½øĞĞµ÷Õû£¬ÒÔ±ã·½±ã¼Ä´æÆ÷·ÖÅä
-    /// @param func Òª´¦ÀíµÄº¯Êı
+    /// @brief å¯„å­˜å™¨åˆ†é…å‰å¯¹å‡½æ•°å†…çš„æŒ‡ä»¤è¿›è¡Œè°ƒæ•´ï¼Œä»¥ä¾¿æ–¹ä¾¿å¯„å­˜å™¨åˆ†é…
+    /// @param func è¦å¤„ç†çš„å‡½æ•°
     void adjustFuncCallInsts(Function * func);
 
-    /// @brief ¼Ä´æÆ÷·ÖÅäÇ°¶ÔĞÎ²ÎÖ¸Áîµ÷Õû£¬±ãÓÚÕ»ÄÚ¿Õ¼ä·ÖÅäÒÔ¼°¼Ä´æÆ÷·ÖÅä
-    /// @param func Òª´¦ÀíµÄº¯Êı
+    /// @brief å¯„å­˜å™¨åˆ†é…å‰å¯¹å½¢å‚æŒ‡ä»¤è°ƒæ•´ï¼Œä¾¿äºæ ˆå†…ç©ºé—´åˆ†é…ä»¥åŠå¯„å­˜å™¨åˆ†é…
+    /// @param func è¦å¤„ç†çš„å‡½æ•°
     void adjustFormalParamInsts(Function * func);
 
     ///
-    /// @brief »ñÈ¡IR±äÁ¿Ïà¹ØĞÅÏ¢×Ö·û´®
+    /// @brief è·å–IRå˜é‡ç›¸å…³ä¿¡æ¯å­—ç¬¦ä¸²
     /// @param str
     ///
     void getIRValueStr(Value * val, std::string & str);
 
 private:
     ///
-    /// @brief ÏßĞÔÉ¨Ãè¼Ä´æÆ÷·ÖÅä·½·¨
+    /// @brief çº¿æ€§æ‰«æå¯„å­˜å™¨åˆ†é…æ–¹æ³•
     ///
     SimpleRegisterAllocator simpleRegisterAllocator;
 };

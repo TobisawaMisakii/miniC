@@ -10,46 +10,46 @@
 class LinearScanRegisterAllocator {
 
 public:
-    /// @brief ¹¹Ôìº¯Êı
+    /// @brief æ„é€ å‡½æ•°
     LinearScanRegisterAllocator();
 
-    /// @brief Îö¹¹º¯Êı (Changed from protected to public)
+    /// @brief ææ„å‡½æ•° (Changed from protected to public)
     ~LinearScanRegisterAllocator();
 
-    /// @param var ±äÁ¿Ö¸Õë
-    /// @param no Ö¸¶¨µÄ¼Ä´æÆ÷±àºÅ
-    /// @return ·µ»Ø·ÖÅäµÄ¼Ä´æÆ÷±àºÅ
+    /// @param var å˜é‡æŒ‡é’ˆ
+    /// @param no æŒ‡å®šçš„å¯„å­˜å™¨ç¼–å·
+    /// @return è¿”å›åˆ†é…çš„å¯„å­˜å™¨ç¼–å·
     int Allocate(Value * var = nullptr, int32_t no = -1);
 
-    /// @brief Ç¿ÖÆÕ¼ÓÃÒ»¸öÖ¸¶¨µÄ¼Ä´æÆ÷
-    /// @param no Òª·ÖÅäµÄ¼Ä´æÆ÷±àºÅ
+    /// @brief å¼ºåˆ¶å ç”¨ä¸€ä¸ªæŒ‡å®šçš„å¯„å­˜å™¨
+    /// @param no è¦åˆ†é…çš„å¯„å­˜å™¨ç¼–å·
     void Allocate(int32_t no);
 
-    /// @brief ½«±äÁ¿¶ÔÓ¦µÄload¼Ä´æÆ÷±ê¼ÇÎª¿ÕÏĞ×´Ì¬
-    /// @param var ±äÁ¿
+    /// @brief å°†å˜é‡å¯¹åº”çš„loadå¯„å­˜å™¨æ ‡è®°ä¸ºç©ºé—²çŠ¶æ€
+    /// @param var å˜é‡
     void free(Value * var);
 
-    /// @brief ½«¼Ä´æÆ÷no±ê¼ÇÎª¿ÕÏĞ×´Ì¬
-    /// @param no ¼Ä´æÆ÷±àºÅ
+    /// @brief å°†å¯„å­˜å™¨noæ ‡è®°ä¸ºç©ºé—²çŠ¶æ€
+    /// @param no å¯„å­˜å™¨ç¼–å·
     void free(int32_t no);
 
 protected:
-    /// @brief ¼Ä´æÆ÷±»ÖÃÎ»£¬Ê¹ÓÃ¹ıµÄ¼Ä´æÆ÷±»ÖÃÎ»
-    /// @param no ¼Ä´æÆ÷±àºÅ
+    /// @brief å¯„å­˜å™¨è¢«ç½®ä½ï¼Œä½¿ç”¨è¿‡çš„å¯„å­˜å™¨è¢«ç½®ä½
+    /// @param no å¯„å­˜å™¨ç¼–å·
     void bitmapSet(int32_t no);
 
-    /// @brief ¼Ä´æÆ÷±»ÖØÖÃÎª¿ÕÏĞ×´Ì¬
-    /// @param no ¼Ä´æÆ÷±àºÅ
+    /// @brief å¯„å­˜å™¨è¢«é‡ç½®ä¸ºç©ºé—²çŠ¶æ€
+    /// @param no å¯„å­˜å™¨ç¼–å·
     void bitmapReset(int32_t no);
 
 protected:
-    /// @brief ¼Ä´æÆ÷Î»Í¼£º1ÒÑ±»Õ¼ÓÃ£¬0Î´±»Ê¹ÓÃ
+    /// @brief å¯„å­˜å™¨ä½å›¾ï¼š1å·²è¢«å ç”¨ï¼Œ0æœªè¢«ä½¿ç”¨
     BitMap<PlatformArm64::maxUsableRegNum> regBitmap;
 
-    /// @brief ÒÑÊ¹ÓÃ¼Ä´æÆ÷Î»Í¼
+    /// @brief å·²ä½¿ç”¨å¯„å­˜å™¨ä½å›¾
     BitMap<PlatformArm64::maxUsableRegNum> usedBitmap;
 
-    /// @brief »îÔ¾Çø¼ä½á¹¹Ìå
+    /// @brief æ´»è·ƒåŒºé—´ç»“æ„ä½“
     struct Interval {
         Value * var;
         int start;
@@ -57,21 +57,21 @@ protected:
         int regId;
     };
 
-    /// @brief »îÔ¾Çø¼äÁĞ±í
+    /// @brief æ´»è·ƒåŒºé—´åˆ—è¡¨
     std::vector<Interval> intervals;
 
-    /// @brief µ±Ç°·ÖÅäµÄ±äÁ¿ÁĞ±í
+    /// @brief å½“å‰åˆ†é…çš„å˜é‡åˆ—è¡¨
     std::vector<Value *> regValues;
 
-    /// @brief ¼ÆËãËùÓĞ±äÁ¿µÄ»îÔ¾Çø¼ä
+    /// @brief è®¡ç®—æ‰€æœ‰å˜é‡çš„æ´»è·ƒåŒºé—´
     void computeIntervals();
 
-    /// @brief °´ÕÕ»îÔ¾Çø¼äµÄÆğÊ¼Î»ÖÃÅÅĞò
+    /// @brief æŒ‰ç…§æ´»è·ƒåŒºé—´çš„èµ·å§‹ä½ç½®æ’åº
     void sortIntervals();
 
-    /// @brief ¸ù¾İ»îÔ¾Çø¼ä·ÖÅä¼Ä´æÆ÷
+    /// @brief æ ¹æ®æ´»è·ƒåŒºé—´åˆ†é…å¯„å­˜å™¨
     void allocateRegisters();
 
-    /// @brief ²éÕÒÓÃÓÚÒç³öµÄ¼Ä´æÆ÷
+    /// @brief æŸ¥æ‰¾ç”¨äºæº¢å‡ºçš„å¯„å­˜å™¨
     int findSpillRegister();
 };

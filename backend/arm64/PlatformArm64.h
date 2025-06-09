@@ -6,17 +6,17 @@
 #define ARM64_SAVED_REG1 19
 #define ARM64_SAVED_REG2 20
 
-// ÁÙÊ±¼Ä´æÆ÷
+// ä¸´æ—¶å¯„å­˜å™¨
 #define ARM64_TMP_REG_NO 16
 
-// Õ»¼Ä´æÆ÷SPºÍFP
+// æ ˆå¯„å­˜å™¨SPå’ŒFP
 #define ARM64_SP_REG_NO 31
 #define ARM64_FP_REG_NO 29
 
-// Á´½Ó¼Ä´æÆ÷LR
+// é“¾æ¥å¯„å­˜å™¨LR
 #define ARM64_LR_REG_NO 30
 
-/// @brief ARM64Æ½Ì¨ĞÅÏ¢
+/// @brief ARM64å¹³å°ä¿¡æ¯
 class PlatformArm64 {
 
     static void roundLeftShiftTwoBit(unsigned int & num);
@@ -27,11 +27,11 @@ public:
     static bool isDisp(int64_t num);
     static bool isReg(std::string name);
 
-    // ĞÂÔö£º½«64Î»¼Ä´æÆ÷Ãû(x0-x30)×ª»»Îª32Î»ĞÎÊ½(w0-w30)
+    // æ–°å¢ï¼šå°†64ä½å¯„å­˜å™¨å(x0-x30)è½¬æ¢ä¸º32ä½å½¢å¼(w0-w30)
     static std::string toWReg(const std::string & xreg);
 
     static const int maxRegNum = 32;       // x0-x30, sp
-    static const int maxUsableRegNum = 16; // x0-x15 ¿ÉÓÃÍ¨ÓÃ¼Ä´æÆ÷
+    static const int maxUsableRegNum = 16; // x0-x15 å¯ç”¨é€šç”¨å¯„å­˜å™¨
 
     static const std::string regName[maxRegNum];
     static const std::string floatregName[maxRegNum];

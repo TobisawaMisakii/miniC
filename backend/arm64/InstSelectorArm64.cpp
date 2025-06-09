@@ -68,6 +68,29 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     // load
     translator_handlers[IRInstOperator::IRINST_OP_LOAD] = &InstSelectorArm64::translate_load;
     translator_handlers[IRInstOperator::IRINST_OP_STORE] = &InstSelectorArm64::translate_store;
+    // mod
+    translator_handlers[IRInstOperator::IRINST_OP_MOD_I] = &InstSelectorArm64::translate_mod_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_MOD_F] = &InstSelectorArm64::translate_mod_float;
+    // IRINST_OP_ZEXT,       // 零扩展指令
+    //     IRINST_OP_SEXT,   // 符号扩展指令
+    //     IRINST_OP_SITOFP, // i32转浮点指令
+    //     IRINST_OP_FPTOSI,
+    // 数据类型转换
+    // 零扩展指令
+    translator_handlers[IRInstOperator::IRINST_OP_ZEXT] = &InstSelectorArm64::translate_zext;
+    // 符号扩展指令
+    translator_handlers[IRInstOperator::IRINST_OP_SEXT] = &InstSelectorArm64::translate_sext;
+    // i32转浮点指令
+    translator_handlers[IRInstOperator::IRINST_OP_SITOFP] = &InstSelectorArm64::translate_sitofp;
+    // 浮点转i32指令
+    translator_handlers[IRInstOperator::IRINST_OP_FPTOSI] = &InstSelectorArm64::translate_fptosi;
+    // 比较指令
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_LT] = &InstSelectorArm64::translate_lt_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_LE] = &InstSelectorArm64::translate_le_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_GT] = &InstSelectorArm64::translate_gt_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_GE] = &InstSelectorArm64::translate_ge_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_EQ] = &InstSelectorArm64::translate_eq_int64;
+    translator_handlers[IRInstOperator::IRINST_OP_ICMP_NE] = &InstSelectorArm64::translate_ne_int64;
 }
 
 ///
@@ -80,7 +103,6 @@ InstSelectorArm64::~InstSelectorArm64()
 void InstSelectorArm64::run()
 {
     for (auto inst: ir) {
-
         // 逐个指令进行翻译
         if (!inst->isDead()) {
             translate(inst);
@@ -667,14 +689,12 @@ void InstSelectorArm64::translate_div_float(Instruction * inst)
 void InstSelectorArm64::translate_call(Instruction * inst)
 {
     FuncCallInstruction * callInst = dynamic_cast<FuncCallInstruction *>(inst);
-
+    // Value * funcVal = inst;
     int32_t operandNum = callInst->getOperandsNum();
 
     if (operandNum != realArgCount) {
-
         // 两者不一致 也可能没有ARG指令，正常
         if (realArgCount != 0) {
-
             minic_log(LOG_ERROR, "ARG指令的个数与调用函数个数不一致");
         }
     }
@@ -784,7 +804,7 @@ void InstSelectorArm64::translate_arg(Instruction * inst)
 }
 
 ///
-/// @brief laod指令翻译成ARM64汇编
+/// @brief load指令翻译成ARM64汇编
 /// @param inst
 ///
 void InstSelectorArm64::translate_load(Instruction * inst)
@@ -849,4 +869,287 @@ void InstSelectorArm64::translate_store(Instruction * inst)
         simpleRegisterAllocator.free(temp_regno);
         simpleRegisterAllocator.free(result_regno);
     }
+}
+
+void InstSelectorArm64::translate_mod_int64(Instruction * inst)
+{
+    Value * lhs = inst->getOperand(0);
+    Value * rhs = inst->getOperand(1);
+    Value * dst = inst;
+    int32_t dst_reg = dst->getRegId();
+    int32_t lhs_reg = lhs->getRegId();
+    int32_t rhs_reg = rhs->getRegId();
+    int32_t tmp_div = simpleRegisterAllocator.Allocate();
+    int32_t tmp_mul = simpleRegisterAllocator.Allocate();
+    if (lhs_reg == -1) {
+        lhs_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(lhs_reg, lhs);
+    }
+    if (rhs_reg == -1) {
+        rhs_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(rhs_reg, rhs);
+    }
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.Allocate();
+    iloc.inst("sdiv",
+              PlatformArm64::regName[tmp_div],
+              PlatformArm64::regName[lhs_reg],
+              PlatformArm64::regName[rhs_reg]);
+    iloc.inst("mul", PlatformArm64::regName[tmp_mul], PlatformArm64::regName[tmp_div], PlatformArm64::regName[rhs_reg]);
+    iloc.inst("sub", PlatformArm64::regName[dst_reg], PlatformArm64::regName[lhs_reg], PlatformArm64::regName[tmp_mul]);
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(tmp_div);
+    simpleRegisterAllocator.free(tmp_mul);
+    if (lhs->getRegId() == -1)
+        simpleRegisterAllocator.free(lhs_reg);
+    if (rhs->getRegId() == -1)
+        simpleRegisterAllocator.free(rhs_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.free(dst_reg);
+}
+
+void InstSelectorArm64::translate_mod_float(Instruction * inst)
+{
+    Value * lhs = inst->getOperand(0);
+    Value * rhs = inst->getOperand(1);
+    Value * dst = inst;
+    int32_t dst_reg = dst->getRegId();
+    int32_t lhs_reg = lhs->getRegId();
+    int32_t rhs_reg = rhs->getRegId();
+    int32_t tmp_div = simpleRegisterAllocator.Allocate();
+    int32_t tmp_mul = simpleRegisterAllocator.Allocate();
+    if (lhs_reg == -1) {
+        lhs_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(lhs_reg, lhs);
+    }
+    if (rhs_reg == -1) {
+        rhs_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(rhs_reg, rhs);
+    }
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.floatAllocate();
+    iloc.inst("fdiv",
+              PlatformArm64::floatregName[tmp_div],
+              PlatformArm64::floatregName[lhs_reg],
+              PlatformArm64::floatregName[rhs_reg]);
+    iloc.inst("fmul",
+              PlatformArm64::floatregName[tmp_mul],
+              PlatformArm64::regName[tmp_div],
+              PlatformArm64::regName[rhs_reg]);
+    iloc.inst("fsub",
+              PlatformArm64::regName[dst_reg],
+              PlatformArm64::floatregName[lhs_reg],
+              PlatformArm64::floatregName[tmp_mul]);
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.floatfree(tmp_div);
+    simpleRegisterAllocator.floatfree(tmp_mul);
+    if (lhs->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(lhs_reg);
+    if (rhs->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(rhs_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.floatfree(dst_reg);
+}
+
+void InstSelectorArm64::translate_zext(Instruction * inst)
+{
+    // 使用UXTW指令进行零扩展
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("uxtw", PlatformArm64::regName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
+}
+
+void InstSelectorArm64::translate_sext(Instruction * inst)
+{
+    // 使用SXTW指令进行符号扩展
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("sxtw", PlatformArm64::regName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
+}
+
+void InstSelectorArm64::translate_sitofp(Instruction * inst)
+{
+    // 使用SCVTF指令将32位整数转换为浮点数
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.Allocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.floatAllocate(result);
+    }
+    iloc.inst("scvtf", PlatformArm64::floatregName[result_reg_no], PlatformArm64::regName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.floatfree(result);
+}
+
+void InstSelectorArm64::translate_fptosi(Instruction * inst)
+{
+    // 使用FCVTZS指令将浮点数转换为32位整数
+    Value * result = inst;
+    Value * arg = inst->getOperand(0);
+    int32_t arg_reg_no = arg->getRegId();
+    int32_t result_reg_no = result->getRegId();
+    if (arg_reg_no == -1) {
+        arg_reg_no = simpleRegisterAllocator.floatAllocate(arg);
+        iloc.load_var(arg_reg_no, arg);
+    }
+    if (result_reg_no == -1) {
+        result_reg_no = simpleRegisterAllocator.Allocate(result);
+    }
+    iloc.inst("fcvtzs", PlatformArm64::regName[result_reg_no], PlatformArm64::floatregName[arg_reg_no]);
+    iloc.store_var(result_reg_no, result, ARM64_TMP_REG_NO);
+    simpleRegisterAllocator.free(arg);
+    simpleRegisterAllocator.free(result);
+}
+
+const char * InstSelectorArm64::getA64Cond(IRInstOperator op)
+{
+    switch (op) {
+        case IRInstOperator::IRINST_OP_ICMP_EQ:
+            return "eq"; // 等于 (Equal)
+        case IRInstOperator::IRINST_OP_ICMP_NE:
+            return "ne"; // 不等于 (Not Equal)
+        case IRInstOperator::IRINST_OP_ICMP_GT:
+            return "gt"; // 有符号大于 (Greater Than)
+        case IRInstOperator::IRINST_OP_ICMP_GE:
+            return "ge"; // 有符号大于等于 (Greater or Equal)
+        case IRInstOperator::IRINST_OP_ICMP_LT:
+            return "lt"; // 有符号小于 (Less Than)
+        case IRInstOperator::IRINST_OP_ICMP_LE:
+            return "le"; // 有符号小于等于 (Less or Equal)
+        default:
+            return "al";
+    }
+}
+
+void InstSelectorArm64::translate_cmp_int64(Instruction * inst, IRInstOperator op)
+{
+    // 1. 从IR指令中获取操作数
+    // lhs: 左操作数 (例如 a > b 中的 'a')
+    // rhs: 右操作数 (例如 a > b 中的 'b')
+    // dst: 目标操作数，用于存放比较结果(布尔值0或1)，通常是指令自身
+    Value * lhs = inst->getOperand(0);
+    Value * rhs = inst->getOperand(1);
+    Value * dst = inst;
+
+    // 2. 为操作数分配或获取寄存器
+    // 检查每个操作数是否已经分配了物理寄存器。
+    // 如果 getRegId() 返回-1，意味着该值当前存储在内存（如栈上）中，
+    // 需要为它临时分配一个寄存器，并从内存加载数据。
+    int32_t lhs_reg = lhs->getRegId();
+    int32_t rhs_reg = rhs->getRegId();
+    int32_t dst_reg = dst->getRegId();
+
+    // 记录寄存器是否为本次调用临时分配的，以便在最后释放
+    bool lhs_reg_is_temp = false;
+    if (lhs_reg == -1) {
+        lhs_reg = simpleRegisterAllocator.Allocate(); // 分配一个空闲寄存器
+        iloc.load_var(lhs_reg, lhs);                  // 生成指令：从内存加载变量到该寄存器
+        lhs_reg_is_temp = true;
+    }
+
+    bool rhs_reg_is_temp = false;
+    if (rhs_reg == -1) {
+        rhs_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(rhs_reg, rhs);
+        rhs_reg_is_temp = true;
+    }
+
+    // 目标寄存器也需要分配，用于存放CSET的结果
+    bool dst_reg_is_temp = false;
+    if (dst_reg == -1) {
+        dst_reg = simpleRegisterAllocator.Allocate();
+        dst_reg_is_temp = true;
+    }
+
+    // 3. 生成核心汇编指令
+    // 第一步：使用 CMP 指令比较两个寄存器中的值，这会更新条件标志位
+    iloc.inst("cmp", PlatformArm64::regName[lhs_reg], PlatformArm64::regName[rhs_reg]);
+
+    // 第二步：使用 CSET 指令根据条件标志位，将目标寄存器的值设置为 0 或 1
+    // getA64Cond(op) 会返回 "gt", "le" 等字符串
+    iloc.inst("cset", PlatformArm64::regName[dst_reg], getA64Cond(op));
+
+    // 4. 将结果写回内存
+    // 将目标寄存器中的结果 (0或1) 存回其在栈上对应的位置
+    // ARM64_TMP_REG_NO 是一个预留的临时寄存器，可能用于辅助store操作（例如计算地址）
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+
+    // 5. 释放临时分配的寄存器
+    // 如果某个操作数的寄存器是为本次翻译临时分配的，现在必须释放它，
+    // 以便其他指令可以复用。
+    if (lhs_reg_is_temp) {
+        simpleRegisterAllocator.free(lhs_reg);
+    }
+    if (rhs_reg_is_temp) {
+        simpleRegisterAllocator.free(rhs_reg);
+    }
+    if (dst_reg_is_temp) {
+        simpleRegisterAllocator.free(dst_reg);
+    }
+}
+
+// 翻译 大于(>) 指令
+void InstSelectorArm64::translate_gt_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_GT);
+}
+
+// 翻译 小于(<) 指令
+void InstSelectorArm64::translate_lt_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_LT);
+}
+
+// 翻译 小于等于(<=) 指令
+void InstSelectorArm64::translate_le_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_LE);
+}
+
+// 翻译 大于等于(>=) 指令
+void InstSelectorArm64::translate_ge_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_GE);
+}
+
+// 翻译 等于(==) 指令
+void InstSelectorArm64::translate_eq_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_EQ);
+}
+
+// 翻译 不等于(!=) 指令
+void InstSelectorArm64::translate_ne_int64(Instruction * inst)
+{
+    translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_NE);
 }

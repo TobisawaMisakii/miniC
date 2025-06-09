@@ -1,16 +1,16 @@
 ///
 /// @file InstSelectorArm64.h
-/// @brief Ö¸ÁîÑ¡ÔñÆ÷-ARM32
+/// @brief æŒ‡ä»¤é€‰æ‹©å™¨-ARM32
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #pragma once
@@ -27,133 +27,160 @@
 
 using namespace std;
 
-/// @brief Ö¸ÁîÑ¡ÔñÆ÷-ARM64
+/// @brief æŒ‡ä»¤é€‰æ‹©å™¨-ARM64
 class InstSelectorArm64 {
 
 private:
-    /// @brief ËùÓĞµÄIRÖ¸Áî
+    /// @brief æ‰€æœ‰çš„IRæŒ‡ä»¤
     std::vector<Instruction *> & ir;
 
-    /// @brief Ö¸Áî±ä»»
+    /// @brief æŒ‡ä»¤å˜æ¢
     ILocArm64 & iloc;
 
-    /// @brief Òª´¦ÀíµÄº¯Êı
+    /// @brief è¦å¤„ç†çš„å‡½æ•°
     Function * func;
 
 protected:
-    /// @brief Ö¸Áî·­Òë³ÉARM64»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate(Instruction * inst);
 
-    /// @brief NOP·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief NOPç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_nop(Instruction * inst);
 
-    /// @brief º¯ÊıÈë¿ÚÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief å‡½æ•°å…¥å£æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_entry(Instruction * inst);
 
-    /// @brief º¯Êı³ö¿ÚÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief å‡½æ•°å‡ºå£æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_exit(Instruction * inst);
 
-    /// @brief ¸³ÖµÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief èµ‹å€¼æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_assign(Instruction * inst);
 
-    /// @brief LabelÖ¸ÁîÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief LabelæŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_label(Instruction * inst);
 
-    /// @brief gotoÖ¸ÁîÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief gotoæŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_goto(Instruction * inst);
 
-    /// @brief ÕûÊı¼Ó·¨Ö¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æ•´æ•°åŠ æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_add_int64(Instruction * inst);
-    /// @brief ÕûÊı¼Ó·¨Ö¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+
+    /// @brief æ•´æ•°åŠ æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_add_float(Instruction * inst);
 
-    /// @brief ÕûÊı¼õ·¨Ö¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æ•´æ•°å‡æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_sub_int64(Instruction * inst);
 
-    /// @brief ¸¡µãÊı¼õ·¨Ö¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æµ®ç‚¹æ•°å‡æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_sub_float(Instruction * inst);
 
-    /// @brief ÕûÊı³Ë·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æ•´æ•°ä¹˜æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_mul_int64(Instruction * inst);
 
-    /// @brief ¸¡µãÊı³Ë·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æµ®ç‚¹æ•°ä¹˜æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_mul_float(Instruction * inst);
 
-    /// @brief ÕûÊı³ı·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æ•´æ•°é™¤æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_div_int64(Instruction * inst);
 
-    /// @brief ¸¡µãÊı³ı·¨Ö¸Áî·­Òë³ÉARM64»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief æµ®ç‚¹æ•°é™¤æ³•æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_div_float(Instruction * inst);
 
-    /// @brief ¶şÔª²Ù×÷Ö¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
-    /// @param operator_name ²Ù×÷Âë
+    /// @brief æ•´æ•°å–æ¨¡æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
+    void translate_mod_int64(Instruction * inst);
+
+    /// @brief æµ®ç‚¹å–æ¨¡æŒ‡ä»¤ç¿»è¯‘æˆARM64æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
+    void translate_mod_float(Instruction * inst);
+
+    /// @brief äºŒå…ƒæ“ä½œæŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
+    /// @param operator_name æ“ä½œç 
     void translate_two_operator(Instruction * inst, string operator_name);
 
-    /// @brief º¯Êıµ÷ÓÃÖ¸Áî·­Òë³ÉARM32»ã±à
-    /// @param inst IRÖ¸Áî
+    /// @brief å‡½æ•°è°ƒç”¨æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst IRæŒ‡ä»¤
     void translate_call(Instruction * inst);
 
-    ///
-    /// @brief Êµ²ÎÖ¸Áî·­Òë³ÉARM32»ã±à
+    /// @brief å®å‚æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
     /// @param inst
-    ///
     void translate_arg(Instruction * inst);
 
-    ///
-    /// @brief loadÖ¸Áî·­Òë³ÉARM32»ã±à
+    /// @brief loadæŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
     /// @param inst
-    ///
     void translate_load(Instruction * inst);
-    ///
-    /// @brief storeÖ¸Áî·­Òë³ÉARM32»ã±à
+
+    /// @brief storeæŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst
+    void translate_store(Instruction * inst);
+
+    /// @brief zxeté›¶æ‰©å±•æŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
     /// @param inst
     ///
-    void translate_store(Instruction * inst);
-    ///
-    /// @brief Êä³öIRÖ¸Áî
-    ///
+    void translate_zext(Instruction * inst);
+
+    /// @brief sxetç¬¦å·æ‰©å±•æŒ‡ä»¤æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst
+    void translate_sext(Instruction * inst);
+
+    /// @brief i32è½¬æµ®ç‚¹æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst
+    void translate_sitofp(Instruction * inst);
+
+    /// @brief æµ®ç‚¹è½¬i32æŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst
+    void translate_fptosi(Instruction * inst);
+
+    /// @brief æ¯”è¾ƒæŒ‡ä»¤ç¿»è¯‘æˆARM32æ±‡ç¼–
+    /// @param inst
+    void translate_cmp_int64(Instruction * inst, IRInstOperator op);
+    const char * getA64Cond(IRInstOperator op);
+    void translate_lt_int64(Instruction * inst);
+    void translate_le_int64(Instruction * inst);
+    void translate_gt_int64(Instruction * inst);
+    void translate_ge_int64(Instruction * inst);
+    void translate_eq_int64(Instruction * inst);
+    void translate_ne_int64(Instruction * inst);
+
+    /// @brief è¾“å‡ºIRæŒ‡ä»¤
     void outputIRInstruction(Instruction * inst);
 
-    /// @brief IR·­Òë¶¯×÷º¯ÊıÔ­ĞÍ
+    /// @brief IRç¿»è¯‘åŠ¨ä½œå‡½æ•°åŸå‹
     typedef void (InstSelectorArm64::*translate_handler)(Instruction *);
 
-    /// @brief IR¶¯×÷´¦Àíº¯ÊıÇåµ¥
+    /// @brief IRåŠ¨ä½œå¤„ç†å‡½æ•°æ¸…å•
     map<IRInstOperator, translate_handler> translator_handlers;
 
-    ///
-    /// @brief ¼òµ¥µÄÆÓËØ¼Ä´æÆ÷·ÖÅä·½·¨
-    ///
+    /// @brief ç®€å•çš„æœ´ç´ å¯„å­˜å™¨åˆ†é…æ–¹æ³•
     SimpleRegisterAllocator & simpleRegisterAllocator;
 
-    ///
-    /// @brief º¯ÊıÊµ²ÎÀÛ¼Æ
-    ///
+    /// @brief å‡½æ•°å®å‚ç´¯è®¡
     int32_t argCount = 0;
 
-    /// @brief ÀÛ¼ÆµÄÊµ²Î¸öÊı
+    /// @brief ç´¯è®¡çš„å®å‚ä¸ªæ•°
     int32_t realArgCount = 0;
 
 public:
-    /// @brief ¹¹Ôìº¯Êı
-    /// @param _irCode IRÖ¸Áî
-    /// @param _func º¯Êı
-    /// @param _iloc ºó¶ËÖ¸Áî
+    /// @brief æ„é€ å‡½æ•°
+    /// @param _irCode IRæŒ‡ä»¤
+    /// @param _func å‡½æ•°
+    /// @param _iloc åç«¯æŒ‡ä»¤
 public:
     InstSelectorArm64(std::vector<Instruction *> & _irCode,
                       ILocArm64 & _iloc,
@@ -161,6 +188,6 @@ public:
                       SimpleRegisterAllocator & allocator);
     ~InstSelectorArm64();
 
-    /// @brief Ö¸ÁîÑ¡Ôñ
+    /// @brief æŒ‡ä»¤é€‰æ‹©
     void run();
 };

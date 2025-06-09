@@ -1,16 +1,16 @@
 ///
 /// @file ILocArm64.h
-/// @brief Ö¸ÁîĞòÁĞ¹ÜÀíµÄÍ·ÎÄ¼ş£¬ILOCµÄÈ«³ÆÎªIntermediate Language for Optimizing Compilers
+/// @brief æŒ‡ä»¤åºåˆ—ç®¡ç†çš„å¤´æ–‡ä»¶ï¼ŒILOCçš„å…¨ç§°ä¸ºIntermediate Language for Optimizing Compilers
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #pragma once
@@ -23,31 +23,31 @@
 
 #define Instanceof(res, type, var) auto res = dynamic_cast<type>(var)
 
-/// @brief µ×²ã»ã±àÖ¸Áî£ºARM32
+/// @brief åº•å±‚æ±‡ç¼–æŒ‡ä»¤ï¼šARM32
 struct ArmInst64 {
 
-    /// @brief ²Ù×÷Âë
+    /// @brief æ“ä½œç 
     std::string opcode;
 
-    /// @brief Ìõ¼ş
+    /// @brief æ¡ä»¶
     std::string cond;
 
-    /// @brief ½á¹û
+    /// @brief ç»“æœ
     std::string result;
 
-    /// @brief Ô´²Ù×÷Êı1
+    /// @brief æºæ“ä½œæ•°1
     std::string arg1;
 
-    /// @brief Ô´²Ù×÷Êı2
+    /// @brief æºæ“ä½œæ•°2
     std::string arg2;
 
-    /// @brief ¸½¼ÓĞÅÏ¢
+    /// @brief é™„åŠ ä¿¡æ¯
     std::string addition;
 
-    /// @brief ±êÊ¶Ö¸ÁîÊÇ·ñÎŞĞ§
+    /// @brief æ ‡è¯†æŒ‡ä»¤æ˜¯å¦æ— æ•ˆ
     bool dead;
 
-    /// @brief ¹¹Ôìº¯Êı
+    /// @brief æ„é€ å‡½æ•°
     /// @param op
     /// @param rs
     /// @param s1
@@ -60,7 +60,7 @@ struct ArmInst64 {
               std::string cond = "",
               std::string extra = "");
 
-    /// @brief Ö¸Áî¸üĞÂ
+    /// @brief æŒ‡ä»¤æ›´æ–°
     /// @param op
     /// @param rs
     /// @param s1
@@ -73,148 +73,148 @@ struct ArmInst64 {
                  std::string cond = "",
                  std::string extra = "");
 
-    /// @brief ÉèÖÃËÀÖ¸Áî
+    /// @brief è®¾ç½®æ­»æŒ‡ä»¤
     void setDead();
     void load_imm(int rs_reg_no, int constant);
-    /// @brief Ö¸Áî×Ö·û´®Êä³öº¯Êı
+    /// @brief æŒ‡ä»¤å­—ç¬¦ä¸²è¾“å‡ºå‡½æ•°
     /// @return
     std::string outPut();
 };
 
-/// @brief µ×²ã»ã±àĞòÁĞ-ARM32
+/// @brief åº•å±‚æ±‡ç¼–åºåˆ—-ARM32
 class ILocArm64 {
 
-    /// @brief ARM»ã±àĞòÁĞ
+    /// @brief ARMæ±‡ç¼–åºåˆ—
     std::list<ArmInst64 *> code;
 
-    /// @brief ·ûºÅ±í
+    /// @brief ç¬¦å·è¡¨
     Module * module;
 
-    /// @brief ¼ÓÔØÁ¢¼´Êı ldr r0,=#100
-    /// @param rs_reg_no ½á¹û¼Ä´æÆ÷ºÅ
-    /// @param num Á¢¼´Êı
+    /// @brief åŠ è½½ç«‹å³æ•° ldr r0,=#100
+    /// @param rs_reg_no ç»“æœå¯„å­˜å™¨å·
+    /// @param num ç«‹å³æ•°
     void load_imm(int rs_reg_no, int num);
     bool is_mov_imm(uint64_t value);
     bool is_movn_imm(uint64_t value);
 
-    /// @brief ¼ÓÔØ·ûºÅÖµ ldr r0,=g; ldr r0,[r0]
-    /// @param rsReg ½á¹û¼Ä´æÆ÷ºÅ
-    /// @param name LabelÃû×Ö
+    /// @brief åŠ è½½ç¬¦å·å€¼ ldr r0,=g; ldr r0,[r0]
+    /// @param rsReg ç»“æœå¯„å­˜å™¨å·
+    /// @param name Labelåå­—
     void load_symbol(int rs_reg_no, std::string name);
 
-    /// @brief ¼ÓÔØÕ»ÄÚ±äÁ¿µØÖ·
-    /// @param rsReg ½á¹û¼Ä´æÆ÷ºÅ
-    /// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-    /// @param off Æ«ÒÆ
+    /// @brief åŠ è½½æ ˆå†…å˜é‡åœ°å€
+    /// @param rsReg ç»“æœå¯„å­˜å™¨å·
+    /// @param base_reg_no åŸºå€å¯„å­˜å™¨
+    /// @param off åç§»
     void leaStack(int rs_reg_no, int base_reg_no, int offset);
 
 public:
-    /// @brief ¹¹Ôìº¯Êı
-    /// @param _module ·ûºÅ±í-Ä£¿é
+    /// @brief æ„é€ å‡½æ•°
+    /// @param _module ç¬¦å·è¡¨-æ¨¡å—
     ILocArm64(Module * _module);
 
-    /// @brief Îö¹¹º¯Êı
+    /// @brief ææ„å‡½æ•°
     ~ILocArm64();
 
     ///
-    /// @brief ×¢ÊÍÖ¸Áî£¬²»°üº¬·ÖºÅ
-    /// @param str ×¢ÊÍÄÚÈİ
+    /// @brief æ³¨é‡ŠæŒ‡ä»¤ï¼Œä¸åŒ…å«åˆ†å·
+    /// @param str æ³¨é‡Šå†…å®¹
     ///
     void comment(std::string str);
 
-    /// @brief Êı×Ö±ä×Ö·û´®£¬ÈôflagÎªÕæ£¬Ôò±äÎªÁ¢¼´ÊıÑ°Ö·£¨¼Ó#£©
-    /// @param num Á¢¼´Êı
-    /// @param flag ÊÇ·ñ¼Ò#
-    /// @return ×Ö·û´®
+    /// @brief æ•°å­—å˜å­—ç¬¦ä¸²ï¼Œè‹¥flagä¸ºçœŸï¼Œåˆ™å˜ä¸ºç«‹å³æ•°å¯»å€ï¼ˆåŠ #ï¼‰
+    /// @param num ç«‹å³æ•°
+    /// @param flag æ˜¯å¦å®¶#
+    /// @return å­—ç¬¦ä¸²
     std::string toStr(int num, bool flag = true);
 
-    /// @brief »ñÈ¡µ±Ç°µÄ´úÂëĞòÁĞ
-    /// @return ´úÂëĞòÁĞ
+    /// @brief è·å–å½“å‰çš„ä»£ç åºåˆ—
+    /// @return ä»£ç åºåˆ—
     std::list<ArmInst64 *> & getCode();
 
-    /// @brief LoadÖ¸Áî£¬»ùÖ·Ñ°Ö· ldr r0,[fp,#100]
-    /// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-    /// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-    /// @param disp Æ«ÒÆ
+    /// @brief LoadæŒ‡ä»¤ï¼ŒåŸºå€å¯»å€ ldr r0,[fp,#100]
+    /// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+    /// @param base_reg_no åŸºå€å¯„å­˜å™¨
+    /// @param disp åç§»
     void load_base(int rs_reg_no, int base_reg_no, int disp);
 
-    /// @brief StoreÖ¸Áî£¬»ùÖ·Ñ°Ö· str r0,[fp,#100]
-    /// @param src_reg_no Ô´¼Ä´æÆ÷
-    /// @param base_reg_no »ùÖ·¼Ä´æÆ÷
-    /// @param disp Æ«ÒÆ
-    /// @param tmp_reg_no ¿ÉÄÜĞèÒªÁÙÊ±¼Ä´æÆ÷±àºÅ
+    /// @brief StoreæŒ‡ä»¤ï¼ŒåŸºå€å¯»å€ str r0,[fp,#100]
+    /// @param src_reg_no æºå¯„å­˜å™¨
+    /// @param base_reg_no åŸºå€å¯„å­˜å™¨
+    /// @param disp åç§»
+    /// @param tmp_reg_no å¯èƒ½éœ€è¦ä¸´æ—¶å¯„å­˜å™¨ç¼–å·
     void store_base(int src_reg_no, int base_reg_no, int disp, int tmp_reg_no);
 
-    /// @brief ±êÇ©Ö¸Áî
+    /// @brief æ ‡ç­¾æŒ‡ä»¤
     /// @param name
     void label(std::string name);
 
-    /// @brief Ò»¸ö²Ù×÷ÊıÖ¸Áî
-    /// @param op ²Ù×÷Âë
-    /// @param rs ²Ù×÷Êı
+    /// @brief ä¸€ä¸ªæ“ä½œæ•°æŒ‡ä»¤
+    /// @param op æ“ä½œç 
+    /// @param rs æ“ä½œæ•°
     void inst(std::string op, std::string rs);
 
-    /// @brief Ò»¸ö²Ù×÷ÊıÖ¸Áî
-    /// @param op ²Ù×÷Âë
-    /// @param rs ²Ù×÷Êı
-    /// @param arg1 Ô´²Ù×÷Êı
+    /// @brief ä¸€ä¸ªæ“ä½œæ•°æŒ‡ä»¤
+    /// @param op æ“ä½œç 
+    /// @param rs æ“ä½œæ•°
+    /// @param arg1 æºæ“ä½œæ•°
     void inst(std::string op, std::string rs, std::string arg1);
 
-    /// @brief Ò»¸ö²Ù×÷ÊıÖ¸Áî
-    /// @param op ²Ù×÷Âë
-    /// @param rs ²Ù×÷Êı
-    /// @param arg1 Ô´²Ù×÷Êı
-    /// @param arg2 Ô´²Ù×÷Êı
+    /// @brief ä¸€ä¸ªæ“ä½œæ•°æŒ‡ä»¤
+    /// @param op æ“ä½œç 
+    /// @param rs æ“ä½œæ•°
+    /// @param arg1 æºæ“ä½œæ•°
+    /// @param arg2 æºæ“ä½œæ•°
     void inst(std::string op, std::string rs, std::string arg1, std::string arg2);
 
-    /// @brief ¼ÓÔØ±äÁ¿µ½¼Ä´æÆ÷
-    /// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-    /// @param var ±äÁ¿
+    /// @brief åŠ è½½å˜é‡åˆ°å¯„å­˜å™¨
+    /// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+    /// @param var å˜é‡
     void load_var(int rs_reg_no, Value * var);
 
-    /// @brief ¼ÓÔØ±äÁ¿µØÖ·µ½¼Ä´æÆ÷
-    /// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-    /// @param var ±äÁ¿
+    /// @brief åŠ è½½å˜é‡åœ°å€åˆ°å¯„å­˜å™¨
+    /// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+    /// @param var å˜é‡
     void lea_var(int rs_reg_no, Value * var);
 
-    /// @brief ±£´æ¼Ä´æÆ÷µ½±äÁ¿
-    /// @param src_reg_no Ô´¼Ä´æÆ÷ºÅ
-    /// @param var ±äÁ¿
-    /// @param addr_reg_no µØÖ·¼Ä´æÆ÷ºÅ
+    /// @brief ä¿å­˜å¯„å­˜å™¨åˆ°å˜é‡
+    /// @param src_reg_no æºå¯„å­˜å™¨å·
+    /// @param var å˜é‡
+    /// @param addr_reg_no åœ°å€å¯„å­˜å™¨å·
     void store_var(int src_reg_no, Value * var, int addr_reg_no);
 
-    /// @brief ¼Ä´æÆ÷Mov²Ù×÷
-    /// @param rs_reg_no ½á¹û¼Ä´æÆ÷
-    /// @param src_reg_no Ô´¼Ä´æÆ÷
+    /// @brief å¯„å­˜å™¨Movæ“ä½œ
+    /// @param rs_reg_no ç»“æœå¯„å­˜å™¨
+    /// @param src_reg_no æºå¯„å­˜å™¨
     void mov_reg(int rs_reg_no, int src_reg_no);
 
-    /// @brief µ÷ÓÃº¯Êıfun
+    /// @brief è°ƒç”¨å‡½æ•°fun
     /// @param fun
     void call_fun(std::string name);
 
-    /// @brief ·ÖÅäÕ»Ö¡
-    /// @param func º¯Êı
+    /// @brief åˆ†é…æ ˆå¸§
+    /// @param func å‡½æ•°
     /// @param tmp_reg_No
     void allocStack(Function * func, int tmp_reg_No);
 
-    /// @brief ¼ÓÔØº¯ÊıµÄ²ÎÊıµ½¼Ä´æÆ÷
+    /// @brief åŠ è½½å‡½æ•°çš„å‚æ•°åˆ°å¯„å­˜å™¨
     /// @param fun
     void ldr_args(Function * fun);
 
-    /// @brief NOP²Ù×÷
+    /// @brief NOPæ“ä½œ
     void nop();
 
     ///
-    /// @brief ÎŞÌõ¼şÌø×ªÖ¸Áî
-    /// @param label Ä¿±êLabelÃû³Æ
+    /// @brief æ— æ¡ä»¶è·³è½¬æŒ‡ä»¤
+    /// @param label ç›®æ ‡Labelåç§°
     ///
     void jump(std::string label);
 
-    /// @brief Êä³ö»ã±à
-    /// @param file Êä³öµÄÎÄ¼şÖ¸Õë
-    /// @param outputEmpty ÊÇ·ñÊä³ö¿ÕÓï¾ä
+    /// @brief è¾“å‡ºæ±‡ç¼–
+    /// @param file è¾“å‡ºçš„æ–‡ä»¶æŒ‡é’ˆ
+    /// @param outputEmpty æ˜¯å¦è¾“å‡ºç©ºè¯­å¥
     void outPut(FILE * file, bool outputEmpty = false);
 
-    /// @brief É¾³ıÎŞÓÃµÄLabelÖ¸Áî
+    /// @brief åˆ é™¤æ— ç”¨çš„LabelæŒ‡ä»¤
     void deleteUsedLabel();
 };

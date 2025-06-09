@@ -10,7 +10,7 @@ cmake --build build --parallel
 # # 用自己的编译器生成ir
 ./build/minic -S -A -L -o tests/test2-1.ll tests/test2-1.c
 # 生成ARM64汇编
-clang -S -target aarch64-linux-gnu -o tests/test2-1.s tests/test2-1.ll
+clang -S -target aarch64-linux-gnu -o tests/test2-1-1.s tests/test2-1.ll
 # 编译生成ARM64汇编文件
  aarch64-linux-gnu-gcc -static -o tests/test2-1 tests/test2-1.c -no-pie
 # 运行ARM64程序

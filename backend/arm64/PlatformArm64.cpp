@@ -1,16 +1,16 @@
 ///
 /// @file PlatformArm64.cpp
-/// @brief  ARM64Æ½Ì¨Ïà¹ØÊµÏÖ
+/// @brief  ARM64å¹³å°ç›¸å…³å®ç°
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par ĞŞ¸ÄÈÕÖ¾:
+/// @par ä¿®æ”¹æ—¥å¿—:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>ĞÂ×ö
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>æ–°åš
 /// </table>
 ///
 #include "PlatformArm64.h"
@@ -99,20 +99,20 @@ void PlatformArm64::roundLeftShiftTwoBit(unsigned int & num)
     num = (num << 2) | (overFlow >> 30);
 }
 
-// ½«64Î»¼Ä´æÆ÷Ãû(x0-x30)×ª»»Îª32Î»ĞÎÊ½(w0-w30)
+// å°†64ä½å¯„å­˜å™¨å(x0-x30)è½¬æ¢ä¸º32ä½å½¢å¼(w0-w30)
 std::string PlatformArm64::toWReg(const std::string & xreg)
 {
-    // ½öµ±¼Ä´æÆ÷ÃûÒÔ'x'¿ªÍ·Ê±½øĞĞ×ª»»
+    // ä»…å½“å¯„å­˜å™¨åä»¥'x'å¼€å¤´æ—¶è¿›è¡Œè½¬æ¢
     if (!xreg.empty() && xreg[0] == 'x') {
         return "w" + xreg.substr(1);
     }
-    // ÌØÊâ´¦ÀíspºÍlr
+    // ç‰¹æ®Šå¤„ç†spå’Œlr
     if (xreg == "sp")
         return "wsp";
     if (xreg == "lr")
         return "w30";
 
-    // ÎŞ·¨×ª»»Ôò·µ»ØÔ­Ãû
+    // æ— æ³•è½¬æ¢åˆ™è¿”å›åŸå
     return xreg;
 }
 

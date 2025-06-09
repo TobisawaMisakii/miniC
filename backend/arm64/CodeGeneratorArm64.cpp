@@ -1,16 +1,16 @@
 ///
 /// @file CodeGeneratorArm64.cpp
-/// @brief ARM32�ĺ�˴���ʵ��
+/// @brief ARM32的后端处理实现
 /// @author zenglj (zenglj@live.com)
 /// @version 1.0
 /// @date 2024-11-21
 ///
 /// @copyright Copyright (c) 2024
 ///
-/// @par �޸���־:
+/// @par 修改日志:
 /// <table>
 /// <tr><th>Date       <th>Version <th>Author  <th>Description
-/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>����
+/// <tr><td>2024-11-21 <td>1.0     <td>zenglj  <td>新做
 /// </table>
 ///
 
@@ -32,20 +32,20 @@
 #include "MoveInstruction.h"
 
 ///
-/// @brief ����main.c��ȫ�ֱ�����Ϊ�˱��ڿ���
+/// @brief 引用main.c的全局变量，为了便于控制
 ///
 extern bool gAsmAlsoShowIR;
 
-/// @brief ���캯��
-/// @param tab ���ű�
+/// @brief 构造函数
+/// @param tab 符号表
 CodeGeneratorArm64::CodeGeneratorArm64(Module * _module) : CodeGeneratorAsm(_module)
 {}
 
-/// @brief ��������
+/// @brief 析构函数
 CodeGeneratorArm64::~CodeGeneratorArm64()
 {}
 
-/// @brief �������ͷ����
+/// @brief 产生汇编头部分
 void CodeGeneratorArm64::genHeader()
 {
     fprintf(fp, "%s\n", "	.arch armv8-a");
@@ -53,19 +53,19 @@ void CodeGeneratorArm64::genHeader()
     // fprintf(fp, "%s\n", ".fpu vfpv4");
 }
 
-/// @brief ȫ�ֱ���Section����Ҫ������ʼ���ĺ�δ��ʼ������
+/// @brief 全局变量Section，主要包含初始化的和未初始化过的
 void CodeGeneratorArm64::genDataSection()
 {
-    // ���ɴ����
+    // 生成代码段
     fprintf(fp, ".text\n");
 
     for (GlobalVariable * var: module->getGlobalVariables()) {
         if (var->isInBSSSection()) {
-            // δ��ʼ����ȫ�ֱ�����λ�� BSS ��
+            // 未初始化的全局变量，位于 BSS 段
             fprintf(fp, ".section .bss\n");
             fprintf(fp, ".comm %s, %d, %d\n", var->getName().c_str(), var->getType()->getSize(), var->getAlignment());
         } else {
-            // �ѳ�ʼ����ȫ�ֱ�����λ�� data ��
+            // 已初始化的全局变量，位于 data 段
             fprintf(fp, ".section .data\n");
             fprintf(fp, ".global %s\n", var->getName().c_str());
             fprintf(fp, ".align %d\n", var->getAlignment());
@@ -73,14 +73,14 @@ void CodeGeneratorArm64::genDataSection()
             fprintf(fp, "%s:\n", var->getName().c_str());
 
             if (var->getType()->isIntegerType()) {
-                // ��ȡ��ʼ��ֵ
+                // 获取初始化值
                 int value = var->GetintValue();
                 fprintf(fp, ".word %d\n", value);
             }
         }
     }
 }
-/// @brief ��ȡIR���������Ϣ�ַ���
+/// @brief 获取IR变量相关信息字符串
 /// @param str
 ///
 void CodeGeneratorArm64::getIRValueStr(Value * val, std::string & str)
@@ -103,16 +103,16 @@ void CodeGeneratorArm64::getIRValueStr(Value * val, std::string & str)
     }
 
     if (regId != -1) {
-        // �Ĵ���
+        // 寄存器
         str += "\t@ " + showName + ":" + PlatformArm64::regName[regId];
     } else if (val->getMemoryAddr(&baseRegId, &offset)) {
-        // ջ��Ѱַ��[fp,#4]
+        // 栈内寻址，[fp,#4]
         str += "\t@ " + showName + ":[" + PlatformArm64::regName[baseRegId] + ",#" + std::to_string(offset) + "]";
     }
 }
 
-/// @brief ��Ժ������л��ָ�����ɣ��ŵ�.text�������
-/// @param func Ҫ�����ĺ���
+/// @brief 针对函数进行汇编指令生成，放到.text代码段中
+/// @param func 要处理的函数
 void CodeGeneratorArm64::genCodeSection(Function * func)
 {
     registerAllocation(func);
@@ -158,23 +158,23 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
     iloc.outPut(fp);
 }
 
-/// @brief �Ĵ�������
-/// @param func ����ָ��
+/// @brief 寄存器分配
+/// @param func 函数指针
 void CodeGeneratorArm64::registerAllocation(Function * func)
 {
-    // ���ú�������Ҫ����
+    // 内置函数不需要处理
     if (func->isBuiltin()) {
         return;
     }
 
-    // ���/���صļĴ���������ԣ��ֲ���������ʱ������������ջ�ڣ�ȫ�ֱ����ھ�̬�洢.data����
-    // R0,R1,R2��R3�Ĵ�������Ҫ��������ֱ��ʹ��
-    // SP�Ĵ���Ԥ��������Ҫ����������Ҫ��ֵ֤����ȷ��
-    // R4-R10, fp(11), lx(14)����Ҫ������û�к������õĺ����ɲ��ñ���lx�Ĵ���
-    // �������ļĴ�����Ҫ�У�
-    //  (1) FP�Ĵ�������ջѰַ����R11
-    //  (2) LX�Ĵ������ں������ã���R14��û�к������õĺ����ɲ��ñ���lx�Ĵ���
-    //  (3) R10�Ĵ�����������������ʱҪͨ���Ĵ���Ѱַ������򻯴�������Ԥ��
+    // 最简单/朴素的寄存器分配策略：局部变量和临时变量都保存在栈内，全局变量在静态存储.data区中
+    // R0,R1,R2和R3寄存器不需要保护，可直接使用
+    // SP寄存器预留，不需要保护，但需要保证值的正确性
+    // R4-R10, fp(11), lx(14)都需要保护，没有函数调用的函数可不用保护lx寄存器
+    // 被保留的寄存器主要有：
+    //  (1) FP寄存器用于栈寻址，即R11
+    //  (2) LX寄存器用于函数调用，即R14。没有函数调用的函数可不用保护lx寄存器
+    //  (3) R10寄存器用于立即数过大时要通过寄存器寻址，这里简化处理进行预留
 
     std::vector<int32_t> & protectedRegNo = func->getProtectedReg();
     protectedRegNo.push_back(ARM64_FP_REG_NO);
@@ -182,82 +182,82 @@ void CodeGeneratorArm64::registerAllocation(Function * func)
         protectedRegNo.push_back(ARM64_LR_REG_NO);
     }
 
-    // ������������ָ���Ҫ��ǰ�ĸ��Ĵ�����ֵ��������ջ����
-    // Ϊ�˸��õĽ��мĴ������䣬���Խ��жԺ������õ�ָ�����Ԥ����
-    // ��ȻҲ���Բ����������������ܸ����������ǿ�ѡ�ġ�
+    // 调整函数调用指令，主要是前四个寄存器传值，后面用栈传递
+    // 为了更好的进行寄存器分配，可以进行对函数调用的指令进行预处理
+    // 当然也可以不做处理，不过性能更差。这个处理是可选的。
     adjustFuncCallInsts(func);
 
-    // Ϊ�ֲ���������ʱ������ջ�ڷ���ռ䣬ָ��ƫ�ƣ�����ջ�ռ�ķ���
+    // 为局部变量和临时变量在栈内分配空间，指定偏移，进行栈空间的分配
     stackAlloc(func);
 
-    // �����β�Ҫ��ǰ�ĸ��Ĵ������䣬����Ĳ�������ջ���ݣ�ʵ��ʵ�ε�ֵ���ݸ��β�
-    // ��һ���Ǳ����
+    // 函数形参要求前四个寄存器分配，后面的参数采用栈传递，实现实参的值传递给形参
+    // 这一步是必须的
     adjustFormalParamInsts(func);
 
 #if 0
-    // ��ʱ����������IRָ����ڲ鿴��ǰ�ļĴ������䡢ջ�ڱ������䡢ʵ����ջ����Ϣ����ȷ��
+    // 临时输出调整后的IR指令，用于查看当前的寄存器分配、栈内变量分配、实参入栈等信息的正确性
     std::string irCodeStr;
     func->toString(irCodeStr);
     std::cout << irCodeStr << std::endl;
 #endif
 }
 
-/// @brief �Ĵ�������ǰ�Ժ����ڵ�ָ����е������Ա㷽��Ĵ�������
-/// @param func Ҫ�����ĺ���
+/// @brief 寄存器分配前对函数内的指令进行调整，以便方便寄存器分配
+/// @param func 要处理的函数
 void CodeGeneratorArm64::adjustFormalParamInsts(Function * func)
 {
-    // �����βε�ǰ�ĸ�ʵ��ֵ��ʱ�������õ��ǼĴ�����ֵ
-    // ǰ�ĸ�֮��ͨ��ջ����
+    // 函数形参的前四个实参值临时变量采用的是寄存器传值
+    // 前四个之后通过栈传递
 
-    // ��ע���������õ������βζ��Ƕ�Ӧ��ʵ�ε�ֵ��������ʱ����
-    // ������ǲ���ʹ������Ĵ���
+    // 请注意这里所得的所有形参都是对应的实参的值关联的临时变量
+    // 如果不是不能使用这里的代码
     auto & params = func->getParams();
 
-    // �βε�ǰ�ĸ�ͨ���Ĵ�������ֵR0-R3
+    // 形参的前四个通过寄存器来传值R0-R3
     for (int k = 0; k < (int) params.size() && k <= 3; k++) {
 
-        // ǰ�ĸ����÷���Ĵ���
+        // 前四个设置分配寄存器
 
         params[k]->setRegId(k);
     }
 
-    // ����ARM��C���Եĵ���Լ������ǰ4�����ʵ�ν���ֵ���ݣ�������ջ
+    // 根据ARM版C语言的调用约定，除前4个外的实参进行值传递，逆序入栈
     int fp_esp = func->getMaxDep() + (int) func->getProtectedReg().size() * 4;
     for (int k = 4; k < (int) params.size(); k++) {
 
-        // Ŀǰ�ٶ�������С����4�ֽڡ�ʵ��Ҫ��������������
+        // 目前假定变量大小都是4字节。实际要根据类型来计算
 
         params[k]->setMemoryAddr(ARM64_FP_REG_NO, fp_esp);
 
-        // ����4�ֽ�
+        // 增加4字节
         fp_esp += 4;
     }
 }
 
-/// @brief �Ĵ�������ǰ�Ժ����ڵ�ָ����е������Ա㷽��Ĵ�������
-/// @param func Ҫ�����ĺ���
+/// @brief 寄存器分配前对函数内的指令进行调整，以便方便寄存器分配
+/// @param func 要处理的函数
 void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
 {
     std::vector<Instruction *> newInsts;
 
-    // ��ǰ������ָ���б�
+    // 当前函数的指令列表
     auto & insts = func->getInterCode().getInsts();
 
-    // ��������ֵ��R0�Ĵ����������������з���ֵ����ֵR0����Ӧ�Ĵ���
+    // 函数返回值用R0寄存器，若函数调用有返回值，则赋值R0到对应寄存器
     for (auto pIter = insts.begin(); pIter != insts.end(); pIter++) {
 
-        // ����Ƿ��Ǻ�������ָ����Һ��з���ֵ
+        // 检查是否是函数调用指令，并且含有返回值
         if (Instanceof(callInst, FuncCallInstruction *, *pIter)) {
 
-            // ʵ��ǰ8��Ҫ�Ĵ�����ֵ����������ͨ��ջ����
+            // 实参前8个要寄存器传值，其它参数通过栈传递
 
-            // ǰ8���ĺ����������ջ����
+            // 前8个的后面参数采用栈传递
             int esp = 0;
             for (int32_t k = 8; k < callInst->getOperandsNum(); k++) {
 
                 auto arg = callInst->getOperand(k);
 
-                // �½�һ���ڴ����������ջ��ֵ���βα�����
+                // 新建一个内存变量，用于栈传值到形参变量中
                 LocalVariable * newVal = func->newLocalVarValue(IntegerType::getTypeInt());
                 newVal->setMemoryAddr(ARM64_SP_REG_NO, esp);
                 esp += 8;
@@ -266,30 +266,30 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
 
                 callInst->setOperand(k, newVal);
 
-                // ��������ָ��ǰ�����pIter��ָ��������ָ��
+                // 函数调用指令前插入后，pIter仍指向函数调用指令
                 pIter = insts.insert(pIter, assignInst);
                 pIter++;
             }
 
             for (int k = 0; k < callInst->getOperandsNum() && k < 8; k++) {
 
-                // ���ʵ�ε������Ƿ�����ʱ������
-                // �������ʱ�������ñ����ɸ���Ϊ�Ĵ����������ɣ��������üĴ�����
-                // ������ǣ�����뿪��һ���Ĵ���������Ȼ��ֵ����
+                // 检查实参的类型是否是临时变量。
+                // 如果是临时变量，该变量可更改为寄存器变量即可，或者设置寄存器号
+                // 如果不是，则必须开辟一个寄存器变量，然后赋值即可
                 auto arg = callInst->getOperand(k);
 
                 if (arg->getRegId() == k) {
-                    // ��˵���Ĵ����Ѿ���ʵ�δ��ݵļĴ��������ô�����ֵָ��
+                    // 则说明寄存器已经是实参传递的寄存器，不用创建赋值指令
                     continue;
                 } else {
-                    // ������ʱ������ָ���Ĵ���
+                    // 创建临时变量，指定寄存器
 
                     Instruction * assignInst =
                         new MoveInstruction(func, PlatformArm64::intRegVal[k], callInst->getOperand(k));
 
                     callInst->setOperand(k, PlatformArm64::intRegVal[k]);
 
-                    // ��������ָ��ǰ�����pIter��ָ��������ָ��
+                    // 函数调用指令前插入后，pIter仍指向函数调用指令
                     pIter = insts.insert(pIter, assignInst);
                     pIter++;
                 }
@@ -299,26 +299,26 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
 
                 auto arg = callInst->getOperand(k);
 
-                // �ٲ���ARGָ��
+                // 再产生ARG指令
                 pIter = insts.insert(pIter, new ArgInstruction(func, arg));
                 pIter++;
             }
 
-            // ��argָ���ɲ��ò�����չʾ��ɾ��
+            // 有arg指令后可不用参数，展示不删除
             // args.clear();
 
-            // ��ֵָ��
+            // 赋值指令
             if (callInst->hasResultValue()) {
 
                 if (callInst->getRegId() == 0) {
-                    // ��������ļĴ����ͷ���ֵ�Ĵ���һ������ʲô������Ҫ��
+                    // 结果变量的寄存器和返回值寄存器一样，则什么都不需要做
                     ;
                 } else {
-                    // �����������Ҫ������ֵָ��
-                    // �½�һ����ֵ����
+                    // 其它情况，需要产生赋值指令
+                    // 新建一个赋值操作
                     Instruction * assignInst = new MoveInstruction(func, callInst, PlatformArm64::intRegVal[0]);
 
-                    // ��������ָ�����һ��ָ���ǰ�����ָ���Ϊ��Exitָ�+1�϶���Ч
+                    // 函数调用指令的下一个指令的前面插入指令，因为有Exit指令，+1肯定有效
                     pIter = insts.insert(pIter + 1, assignInst);
                 }
             }
@@ -326,74 +326,74 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
     }
 }
 
-/// @brief ջ�ռ����
-/// @param func Ҫ�����ĺ���
+/// @brief 栈空间分配
+/// @param func 要处理的函数
 void CodeGeneratorArm64::stackAlloc(Function * func)
 {
-    // ���������ڵ�����ָ�����û�мĴ�������ı�����Ȼ�����ջ�ڿռ����
+    // 遍历函数内的所有指令，查找没有寄存器分配的变量，然后进行栈内空间分配
 
-    // �������ʱ�����;ֲ���������ջ�Ͻ��з���,���βζ�Ӧʵ�ε���ʱ����(FormalParam����)����Ҫ����
+    // 这里对临时变量和局部变量都在栈上进行分配,但形参对应实参的临时变量(FormalParam类型)不需要考虑
 
     int32_t sp_esp = 0;
 
-    // ��ȡ���������б�
+    // 获取函数变量列表
     std::vector<LocalVariable *> & vars = func->getVarValues();
 
     for (auto var: vars) {
 
-        // ���ڼ����͵ļĴ���������ԣ��ٶ���ʱ�����;ֲ�������������ջ�У������ڴ�
-        // ������ͼ��ɫ�ȣ���ʱ����һ���ǼĴ������ֲ�����Ҳ�����޸�Ϊ�Ĵ���
-        // TODO ������ν��з���ʹ����ʱ�������������ڼĴ����У���Ϊ�Ż��㿼��
+        // 对于简单类型的寄存器分配策略，假定临时变量和局部变量都保存在栈中，属于内存
+        // 而对于图着色等，临时变量一般是寄存器，局部变量也可能修改为寄存器
+        // TODO 考虑如何进行分配使得临时变量尽量保存在寄存器中，作为优化点考虑
 
-        // regId��Ϊ-1����˵���ñ�������Ϊ�Ĵ���
-        // baseRegNo������-1����˵���ñ����϶���ջ�ϣ������ڴ������֮ǰ�϶��Ѿ������
+        // regId不为-1，则说明该变量分配为寄存器
+        // baseRegNo不等于-1，则说明该变量肯定在栈上，属于内存变量，之前肯定已经分配过
         if ((var->getRegId() == -1) && (!var->getMemoryAddr())) {
 
-            // �ñ���û�з���Ĵ���
+            // 该变量没有分配寄存器
 
             int32_t size = var->getType()->getSize();
 
-            // 32λARMƽ̨����4�ֽڵĴ�С����������ֲ�����
+            // 32位ARM平台按照4字节的大小整数倍分配局部变量
             size += (4 - size % 4) % 4;
 
-            // ����Ҫע�������ջ��ƫ�Ʒ�Χ��һ����û��ƼĴ���+��������ʽ���Ѱַ
-            // ������������Ҫ�󣬿ɲ��û�ַ�Ĵ���+�����������ķ�ʽ���ʱ���
-            // ������Ҫ�Ȱ�ƫ�����ŵ��Ĵ����У�Ȼ����ƼĴ���+ƫ�ƼĴ�����Ѱַ
-            // ֮����Ҫ������ʹ�õ���Value��ָ���ڼĴ�������ǰҪ�任��
+            // 这里要注意检查变量栈的偏移范围。一般采用机制寄存器+立即数方式间接寻址
+            // 若立即数满足要求，可采用基址寄存器+立即数变量的方式访问变量
+            // 否则，需要先把偏移量放到寄存器中，然后机制寄存器+偏移寄存器来寻址
+            // 之后需要对所有使用到该Value的指令在寄存器分配前要变换。
 
-            // �ֲ�����ƫ������
+            // 局部变量偏移设置
             var->setMemoryAddr(ARM64_FP_REG_NO, sp_esp);
 
-            // �ۼƵ�ǰ�������С
+            // 累计当前作用域大小
             sp_esp += size;
         }
     }
 
-    // ����ָ������ʱ����
+    // 遍历指令中临时变量
     for (auto inst: func->getInterCode().getInsts()) {
 
         if (inst->hasResultValue()) {
-            // ��ֵ
+            // 有值
 
             int32_t size = inst->getType()->getSize();
 
-            // 32λARMƽ̨����4�ֽڵĴ�С����������ֲ�����
+            // 32位ARM平台按照4字节的大小整数倍分配局部变量
             size += (4 - size % 4) % 4;
 
-            // ����Ҫע�������ջ��ƫ�Ʒ�Χ��һ����û��ƼĴ���+��������ʽ���Ѱַ
-            // ������������Ҫ�󣬿ɲ��û�ַ�Ĵ���+�����������ķ�ʽ���ʱ���
-            // ������Ҫ�Ȱ�ƫ�����ŵ��Ĵ����У�Ȼ����ƼĴ���+ƫ�ƼĴ�����Ѱַ
-            // ֮����Ҫ������ʹ�õ���Value��ָ���ڼĴ�������ǰҪ�任��
+            // 这里要注意检查变量栈的偏移范围。一般采用机制寄存器+立即数方式间接寻址
+            // 若立即数满足要求，可采用基址寄存器+立即数变量的方式访问变量
+            // 否则，需要先把偏移量放到寄存器中，然后机制寄存器+偏移寄存器来寻址
+            // 之后需要对所有使用到该Value的指令在寄存器分配前要变换。
 
-            // �ֲ�����ƫ������
+            // 局部变量偏移设置
             inst->setMemoryAddr(ARM64_FP_REG_NO, sp_esp);
 
-            // �ۼƵ�ǰ�������С
+            // 累计当前作用域大小
             sp_esp += size;
         }
     }
 
-    // ���ú��������ջ֡��ȣ��ڼ���ʵ���ڴ洫ֵ�Ŀռ�
-    // ��ע����֧�ָ�����������뱣��ջ�ڿռ�8�ֽڶ���
+    // 设置函数的最大栈帧深度，在加上实参内存传值的空间
+    // 请注意若支持浮点数，则必须保持栈内空间8字节对齐
     func->setMaxDep(sp_esp);
 }

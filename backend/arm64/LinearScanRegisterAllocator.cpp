@@ -74,12 +74,12 @@ void LinearScanRegisterAllocator::bitmapReset(int32_t no)
 
 void LinearScanRegisterAllocator::computeIntervals()
 {
-    // ¼ÆËãÃ¿¸ö±äÁ¿µÄ»îÔ¾Çø¼ä
-    // ¼ÙÉè Value ÀàÓĞ getFirstUse() ºÍ getLastUse() ·½·¨
+    // è®¡ç®—æ¯ä¸ªå˜é‡çš„æ´»è·ƒåŒºé—´
+    // å‡è®¾ Value ç±»æœ‰ getFirstUse() å’Œ getLastUse() æ–¹æ³•
     for (Value * var: regValues) {
         int var_first_use = 0;
-        int var_last_use = 0; // ÅĞ¶Ï±äÁ¿×îÔçÊ¹ÓÃºÍ×îÍíÊ¹ÓÃµÄ·¶Î§£¬¿ÉÄÜºóĞøĞèÒª²¹³ä·½·¨
-                              // getFirstUse()ºÍgetLastUse()
+        int var_last_use = 0; // åˆ¤æ–­å˜é‡æœ€æ—©ä½¿ç”¨å’Œæœ€æ™šä½¿ç”¨çš„èŒƒå›´ï¼Œå¯èƒ½åç»­éœ€è¦è¡¥å……æ–¹æ³•
+                              // getFirstUse()å’ŒgetLastUse()
         Interval interval = {var, var_first_use, var_last_use, -1};
         intervals.push_back(interval);
     }
@@ -97,7 +97,7 @@ void LinearScanRegisterAllocator::allocateRegisters()
     for (auto & interval: intervals) {
         int regId = -1;
 
-        // ²éÕÒ¿ÕÏĞ¼Ä´æÆ÷
+        // æŸ¥æ‰¾ç©ºé—²å¯„å­˜å™¨
         for (int i = 0; i < PlatformArm64::maxUsableRegNum; ++i) {
             if (!regBitmap.test(i)) {
                 regId = i;
@@ -106,7 +106,7 @@ void LinearScanRegisterAllocator::allocateRegisters()
         }
 
         if (regId == -1) {
-            // Èç¹ûÃ»ÓĞ¿ÕÏĞ¼Ä´æÆ÷£¬Òç³öÒ»¸ö¼Ä´æÆ÷
+            // å¦‚æœæ²¡æœ‰ç©ºé—²å¯„å­˜å™¨ï¼Œæº¢å‡ºä¸€ä¸ªå¯„å­˜å™¨
             regId = findSpillRegister();
             if (regId != -1) {
                 free(regId);
