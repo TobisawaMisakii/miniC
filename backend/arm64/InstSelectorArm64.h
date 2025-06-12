@@ -68,7 +68,9 @@ protected:
     /// @brief goto指令指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_goto(Instruction * inst);
-
+    /// @brief 有条件分支指令翻译成ARM32汇编
+    /// @param inst IR指令
+    void translate_goto_if_zero(Instruction * inst);
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_add_int64(Instruction * inst);
@@ -158,6 +160,17 @@ protected:
     /// @param inst
     ///
     void translate_fptosi(Instruction * inst);
+
+    /// @brief 比较指令翻译成ARM32汇编
+    /// @param inst
+    void translate_cmp_int64(Instruction * inst, IRInstOperator op);
+    const char * getA64Cond(IRInstOperator op);
+    void translate_lt_int64(Instruction * inst);
+    void translate_le_int64(Instruction * inst);
+    void translate_gt_int64(Instruction * inst);
+    void translate_ge_int64(Instruction * inst);
+    void translate_eq_int64(Instruction * inst);
+    void translate_ne_int64(Instruction * inst);
     ///
     /// @brief 输出IR指令
     ///
