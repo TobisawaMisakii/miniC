@@ -1,10 +1,12 @@
-//test domain of global var define and local define
-int a = 3;
-int b = 5;
-
-int main(){
-    int a = 5;
-	if(b >= 3)
-        a = 1;
-    return a + b;
+int main() {
+  int a, b = 8, c = 12;
+  a = b + c;
+  return a;
+  int d = 9;
+  a = a * d;
+  return a;
+  const int A = 4;
+  a = (A - b) * c;
+  return a;
+  return a;
 }

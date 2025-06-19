@@ -14,5 +14,5 @@ clang -S -target aarch64-linux-gnu -o tests/test2-1-1.s tests/test2-1.ll
 # 编译生成ARM64汇编文件
  aarch64-linux-gnu-gcc -static -o tests/test2-1 tests/test2-1.c -no-pie
 # 运行ARM64程序
- qemu-aarch64 ./tests/test2-1
+ qemu-aarch64-static ./tests/test2-1
 echo $?

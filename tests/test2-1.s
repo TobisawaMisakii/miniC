@@ -1,70 +1,113 @@
 	.arch armv8-a
 .text
-.section .data
-.global a
-.align 4
-.type a, %object
-a:
-.word 3
-.section .data
-.global b
-.align 4
-.type b, %object
-b:
-.word 5
+.text
+
 .align 1
 .global main
 .type main, %function
 main:
 	@ %l0:[x29,#0]
-	@ a:%l1:[x29,#4]
-	@ %t2:[x29,#8]
-	@ %t3:[x29,#12]
-	@ %t4:[x29,#16]
-	@ %t6:[x29,#20]
-	@ %t8:[x29,#24]
-	@ %t9:[x29,#28]
-	@ %t10:[x29,#32]
-	@ %t11:[x29,#36]
-	@ %t13:[x29,#40]
+	@ a:%l1:[x29,#8]
+	@ b:%l2:[x29,#16]
+	@ c:%l3:[x29,#24]
+	@ d:%l4:[x29,#32]
+	@ A:%l5:[x29,#40]
+	@ %t6:[x29,#48]
+	@ %t7:[x29,#56]
+	@ %t8:[x29,#64]
+	@ %t9:[x29,#72]
+	@ %t10:[x29,#80]
+	@ %t11:[x29,#88]
+	@ %t12:[x29,#96]
+	@ %t13:[x29,#104]
+	@ %t14:[x29,#112]
+	@ %t15:[x29,#120]
+	@ %t16:[x29,#128]
+	@ %t17:[x29,#136]
+	@ %t18:[x29,#144]
+	@ %t19:[x29,#152]
+	@ %t20:[x29,#160]
+	@ %t21:[x29,#168]
+	@ %t22:[x29,#176]
+	@ %t23:[x29,#184]
+	@ %t24:[x29,#192]
+	@ %t25:[x29,#200]
+	@ %t26:[x29,#208]
+	@ %t27:[x29,#216]
+	@ %t28:[x29,#224]
+	@ %t29:[x29,#232]
+	@ %t30:[x29,#240]
+	@ %t32:[x29,#248]
 	str x29,[sp, #-8]!
-	sub sp,sp,56
+	sub sp,sp,264
 	mov x29,sp
-	mov x0,#5
-	str x0,[x29,#4]
-	adrp x0,b
-	add x0,x0,:lo12:b
-	ldr x0,[x0]
-	str x0,[x29,#12]
-	ldr x0,[x29,#12]
-	mov x1,#3
-	cmp x0,x1
-	cset x2,ge
-	str x2,[x29,#16]
-
-	mov x0,#1
-	str x0,[x29,#4]
-	b .L1
-	b .L1
-.L1:
-	ldr x0,[x29,#4]
+	mov x0,#8
+	str x0,[x29,#16]
+	mov x0,#12
 	str x0,[x29,#24]
-	adrp x0,b
-	add x0,x0,:lo12:b
-	ldr x0,[x0]
-	str x0,[x29,#28]
+	ldr x0,[x29,#16]
+	str x0,[x29,#64]
 	ldr x0,[x29,#24]
-	ldr x1,[x29,#28]
+	str x0,[x29,#72]
+	ldr x0,[x29,#64]
+	ldr x1,[x29,#72]
 	add x2,x0,x1
-	str x2,[x29,#32]
-	ldr x0,[x29,#32]
+	str x2,[x29,#80]
+	ldr x0,[x29,#80]
+	str x0,[x29,#8]
+	ldr x0,[x29,#8]
+	str x0,[x29,#96]
+	ldr x0,[x29,#96]
 	str x0,[x29]
-	b .L2
-.L2:
-	ldr x0,[x29]
+	b .L0
+	mov x0,#9
+	str x0,[x29,#32]
+	ldr x0,[x29,#8]
+	str x0,[x29,#120]
+	ldr x0,[x29,#32]
+	str x0,[x29,#128]
+	ldr x0,[x29,#120]
+	ldr x1,[x29,#128]
+	mul x2,x0,x1
+	str x2,[x29,#136]
+	ldr x0,[x29,#136]
+	str x0,[x29,#8]
+	ldr x0,[x29,#8]
+	str x0,[x29,#152]
+	ldr x0,[x29,#152]
+	str x0,[x29]
+	b .L0
+	mov x0,#4
 	str x0,[x29,#40]
-	ldr x0,[x29,#40]
+	ldr x0,[x29,#16]
+	str x0,[x29,#176]
+	mov x0,#4
+	ldr x1,[x29,#176]
+	sub x2,x0,x1
+	str x2,[x29,#184]
+	ldr x0,[x29,#24]
+	str x0,[x29,#192]
+	ldr x0,[x29,#184]
+	ldr x1,[x29,#192]
+	mul x2,x0,x1
+	str x2,[x29,#200]
+	ldr x0,[x29,#200]
+	str x0,[x29,#8]
+	ldr x0,[x29,#8]
+	str x0,[x29,#216]
+	ldr x0,[x29,#216]
+	str x0,[x29]
+	b .L0
+	ldr x0,[x29,#8]
+	str x0,[x29,#232]
+	ldr x0,[x29,#232]
+	str x0,[x29]
+	b .L0
+.L0:
+	ldr x0,[x29]
+	str x0,[x29,#248]
+	ldr x0,[x29,#248]
 	mov sp,x29
-	add sp,sp,56
+	add sp,sp,264
 	ldr x29,[sp], #8
 	ret

@@ -23,7 +23,7 @@ public:
     CodeGeneratorArm64(Module * module);
 
     /// @brief 析构函数
-    ~CodeGeneratorArm64();
+    ~CodeGeneratorArm64() override;
 
 protected:
     /// @brief 产生汇编头部分

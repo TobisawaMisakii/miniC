@@ -76,7 +76,6 @@ public:
     ///
     void floatfree(int32_t);
 
-protected:
     ///
     /// @brief 寄存器被置位，使用过的寄存器被置位
     /// @param no

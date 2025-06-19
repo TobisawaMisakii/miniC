@@ -69,6 +69,10 @@ protected:
     /// @param inst IR指令
     void translate_goto(Instruction * inst);
 
+    /// @brief 有条件分支指令翻译成ARM32汇编
+    /// @param inst IR指令
+    //void translate_goto_if_zero(Instruction * inst);
+
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_add_int64(Instruction * inst);

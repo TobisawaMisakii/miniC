@@ -26,6 +26,7 @@
 
 #include "LabelInstruction.h"
 #include "GotoInstruction.h"
+#include "BranchConditional.h"
 #include "FuncCallInstruction.h"
 #include "MoveInstruction.h"
 #include "SimpleRegisterAllocator.h"
@@ -49,6 +50,7 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
 
     translator_handlers[IRInstOperator::IRINST_OP_LABEL] = &InstSelectorArm64::translate_label;
     translator_handlers[IRInstOperator::IRINST_OP_GOTO] = &InstSelectorArm64::translate_goto;
+    //translator_handlers[IRInstOperator::IRINST_OP_GOTO_IF_ZERO] = &InstSelectorArm64::translate_goto_if_zero;
 
     translator_handlers[IRInstOperator::IRINST_OP_ASSIGN] = &InstSelectorArm64::translate_assign;
 
