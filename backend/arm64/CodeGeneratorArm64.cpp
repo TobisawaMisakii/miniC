@@ -130,7 +130,7 @@ void CodeGeneratorArm64::genCodeSection(Function * func)
     instSelector.run();
     iloc.deleteUsedLabel();
 
-    fprintf(fp, ".align %d\n", func->getAlignment());
+    fprintf(fp, "\n.align %d\n", func->getAlignment());
     fprintf(fp, ".global %s\n", func->getName().c_str());
     fprintf(fp, ".type %s, %%function\n", func->getName().c_str());
     fprintf(fp, "%s:\n", func->getName().c_str());
@@ -177,6 +177,7 @@ void CodeGeneratorArm64::registerAllocation(Function * func)
     //  (3) R10寄存器用于立即数过大时要通过寄存器寻址，这里简化处理进行预留
 
     std::vector<int32_t> & protectedRegNo = func->getProtectedReg();
+    protectedRegNo.clear();
     protectedRegNo.push_back(ARM64_FP_REG_NO);
     if (func->getExistFuncCall()) {
         protectedRegNo.push_back(ARM64_LR_REG_NO);
@@ -213,16 +214,16 @@ void CodeGeneratorArm64::adjustFormalParamInsts(Function * func)
     // 如果不是不能使用这里的代码
     auto & params = func->getParams();
 
-    // 形参的前四个通过寄存器来传值R0-R3
-    for (int k = 0; k < (int) params.size() && k <= 3; k++) {
+    // 形参的前8个通过寄存器来传值R0-R7
+    for (int k = 0; k < (int) params.size() && k <= 7; k++) {
 
-        // 前四个设置分配寄存器
-
+        // 前8个设置分配寄存器
+        simpleRegisterAllocator.bitmapSet(k);
         params[k]->setRegId(k);
     }
 
     // 根据ARM版C语言的调用约定，除前4个外的实参进行值传递，逆序入栈
-    int fp_esp = func->getMaxDep() + (int) func->getProtectedReg().size() * 4;
+    int64_t fp_esp = func->getMaxDep() + (func->getProtectedReg().size() * 4);
     for (int k = 4; k < (int) params.size(); k++) {
 
         // 目前假定变量大小都是4字节。实际要根据类型来计算
@@ -348,13 +349,12 @@ void CodeGeneratorArm64::stackAlloc(Function * func)
         // regId不为-1，则说明该变量分配为寄存器
         // baseRegNo不等于-1，则说明该变量肯定在栈上，属于内存变量，之前肯定已经分配过
         if ((var->getRegId() == -1) && (!var->getMemoryAddr())) {
-
             // 该变量没有分配寄存器
 
             int32_t size = var->getType()->getSize();
 
-            // 32位ARM平台按照4字节的大小整数倍分配局部变量
-            size += (4 - size % 4) % 4;
+            // 64位ARM平台按照8字节的大小整数倍分配局部变量
+            size += (8 - size % 8) % 8;
 
             // 这里要注意检查变量栈的偏移范围。一般采用机制寄存器+立即数方式间接寻址
             // 若立即数满足要求，可采用基址寄存器+立即数变量的方式访问变量
@@ -377,8 +377,8 @@ void CodeGeneratorArm64::stackAlloc(Function * func)
 
             int32_t size = inst->getType()->getSize();
 
-            // 32位ARM平台按照4字节的大小整数倍分配局部变量
-            size += (4 - size % 4) % 4;
+            // 64位ARM平台按照8字节的大小整数倍分配局部变量
+            size += (8 - size % 8) % 8;
 
             // 这里要注意检查变量栈的偏移范围。一般采用机制寄存器+立即数方式间接寻址
             // 若立即数满足要求，可采用基址寄存器+立即数变量的方式访问变量
@@ -395,5 +395,8 @@ void CodeGeneratorArm64::stackAlloc(Function * func)
 
     // 设置函数的最大栈帧深度，在加上实参内存传值的空间
     // 请注意若支持浮点数，则必须保持栈内空间8字节对齐
+    if (sp_esp % 16 != 0) {
+        sp_esp += 16 - (sp_esp % 16);
+    }
     func->setMaxDep(sp_esp);
 }

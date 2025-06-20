@@ -50,6 +50,7 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
 
     translator_handlers[IRInstOperator::IRINST_OP_LABEL] = &InstSelectorArm64::translate_label;
     translator_handlers[IRInstOperator::IRINST_OP_GOTO] = &InstSelectorArm64::translate_goto;
+    // translator_handlers[IRInstOperator::IRINST_OP_GOTO_IF_ZERO] = &InstSelectorArm64::translate_goto_if_zero;
 
     translator_handlers[IRInstOperator::IRINST_OP_ASSIGN] = &InstSelectorArm64::translate_assign;
 
@@ -72,7 +73,12 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     // mod
     translator_handlers[IRInstOperator::IRINST_OP_MOD_I] = &InstSelectorArm64::translate_mod_int64;
     translator_handlers[IRInstOperator::IRINST_OP_MOD_F] = &InstSelectorArm64::translate_mod_float;
-
+    // IRINST_OP_ZEXT,       // 零扩展指令
+    //     IRINST_OP_SEXT,   // 符号扩展指令
+    //     IRINST_OP_SITOFP, // i32转浮点指令
+    //     IRINST_OP_FPTOSI,
+    // 数据类型转换
+    // 零扩展指令
     translator_handlers[IRInstOperator::IRINST_OP_ZEXT] = &InstSelectorArm64::translate_zext;
     // 符号扩展指令
     translator_handlers[IRInstOperator::IRINST_OP_SEXT] = &InstSelectorArm64::translate_sext;
@@ -80,13 +86,13 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     translator_handlers[IRInstOperator::IRINST_OP_SITOFP] = &InstSelectorArm64::translate_sitofp;
     // 浮点转i32指令
     translator_handlers[IRInstOperator::IRINST_OP_FPTOSI] = &InstSelectorArm64::translate_fptosi;
+    // 比较指令
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_LT] = &InstSelectorArm64::translate_lt_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_LE] = &InstSelectorArm64::translate_le_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_GT] = &InstSelectorArm64::translate_gt_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_GE] = &InstSelectorArm64::translate_ge_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_EQ] = &InstSelectorArm64::translate_eq_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_NE] = &InstSelectorArm64::translate_ne_int64;
-    translator_handlers[IRInstOperator::IRINST_OP_GOTO_IF_ZERO] = &InstSelectorArm64::translate_goto_if_zero;
 }
 
 ///
@@ -99,7 +105,6 @@ InstSelectorArm64::~InstSelectorArm64()
 void InstSelectorArm64::run()
 {
     for (auto inst: ir) {
-
         // 逐个指令进行翻译
         if (!inst->isDead()) {
             translate(inst);
@@ -167,60 +172,6 @@ void InstSelectorArm64::translate_goto(Instruction * inst)
 
     // 无条件跳转
     iloc.jump(gotoInst->getTarget()->getName());
-}
-
-void InstSelectorArm64::translate_goto_if_zero(Instruction * inst)
-{
-    // 1. 将指令转换为其正确的类型：BranchCondInstruction
-    //    这是修复崩溃的关键步骤。
-    BranchCondInstruction * brInst = dynamic_cast<BranchCondInstruction *>(inst);
-
-    // 添加健壮性检查，防止意外的类型错误
-    if (brInst == nullptr) {
-        minic_log(LOG_ERROR,
-                  "translate_goto_if_zero: 指令(op=%d)不是一个有效的 BranchCondInstruction 实例。",
-                  (int) inst->getOp());
-        return;
-    }
-
-    // 2. 从指令中获取条件和两个目标标签
-    Value * condition = brInst->getOperand(0); // 获取条件值
-    // 假设 target_0 是条件为假（zero）时的跳转目标
-    std::string false_label = brInst->getTarget(0)->getName();
-    // 假设 target_1 是条件为真（non-zero）时的跳转目标
-    std::string true_label = brInst->getTarget(1)->getName();
-
-    // 确保条件值存在
-    if (condition == nullptr) {
-        minic_log(LOG_ERROR, "translate_goto_if_zero: 条件操作数为空。");
-        return;
-    }
-
-    // 3. 将条件值加载到寄存器中（如果它不在寄存器里）
-    int32_t cond_reg_no = condition->getRegId();
-    bool is_temp_reg = false;
-
-    if (cond_reg_no == -1) {
-        cond_reg_no = simpleRegisterAllocator.Allocate();
-        is_temp_reg = true;
-        iloc.load_var(cond_reg_no, condition);
-    }
-
-    // 4. 生成比较和跳转指令
-    //    比较条件寄存器的值是否为 0
-    iloc.inst("cmp", PlatformArm64::regName[cond_reg_no], "#0");
-
-    //    如果条件为 0 (Equal to zero)，则跳转到 false_label (target_0)
-    iloc.inst("beq", false_label);
-
-    //    如果条件不为 0，则顺序执行到这里，无条件跳转到 true_label (target_1)
-    //    这构成了 if-else 的 "else" 部分。
-    iloc.jump(true_label);
-
-    // 5. 释放临时分配的寄存器
-    if (is_temp_reg) {
-        simpleRegisterAllocator.free(cond_reg_no);
-    }
 }
 
 /// @brief 函数入口指令翻译成ARM64汇编
@@ -740,14 +691,12 @@ void InstSelectorArm64::translate_div_float(Instruction * inst)
 void InstSelectorArm64::translate_call(Instruction * inst)
 {
     FuncCallInstruction * callInst = dynamic_cast<FuncCallInstruction *>(inst);
-
+    // Value * funcVal = inst;
     int32_t operandNum = callInst->getOperandsNum();
 
     if (operandNum != realArgCount) {
-
         // 两者不一致 也可能没有ARG指令，正常
         if (realArgCount != 0) {
-
             minic_log(LOG_ERROR, "ARG指令的个数与调用函数个数不一致");
         }
     }
@@ -857,7 +806,7 @@ void InstSelectorArm64::translate_arg(Instruction * inst)
 }
 
 ///
-/// @brief laod指令翻译成ARM64汇编
+/// @brief load指令翻译成ARM64汇编
 /// @param inst
 ///
 void InstSelectorArm64::translate_load(Instruction * inst)

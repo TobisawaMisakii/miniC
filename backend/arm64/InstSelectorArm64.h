@@ -68,12 +68,15 @@ protected:
     /// @brief goto指令指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_goto(Instruction * inst);
+
     /// @brief 有条件分支指令翻译成ARM32汇编
     /// @param inst IR指令
-    void translate_goto_if_zero(Instruction * inst);
+    // void translate_goto_if_zero(Instruction * inst);
+
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_add_int64(Instruction * inst);
+
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
     void translate_add_float(Instruction * inst);
@@ -102,13 +105,13 @@ protected:
     /// @param inst IR指令
     void translate_div_float(Instruction * inst);
 
-    /// @brief 浮点取模指令翻译成ARM64汇编
-    /// @param inst IR指令
-    void translate_mod_float(Instruction * inst);
-
     /// @brief 整数取模指令翻译成ARM64汇编
     /// @param inst IR指令
     void translate_mod_int64(Instruction * inst);
+
+    /// @brief 浮点取模指令翻译成ARM64汇编
+    /// @param inst IR指令
+    void translate_mod_float(Instruction * inst);
 
     /// @brief 二元操作指令翻译成ARM32汇编
     /// @param inst IR指令
@@ -119,46 +122,33 @@ protected:
     /// @param inst IR指令
     void translate_call(Instruction * inst);
 
-    ///
     /// @brief 实参指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_arg(Instruction * inst);
 
-    ///
     /// @brief load指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_load(Instruction * inst);
 
-    ///
     /// @brief store指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_store(Instruction * inst);
 
-    ///
     /// @brief zxet零扩展指令指令翻译成ARM32汇编
     /// @param inst
     ///
     void translate_zext(Instruction * inst);
 
-    ///
     /// @brief sxet符号扩展指令指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_sext(Instruction * inst);
 
-    ///
     /// @brief i32转浮点指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_sitofp(Instruction * inst);
 
-    ///
     /// @brief 浮点转i32指令翻译成ARM32汇编
     /// @param inst
-    ///
     void translate_fptosi(Instruction * inst);
 
     /// @brief 比较指令翻译成ARM32汇编
@@ -171,9 +161,8 @@ protected:
     void translate_ge_int64(Instruction * inst);
     void translate_eq_int64(Instruction * inst);
     void translate_ne_int64(Instruction * inst);
-    ///
+
     /// @brief 输出IR指令
-    ///
     void outputIRInstruction(Instruction * inst);
 
     /// @brief IR翻译动作函数原型
@@ -182,14 +171,10 @@ protected:
     /// @brief IR动作处理函数清单
     map<IRInstOperator, translate_handler> translator_handlers;
 
-    ///
     /// @brief 简单的朴素寄存器分配方法
-    ///
     SimpleRegisterAllocator & simpleRegisterAllocator;
 
-    ///
     /// @brief 函数实参累计
-    ///
     int32_t argCount = 0;
 
     /// @brief 累计的实参个数
