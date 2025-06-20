@@ -162,6 +162,14 @@ protected:
     void translate_eq_int64(Instruction * inst);
     void translate_ne_int64(Instruction * inst);
 
+    /// @brief 翻译最大指令码，也是无效指令
+    void translate_max(Instruction * inst);
+
+    // IRINST_OP_NEG,
+    void translate_neg(Instruction * inst);
+    //     IRINST_OP_NOT// 取反指令
+    void translate_not(Instruction * inst);
+
     /// @brief 输出IR指令
     void outputIRInstruction(Instruction * inst);
 

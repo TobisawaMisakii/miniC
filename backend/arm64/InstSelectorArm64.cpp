@@ -93,6 +93,11 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_GE] = &InstSelectorArm64::translate_ge_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_EQ] = &InstSelectorArm64::translate_eq_int64;
     translator_handlers[IRInstOperator::IRINST_OP_ICMP_NE] = &InstSelectorArm64::translate_ne_int64;
+
+    translator_handlers[IRInstOperator::IRINST_OP_MAX] = &InstSelectorArm64::translate_max;
+
+    translator_handlers[IRInstOperator::IRINST_OP_NEG] = &InstSelectorArm64::translate_neg;
+    translator_handlers[IRInstOperator::IRINST_OP_NOT] = &InstSelectorArm64::translate_not;
 }
 
 ///
@@ -1154,4 +1159,47 @@ void InstSelectorArm64::translate_eq_int64(Instruction * inst)
 void InstSelectorArm64::translate_ne_int64(Instruction * inst)
 {
     translate_cmp_int64(inst, IRInstOperator::IRINST_OP_ICMP_NE);
+}
+
+void InstSelectorArm64::translate_max(Instruction * inst)
+{}
+
+void InstSelectorArm64::translate_neg(Instruction * inst)
+{
+    Value * dst = inst->getOperand(0);
+    Value * src = inst->getOperand(1);
+    int32_t dst_reg = dst->getRegId();
+    int32_t src_reg = src->getRegId();
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.Allocate();
+    if (src_reg == -1) {
+        src_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(src_reg, src);
+    }
+    iloc.inst("neg", PlatformArm64::regName[dst_reg], PlatformArm64::regName[src_reg], "");
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    if (src->getRegId() == -1)
+        simpleRegisterAllocator.free(src_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.free(dst_reg);
+}
+
+void InstSelectorArm64::translate_not(Instruction * inst)
+{
+    Value * dst = inst->getOperand(0);
+    Value * src = inst->getOperand(1);
+    int32_t dst_reg = dst->getRegId();
+    int32_t src_reg = src->getRegId();
+    if (dst_reg == -1)
+        dst_reg = simpleRegisterAllocator.Allocate();
+    if (src_reg == -1) {
+        src_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_var(src_reg, src);
+    }
+    iloc.inst("mvn", PlatformArm64::regName[dst_reg], PlatformArm64::regName[src_reg], "");
+    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
+    if (src->getRegId() == -1)
+        simpleRegisterAllocator.free(src_reg);
+    if (dst->getRegId() == -1)
+        simpleRegisterAllocator.free(dst_reg);
 }
