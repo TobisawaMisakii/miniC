@@ -90,10 +90,7 @@ class ILocArm64 {
     /// @brief 符号表
     Module * module;
 
-    /// @brief 加载立即数 ldr r0,=#100
-    /// @param rs_reg_no 结果寄存器号
-    /// @param num 立即数
-    void load_imm(int rs_reg_no, int num);
+
     bool is_mov_imm(uint64_t value);
     bool is_movn_imm(uint64_t value);
 
@@ -217,4 +214,9 @@ public:
 
     /// @brief 删除无用的Label指令
     void deleteUsedLabel();
+
+    /// @brief 加载立即数 ldr r0,=#100
+    /// @param rs_reg_no 结果寄存器号
+    /// @param num 立即数
+    void load_imm(int rs_reg_no, int num);
 };

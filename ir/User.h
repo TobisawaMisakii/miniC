@@ -102,4 +102,5 @@ public:
     /// @brief 清除所有的操作数
     ///
     void clearOperands();
+    std::vector<Use *> operand;
 };

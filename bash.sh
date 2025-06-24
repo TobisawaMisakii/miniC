@@ -4,7 +4,7 @@ java -jar $HOME/Complier/miniC/thirdparty/antlr4/antlr-4.12.0-complete.jar -Dlan
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++
 cmake --build build --parallel
 # 生成AST图
-# ./build/minic -S -T -A -o ./tests/test-AST.png ./tests/test.c
+# ./build/minic -S -T -A -o ./tests/test-AST.png ./tests/2-1.c
 # # 生成标准ir
 # clang -S -emit-llvm -o tests/test_std1.ll tests/test.c
 # # 用自己的编译器生成ir

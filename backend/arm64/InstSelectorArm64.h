@@ -167,9 +167,14 @@ protected:
 
     // IRINST_OP_NEG,
     void translate_neg(Instruction * inst);
+    void translate_negint(Instruction * inst);
+    void translate_negfloat(Instruction * inst);
     //     IRINST_OP_NOT// 取反指令
     void translate_not(Instruction * inst);
+    //
+    void translate_xor_float(Instruction * instv);
 
+    void translate_xor_int64(Instruction * inst);
     /// @brief 输出IR指令
     void outputIRInstruction(Instruction * inst);
 
