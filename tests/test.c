@@ -1,18 +1,19 @@
-// int add(int a[][5], int b[])
-// {
-//     return a[0][0]+b[0];
-// }
-// int main()
-// {
-//     int a[3][5];
-//     int b;
-//     a[1][1] = 2;
-//     b = a[1][1];
-//     return b+a[1][1];
-// }
-//test const gloal var define
-const int a = 10, b = 5;
-
-int main(){
-    return b;
-}
+// test if-if-else
+int ififElse() {
+	int a;
+	a = 5;
+	int b;
+	b = 10;
+	if(a == 5)
+	  if (b == 10) 
+		a = 25;
+	  else 
+		a = a + 15;
+	  
+	return (a);
+  }
+  
+  int main(){
+	return (ififElse());
+  }
+  

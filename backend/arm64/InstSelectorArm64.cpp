@@ -50,7 +50,7 @@ InstSelectorArm64::InstSelectorArm64(vector<Instruction *> & _irCode,
 
     translator_handlers[IRInstOperator::IRINST_OP_LABEL] = &InstSelectorArm64::translate_label;
     translator_handlers[IRInstOperator::IRINST_OP_GOTO] = &InstSelectorArm64::translate_goto;
-    // translator_handlers[IRInstOperator::IRINST_OP_GOTO_IF_ZERO] = &InstSelectorArm64::translate_goto_if_zero;
+    translator_handlers[IRInstOperator::IRINST_OP_GOTO_IF_ZERO] = &InstSelectorArm64::translate_goto_if_zero;
 
     translator_handlers[IRInstOperator::IRINST_OP_ASSIGN] = &InstSelectorArm64::translate_assign;
 
@@ -1241,9 +1241,125 @@ void InstSelectorArm64::translate_negfloat(Instruction * inst)
         // 寄存器 => 寄存器
         // r8 -> rs 可能用到r9
         iloc.load_var(arg1_regId, arg1);
-        int zero_reg = simpleRegisterAllocator.Allocate();
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
         iloc.load_imm(zero_reg, 0);
         iloc.inst("sub",
+                  PlatformArm64::floatregName[arg1_regId],
+                  PlatformArm64::floatregName[zero_reg],
+                  PlatformArm64::floatregName[arg1_regId]);
+        iloc.store_var(arg1_regId, result, ARM64_TMP_REG_NO);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    } else if (result_regId != -1) {
+        // 内存变量 => 寄存器
+        arg1_regId = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(arg1_regId, arg1);
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("sub",
+                  PlatformArm64::floatregName[result_regId],
+                  PlatformArm64::floatregName[zero_reg],
+                  PlatformArm64::floatregName[arg1_regId]);
+        simpleRegisterAllocator.floatfree(arg1_regId);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    } else {
+        // 内存变量 => 内存变量
+
+        int64_t temp_regno = simpleRegisterAllocator.floatAllocate();
+
+        // arg1 -> r8
+        iloc.load_var(temp_regno, arg1);
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("sub",
+                  PlatformArm64::floatregName[temp_regno],
+                  PlatformArm64::floatregName[zero_reg],
+                  PlatformArm64::floatregName[temp_regno]);
+        // r8 -> rs 可能用到r9
+        iloc.store_var(temp_regno, result, ARM64_TMP_REG_NO);
+
+        simpleRegisterAllocator.floatfree(temp_regno);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    }
+}
+void InstSelectorArm64::translate_not(Instruction * inst)
+{
+
+    Value * src = inst->getOperand(0);
+    if (src->getType()->isFloatType()) {
+        translate_xor_float(inst);
+    } else if (src->getType()->isInt32Type()) {
+        translate_xor_int64(inst);
+    }
+}
+
+void InstSelectorArm64::translate_xor_float(Instruction * inst)
+{
+    Value * arg1 = inst->getOperand(0);
+    Value * result = inst;
+    int64_t arg1_regId = arg1->getRegId();
+    int64_t result_regId = result->getRegId();
+
+    if (arg1_regId != -1) {
+        // 寄存器 => 内存
+        // 寄存器 => 寄存器
+        // r8 -> rs 可能用到r9
+        iloc.load_var(arg1_regId, arg1);
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("xor",
+                  PlatformArm64::floatregName[arg1_regId],
+                  PlatformArm64::floatregName[zero_reg],
+                  PlatformArm64::floatregName[arg1_regId]);
+        iloc.store_var(arg1_regId, result, ARM64_TMP_REG_NO);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    } else if (result_regId != -1) {
+        // 内存变量 => 寄存器
+        arg1_regId = simpleRegisterAllocator.floatAllocate();
+        iloc.load_var(arg1_regId, arg1);
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("xor",
+                  PlatformArm64::regName[result_regId],
+                  PlatformArm64::regName[zero_reg],
+                  PlatformArm64::regName[arg1_regId]);
+        simpleRegisterAllocator.floatfree(arg1_regId);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    } else {
+        // 内存变量 => 内存变量
+
+        int64_t temp_regno = simpleRegisterAllocator.floatAllocate();
+
+        // arg1 -> r8
+        iloc.load_var(temp_regno, arg1);
+        int zero_reg = simpleRegisterAllocator.floatAllocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("xor",
+                  PlatformArm64::floatregName[temp_regno],
+                  PlatformArm64::floatregName[zero_reg],
+                  PlatformArm64::floatregName[temp_regno]);
+        // r8 -> rs 可能用到r9
+        iloc.store_var(temp_regno, result, ARM64_TMP_REG_NO);
+
+        simpleRegisterAllocator.floatfree(temp_regno);
+        simpleRegisterAllocator.floatfree(zero_reg);
+    }
+}
+
+void InstSelectorArm64::translate_xor_int64(Instruction * inst)
+{
+    Value * arg1 = inst->getOperand(0);
+    Value * result = inst;
+    int64_t arg1_regId = arg1->getRegId();
+    int64_t result_regId = result->getRegId();
+
+    if (arg1_regId != -1) {
+        // 寄存器 => 内存
+        // 寄存器 => 寄存器
+        // r8 -> rs 可能用到r9
+        iloc.load_var(arg1_regId, arg1);
+        int zero_reg = simpleRegisterAllocator.Allocate();
+        iloc.load_imm(zero_reg, 0);
+        iloc.inst("xor",
                   PlatformArm64::regName[arg1_regId],
                   PlatformArm64::regName[zero_reg],
                   PlatformArm64::regName[arg1_regId]);
@@ -1255,7 +1371,7 @@ void InstSelectorArm64::translate_negfloat(Instruction * inst)
         iloc.load_var(arg1_regId, arg1);
         int zero_reg = simpleRegisterAllocator.Allocate();
         iloc.load_imm(zero_reg, 0);
-        iloc.inst("sub",
+        iloc.inst("xor",
                   PlatformArm64::regName[result_regId],
                   PlatformArm64::regName[zero_reg],
                   PlatformArm64::regName[arg1_regId]);
@@ -1270,7 +1386,7 @@ void InstSelectorArm64::translate_negfloat(Instruction * inst)
         iloc.load_var(temp_regno, arg1);
         int zero_reg = simpleRegisterAllocator.Allocate();
         iloc.load_imm(zero_reg, 0);
-        iloc.inst("sub",
+        iloc.inst("xor",
                   PlatformArm64::regName[temp_regno],
                   PlatformArm64::regName[zero_reg],
                   PlatformArm64::regName[temp_regno]);
@@ -1281,53 +1397,40 @@ void InstSelectorArm64::translate_negfloat(Instruction * inst)
         simpleRegisterAllocator.free(zero_reg);
     }
 }
-void InstSelectorArm64::translate_not(Instruction * inst)
+
+void InstSelectorArm64::translate_goto_if_zero(Instruction * inst)
 {
 
-    Value * src = inst->getOperand(1);
-    if (src->getType()->isFloatType()) {
-        translate_xor_float(inst);
-    } else if (src->getType()->isInt32Type()) {
-        translate_xor_int64(inst);
-    }
-}
+    BranchCondInstruction * branchInst = dynamic_cast<BranchCondInstruction *>(inst);
 
-void InstSelectorArm64::translate_xor_float(Instruction * inst)
-{
-    Value * dst = inst->getOperand(0);
-    Value * src = inst->getOperand(1);
-    int32_t dst_reg = dst->getRegId();
-    int32_t src_reg = src->getRegId();
-    if (dst_reg == -1)
-        dst_reg = simpleRegisterAllocator.floatAllocate(dst);
-    if (src_reg == -1) {
-        src_reg = simpleRegisterAllocator.floatAllocate();
-        iloc.load_var(src_reg, src);
-    }
-    iloc.inst("xor", PlatformArm64::floatregName[dst_reg], PlatformArm64::floatregName[src_reg], "");
-    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
-    if (src->getRegId() == -1)
-        simpleRegisterAllocator.floatfree(src_reg);
-    if (dst->getRegId() == -1)
-        simpleRegisterAllocator.floatfree(dst_reg);
-}
+    Value * cond = branchInst->getCond();                   // 获取条件值
+    LabelInstruction * target_1 = branchInst->getTarget(1); // 条件为零时跳转的目标标签
+    LabelInstruction * target_0 = branchInst->getTarget(0); // 条件不为零时跳转的目标标签
 
-void InstSelectorArm64::translate_xor_int64(Instruction * inst)
-{
-    Value * dst = inst->getOperand(0);
-    Value * src = inst->getOperand(1);
-    int32_t dst_reg = dst->getRegId();
-    int32_t src_reg = src->getRegId();
-    if (dst_reg == -1)
-        dst_reg = simpleRegisterAllocator.Allocate(dst);
-    if (src_reg == -1) {
-        src_reg = simpleRegisterAllocator.Allocate();
-        iloc.load_var(src_reg, src);
+    // 获取条件值的寄存器编号
+    int cond_reg_no = cond->getRegId();
+    if (cond_reg_no == -1) {
+        // 如果条件值没有寄存器分配，则分配一个寄存器
+        cond_reg_no = simpleRegisterAllocator.Allocate();
+        // 加载条件值到寄存器中
+        iloc.load_var(cond_reg_no, cond);
     }
-    iloc.inst("mvn", PlatformArm64::regName[dst_reg], PlatformArm64::regName[src_reg], "");
-    iloc.store_var(dst_reg, dst, ARM64_TMP_REG_NO);
-    if (src->getRegId() == -1)
-        simpleRegisterAllocator.free(src_reg);
-    if (dst->getRegId() == -1)
-        simpleRegisterAllocator.free(dst_reg);
+    int zero_reg = simpleRegisterAllocator.Allocate();
+    iloc.load_imm(zero_reg, 1);
+    // 生成 ARM64 汇编指令，首先比较条件值与零
+    iloc.inst("cmp",
+              PlatformArm64::regName[cond_reg_no],
+              PlatformArm64::regName[zero_reg]); // 比较条件值与零寄存器(xzr)
+
+    // 如果条件为零，跳转到 target_1
+    iloc.inst("beq", target_1->getName()); // beq 表示条件为零时跳转
+
+    // 如果条件不为零，跳转到 target_0
+    iloc.inst("b", target_0->getName()); // b 表示无条件跳转到 target_0
+
+    // 如果条件寄存器是临时分配的，则释放它
+    if (cond_reg_no == -1) {
+        simpleRegisterAllocator.free(cond_reg_no);
+    }
+    simpleRegisterAllocator.free(zero_reg);
 }

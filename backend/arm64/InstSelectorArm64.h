@@ -71,7 +71,7 @@ protected:
 
     /// @brief 有条件分支指令翻译成ARM32汇编
     /// @param inst IR指令
-    // void translate_goto_if_zero(Instruction * inst);
+    void translate_goto_if_zero(Instruction * inst);
 
     /// @brief 整数加法指令翻译成ARM32汇编
     /// @param inst IR指令
@@ -175,6 +175,7 @@ protected:
     void translate_xor_float(Instruction * instv);
 
     void translate_xor_int64(Instruction * inst);
+
     /// @brief 输出IR指令
     void outputIRInstruction(Instruction * inst);
 
