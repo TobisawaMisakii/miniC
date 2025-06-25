@@ -862,27 +862,26 @@ void InstSelectorArm64::translate_load(Instruction * inst)
 void InstSelectorArm64::translate_store(Instruction * inst)
 {
     // IR 指令语义： STORE value, address
-    // value 是第一个操作数
-    // address 可能是立即数
-    Value * value_to_store = inst->getOperand(0);
-    Value * address = inst->getOperand(1); // 可能是
+    // result 是第一个操作数
+    // src 可能是立即数
+    Value * address = inst->getOperand(0);
+    Value * value_to_store = inst->getOperand(1); // 可能是
 
     int32_t value_reg_no, address_reg_no;
+    value_reg_no = value_to_store->getRegId();
+    address_reg_no = address->getRegId();
 
-    if (value_to_store->getRegId() != -1) {
-        value_reg_no = value_to_store->getRegId();
+    if (value_reg_no != -1) {
         iloc.store_var(value_reg_no, address, ARM64_TMP_REG_NO);
-    } else if (address->getRegId() != -1) {
-        address_reg_no = address->getRegId();
-
-        iloc.load_var(address_reg_no, address);
+    } else if (address_reg_no != -1) {
+        iloc.load_var(address_reg_no, value_to_store);
     } else {
+        // 如果是浮点类型，使用AllocateFloat，否则使用Allocate
         int32_t temp_regno = simpleRegisterAllocator.Allocate();
-        int32_t result_regno = simpleRegisterAllocator.Allocate();
-        iloc.load_var(temp_regno, address);
-        iloc.store_var(temp_regno, value_to_store, ARM64_TMP_REG_NO);
+        // int32_t result_regno = simpleRegisterAllocator.Allocate();
+        iloc.load_var(temp_regno, value_to_store);
+        iloc.store_var(temp_regno, address, ARM64_TMP_REG_NO);
         simpleRegisterAllocator.free(temp_regno);
-        simpleRegisterAllocator.free(result_regno);
     }
 }
 
