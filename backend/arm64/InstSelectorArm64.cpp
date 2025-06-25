@@ -713,10 +713,14 @@ void InstSelectorArm64::translate_call(Instruction * inst)
         simpleRegisterAllocator.Allocate(1);
         simpleRegisterAllocator.Allocate(2);
         simpleRegisterAllocator.Allocate(3);
+        simpleRegisterAllocator.Allocate(4);
+        simpleRegisterAllocator.Allocate(5);
+        simpleRegisterAllocator.Allocate(6);
+        simpleRegisterAllocator.Allocate(7);
 
         // 前四个的后面参数采用栈传递
         int esp = 0;
-        for (int32_t k = 4; k < operandNum; k++) {
+        for (int32_t k = 8; k < operandNum; k++) {
 
             auto arg = callInst->getOperand(k);
 
@@ -733,7 +737,7 @@ void InstSelectorArm64::translate_call(Instruction * inst)
             delete assignInst;
         }
 
-        for (int32_t k = 0; k < operandNum && k < 4; k++) {
+        for (int32_t k = 0; k < operandNum && k < 8; k++) {
 
             auto arg = callInst->getOperand(k);
 
@@ -757,6 +761,10 @@ void InstSelectorArm64::translate_call(Instruction * inst)
         simpleRegisterAllocator.free(1);
         simpleRegisterAllocator.free(2);
         simpleRegisterAllocator.free(3);
+        simpleRegisterAllocator.free(4);
+        simpleRegisterAllocator.free(5);
+        simpleRegisterAllocator.free(6);
+        simpleRegisterAllocator.free(7);
     }
 
     // 赋值指令

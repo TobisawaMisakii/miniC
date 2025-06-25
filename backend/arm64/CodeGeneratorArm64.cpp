@@ -215,6 +215,7 @@ void CodeGeneratorArm64::adjustFormalParamInsts(Function * func)
         // 前八个设置分配寄存器
         simpleRegisterAllocator.bitmapSet(k);
         params[k]->setRegId(k);
+		
     }
 
     // 根据ARM64版C语言的调用约定，除前8个外的实参进行值传递
