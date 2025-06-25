@@ -146,5 +146,28 @@ public:
     /// @return int32_t 寄存器编号
     ///
     virtual void setLoadRegId(int32_t regId);
-	
+
+    int liveStart = -1; ///< 活跃开始位置
+    int liveEnd = -1;   ///< 活跃结束位置
+    void setLiveStart(int pos)
+    {
+        liveStart = pos;
+    }
+    void setLiveEnd(int pos)
+    {
+        liveEnd = pos;
+    }
+    int getLiveStart() const
+    {
+        return liveStart;
+    }
+    int getLiveEnd() const
+    {
+        return liveEnd;
+    }
+    void setLiveRange(int start, int end)
+    {
+        liveStart = start;
+        liveEnd = end;
+    }
 };

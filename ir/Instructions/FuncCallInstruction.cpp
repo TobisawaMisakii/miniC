@@ -41,7 +41,7 @@ void FuncCallInstruction::toString(std::string & str)
 {
     int32_t operandsNum = this->getOperandsNum();
 
-    // TODO 这里应该根据函数名查找函数定义或者声明获取函数的类型
+    // 这里应该根据函数名查找函数定义或者声明获取函数的类型
     // 这里假定所有函数返回类型要么是i32，要么是void
     // 函数参数的类型是i32
     printf("函数%s, 操作数数量：%d\n", calledFunction->getName().c_str(), operandsNum);
