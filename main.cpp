@@ -57,12 +57,12 @@ bool gShowSymbol = false;
 ///
 /// @brief 前端分析器，默认选Flex和Bison
 ///
-bool gFrontEndFlexBison = true;
+bool gFrontEndFlexBison = false;
 
 ///
 /// @brief 前端分析器Antlr4，是否选中
 ///
-bool gFrontEndAntlr4 = false;
+bool gFrontEndAntlr4 = true;
 
 ///
 /// @brief 前端分析器用递归下降分析法，是否选中
@@ -235,11 +235,12 @@ int compile(std::string inputFile, std::string outputFile)
     int subResult;
 
     Module * module = nullptr;
+    FrontEndExecutor * frontEndExecutor = nullptr;
+    CodeGenerator * generator = nullptr;
 
     // 这里采用do {} while(0)架构的目的是如果处理出错可通过break退出循环，出口唯一
     // 在编译器编译优化时会自动去除，因为while恒假的缘故
     do {
-
         // 编译过程主要包括：
         // 1）词法语法分析生成AST
         // 2) 遍历AST生成线性IR
@@ -247,7 +248,6 @@ int compile(std::string inputFile, std::string outputFile)
         // 4) 把线性IR转换成汇编
 
         // 创建词法语法分析器
-        FrontEndExecutor * frontEndExecutor;
         frontEndExecutor = new Antlr4Executor(inputFile);
 
         // 前端执行：词法分析、语法分析后产生抽象语法树，其root为全局变量ast_root
@@ -260,21 +260,20 @@ int compile(std::string inputFile, std::string outputFile)
         // 获取抽象语法树的根节点
         ast_node * astRoot = frontEndExecutor->getASTRoot();
 
-        // 清理前端资源
-        delete frontEndExecutor;
         // 这里可进行非线性AST的优化
 
         if (gShowAST) {
-
             // 遍历抽象语法树，生成抽象语法树图片
             OutputAST(astRoot, outputFile);
 
             // 清理抽象语法树
             free_ast(astRoot);
 
+            // 防止后续重复释放
+            astRoot = nullptr;
+
             // 设置返回结果：正常
             result = 0;
-
             break;
         }
 
@@ -282,7 +281,7 @@ int compile(std::string inputFile, std::string outputFile)
         // 都需要遍历AST转换成线性IR指令
 
         // 符号表，保存所有的变量以及函数等信息
-        Module * module = new Module(inputFile);
+        module = new Module(inputFile);
 
         // 遍历抽象语法树产生线性IR，相关信息保存到符号表中
         IRGenerator ast2IR(astRoot, module);
@@ -290,18 +289,16 @@ int compile(std::string inputFile, std::string outputFile)
         subResult = ast2IR.run();
 
         if (!subResult) {
-
             // 输出错误信息
             minic_log(LOG_ERROR, "中间IR生成错误");
-
             break;
         }
 
         // 清理抽象语法树
         free_ast(astRoot);
+        astRoot = nullptr;
 
         if (gShowLineIR) {
-
             // 对IR的名字重命名
             module->renameIR();
 
@@ -310,7 +307,6 @@ int compile(std::string inputFile, std::string outputFile)
 
             // 设置返回结果：正常
             result = 0;
-
             break;
         }
 
@@ -325,9 +321,6 @@ int compile(std::string inputFile, std::string outputFile)
         // 这里提供一种面向ARM32的汇编产生器CodeGeneratorArm32作为参考
         // 需要时可根据需要修改或追加新的目标体系架构
         if (gShowASM) {
-
-            CodeGenerator * generator = nullptr;
-
             if (gCPUTarget == "ARM64") {
                 generator = new CodeGeneratorArm64(module);
                 generator->run(outputFile);
@@ -337,19 +330,29 @@ int compile(std::string inputFile, std::string outputFile)
                 minic_log(LOG_ERROR, "指定的目标CPU架构(%s)不支持", gCPUTarget.c_str());
                 break;
             }
-
-            delete generator;
         }
-
-        // 清理符号表
-        module->Delete();
 
         // 成功执行
         result = 0;
 
     } while (false);
 
-    delete module;
+    // 统一清理资源
+    if (generator != nullptr) {
+        delete generator;
+        generator = nullptr;
+    }
+
+    if (module != nullptr) {
+        module->Delete();
+        delete module;
+        module = nullptr;
+    }
+
+    if (frontEndExecutor != nullptr) {
+        delete frontEndExecutor;
+        frontEndExecutor = nullptr;
+    }
 
     return result;
 }

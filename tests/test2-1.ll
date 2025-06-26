@@ -11,26 +11,21 @@ declare void @putfarray(i32, float);
 declare void @putf(i32);
 declare void @starttime(...);
 declare void @stoptime(...);
-define i32 @f(i32 %t0)
-{
-	%l1 = alloca i32, align 4 ; 1:f
-	%l2 = alloca i32, align 4
-	store i32 %t0, i32* %l1, align 4
-	%t4 = load i32, i32* %l1, align 4
-	%t5 = mul i32 %t4, 2
-	store i32 %t5, i32* %l2, align 4
-	br label %.L7
-.L7:
-	%t8 = load i32, i32* %l2, align 4
-	ret i32 %t8
-}
 define i32 @main()
 {
 	%l0 = alloca i32, align 4
-	%t1 = call i32 @f()
-	store i32 %t1, i32* %l0, align 4
-	br label %.L3
-.L3:
-	%t4 = load i32, i32* %l0, align 4
-	ret i32 %t4
+	%l1 = alloca i32, align 4 ; 1:i
+	store i32 1, i32* %l1, align 4
+	%t3 = load i32, i32* %l1, align 4
+	%t4 = icmp ne i32 %t3, 1
+	br i1 %t4, label %.L5, label %.L7
+.L5:
+	store i32 0, i32* %l0, align 4
+	br label %.L9
+.L7:
+	store i32 1, i32* %l0, align 4
+	br label %.L9
+.L9:
+	%t10 = load i32, i32* %l0, align 4
+	ret i32 %t10
 }
