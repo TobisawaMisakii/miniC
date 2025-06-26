@@ -63,19 +63,25 @@ void CodeGeneratorArm64::genDataSection()
         if (var->isInBSSSection()) {
             // 未初始化的全局变量，位于 BSS 段
             fprintf(fp, ".section .bss\n");
+            fprintf(fp, ".align 3\n");
             fprintf(fp, ".comm %s, %d, %d\n", var->getName().c_str(), var->getType()->getSize(), var->getAlignment());
         } else {
             // 已初始化的全局变量，位于 data 段
             fprintf(fp, ".section .data\n");
             fprintf(fp, ".global %s\n", var->getName().c_str());
-            fprintf(fp, ".align %d\n", var->getAlignment());
+            fprintf(fp, ".align 3\n");
             fprintf(fp, ".type %s, %%object\n", var->getName().c_str());
             fprintf(fp, "%s:\n", var->getName().c_str());
 
             if (var->getType()->isIntegerType()) {
-                // 获取初始化值
-                int value = var->GetintValue();
-                fprintf(fp, ".word %d\n", value);
+                int size = var->getType()->getSize();
+                if (size == 8) {
+                    int64_t value = var->GetintValue();
+                    fprintf(fp, ".quad %ld\n", value);
+                } else {
+                    int value = var->GetintValue();
+                    fprintf(fp, ".word %d\n", value);
+                }
             }
         }
     }
@@ -215,7 +221,6 @@ void CodeGeneratorArm64::adjustFormalParamInsts(Function * func)
         // 前八个设置分配寄存器
         simpleRegisterAllocator.bitmapSet(k);
         params[k]->setRegId(k);
-		
     }
 
     // 根据ARM64版C语言的调用约定，除前8个外的实参进行值传递
@@ -318,55 +323,31 @@ void CodeGeneratorArm64::adjustFuncCallInsts(Function * func)
 /// @param func 要处理的函数
 void CodeGeneratorArm64::stackAlloc(Function * func)
 {
-
-    // 栈变量分配起始偏移量
     int32_t var_offset = 0;
-
-    // 获取函数变量列表
     std::vector<LocalVariable *> & vars = func->getVarValues();
 
-    // 遍历所有局部变量进行栈空间分配
     for (auto var: vars) {
-        // 只处理未分配寄存器且未分配内存地址的变量
         if ((var->getRegId() == -1) && (!var->getMemoryAddr())) {
-            int32_t size;
-            // 计算变量大小
-
-            size = var->getType()->getSize();
-
-            // 64位ARM平台按照8字节对齐
-            size += (8 - size % 8) % 8;
-
-            // 所有局部变量通过SP的正偏移量访问
-            // 这与生成的标准汇编代码一致
+            int32_t size = var->getType()->getSize();
+            // 8字节对齐
+            size = (size + 7) & ~7;
             var->setMemoryAddr(ARM64_SP_REG_NO, var_offset);
-
-            // 累加偏移量，确保下一个变量不会与当前变量重叠
             var_offset += size;
         }
     }
 
-    // 遍历指令中临时变量，与局部变量采用相同的分配策略
     for (auto inst: func->getInterCode().getInsts()) {
         if (inst->hasResultValue() && inst->getRegId() == -1 && !inst->getMemoryAddr()) {
             int32_t size = inst->getType()->getSize();
-
-            // 64位ARM平台按照8字节对齐
-            size += (8 - size % 8) % 8;
-
-            // 临时变量也通过SP的正偏移量访问
+            size = (size + 7) & ~7;
             inst->setMemoryAddr(ARM64_SP_REG_NO, var_offset);
-
-            // 累加偏移量，确保不重叠
             var_offset += size;
         }
     }
 
-    // 确保栈帧16字节对齐(ARM64 ABI要求)
+    // 局部变量空间16字节对齐
     if (var_offset % 16 != 0) {
         var_offset += 16 - (var_offset % 16);
     }
-
-    // 记录函数的局部变量区域总大小
     func->setMaxDep(var_offset);
 }

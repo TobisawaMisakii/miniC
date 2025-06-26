@@ -198,16 +198,22 @@ void InstSelectorArm64::translate_entry(Instruction * inst)
     // 计算总栈帧大小（含保护寄存器空间，保证16字节对齐）
     int funcCallArgCnt = func->getMaxFuncCallArgCnt() - 8;
     funcCallArgCnt = std::max(funcCallArgCnt, 0);
-    int off = func->getMaxDep();
-    off += funcCallArgCnt * 8;
-    int save_size = 0;
-    if (protectedRegNo.size() == 2)
-        save_size = 16;
-    else if (protectedRegNo.size() == 1)
-        save_size = 8;
-    int frame_size = off + save_size;
-    if (frame_size % 16 != 0)
+    int local_size = func->getMaxDep();
+    // 实参空间16字节对齐
+    int arg_space = funcCallArgCnt * 8;
+    if (arg_space % 16 != 0) {
+        arg_space += 16 - (arg_space % 16);
+    }
+    // 保护寄存器空间
+    int save_size = protectedRegNo.size() * 8;
+    if (save_size % 16 != 0) {
+        save_size += 16 - (save_size % 16);
+    }
+    // 总空间
+    int frame_size = local_size + arg_space + save_size;
+    if (frame_size % 16 != 0) {
         frame_size += 16 - (frame_size % 16);
+    }
 
     // 保存fp/lr并分配栈帧
     if (protectedRegNo.size() == 2) {
@@ -254,16 +260,22 @@ void InstSelectorArm64::translate_exit(Instruction * inst)
 
     int funcCallArgCnt = func->getMaxFuncCallArgCnt() - 8;
     funcCallArgCnt = std::max(funcCallArgCnt, 0);
-    int off = func->getMaxDep();
-    off += funcCallArgCnt * 8;
-    int save_size = 0;
-    if (protectedRegNo.size() == 2)
-        save_size = 16;
-    else if (protectedRegNo.size() == 1)
-        save_size = 8;
-    int frame_size = off + save_size;
-    if (frame_size % 16 != 0)
+    int local_size = func->getMaxDep();
+    // 实参空间16字节对齐
+    int arg_space = funcCallArgCnt * 8;
+    if (arg_space % 16 != 0) {
+        arg_space += 16 - (arg_space % 16);
+    }
+    // 保护寄存器空间
+    int save_size = protectedRegNo.size() * 8;
+    if (save_size % 16 != 0) {
+        save_size += 16 - (save_size % 16);
+    }
+    // 总空间
+    int frame_size = local_size + arg_space + save_size;
+    if (frame_size % 16 != 0) {
         frame_size += 16 - (frame_size % 16);
+    }
 
     iloc.inst("mov", PlatformArm64::regName[ARM64_SP_REG_NO], PlatformArm64::regName[ARM64_FP_REG_NO]);
     int res_size = frame_size - save_size;
