@@ -7,29 +7,20 @@ target triple = "x86_64-pc-linux-gnu"
 define dso_local i32 @main() #0 {
   %1 = alloca i32, align 4
   %2 = alloca i32, align 4
+  %3 = alloca [5 x i32], align 16
+  %4 = alloca [2 x [3 x i32]], align 16
+  %5 = alloca [2 x [3 x [4 x i32]]], align 16
   store i32 0, i32* %1, align 4
-  store i32 10, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  %4 = icmp ne i32 %3, 0
-  %5 = xor i1 %4, true
-  %6 = xor i1 %5, true
-  %7 = xor i1 %6, true
-  %8 = zext i1 %7 to i32
-  %9 = sub nsw i32 0, %8
-  %10 = icmp ne i32 %9, 0
-  br i1 %10, label %11, label %12
-
-11:                                               ; preds = %0
-  store i32 -1, i32* %2, align 4
-  br label %13
-
-12:                                               ; preds = %0
-  store i32 0, i32* %2, align 4
-  br label %13
-
-13:                                               ; preds = %12, %11
-  %14 = load i32, i32* %2, align 4
-  ret i32 %14
+  %6 = getelementptr inbounds [5 x i32], [5 x i32]* %3, i64 0, i64 4
+  store i32 33333, i32* %6, align 16
+  %7 = getelementptr inbounds [2 x [3 x i32]], [2 x [3 x i32]]* %4, i64 0, i64 1
+  %8 = getelementptr inbounds [3 x i32], [3 x i32]* %7, i64 0, i64 2
+  store i32 22222, i32* %8, align 4
+  %9 = getelementptr inbounds [2 x [3 x [4 x i32]]], [2 x [3 x [4 x i32]]]* %5, i64 0, i64 1
+  %10 = getelementptr inbounds [3 x [4 x i32]], [3 x [4 x i32]]* %9, i64 0, i64 2
+  %11 = getelementptr inbounds [4 x i32], [4 x i32]* %10, i64 0, i64 3
+  %12 = load i32, i32* %11, align 4
+  ret i32 %12
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }

@@ -411,11 +411,7 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
     }
     return true;
 }
-// if (realParam->getType()->isArrayType() || realParam->getType()->isPointerType())
-//     isFormalRes = false;
-// if (currentFunc->getParams().back()->getType()->isArrayType() ||
-//     currentFunc->getParams().back()->getType()->isPointerType())
-//     isFormalSrc = false;
+
 /// @brief 函数调用AST节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
@@ -1428,22 +1424,21 @@ bool IRGenerator::ir_array_indices(ast_node * node)
             minic_log(LOG_ERROR, "数组索引解析失败");
             return false;
         }
-        indices.push_back(index_node->val);
         node->blockInsts.addInst(index_node->blockInsts);
+        if (index_node->val->getType()->isInt32Type()) {
+            // 扩展到i64
+            CastInstruction * cast_inst =
+                new CastInstruction(module->getCurrentFunction(), index_node->val, IntegerType::getTypeInt64());
+            index_node->val = cast_inst;
+            node->blockInsts.addInst(cast_inst);
+        }
+        indices.push_back(index_node->val);
     }
 
-    // 递归解引用指针，每次消耗一个索引
+    // 1. 获取数组的类型和维度
     Type * curType = arrayValue->getType();
     Value * curPtr = arrayValue;
-    size_t idx = 0;
-    while (curType->isPointerType() && idx < indices.size()) {
-        // load 一次
-        LoadInstruction * loadInst = new LoadInstruction(module->getCurrentFunction(), curPtr);
-        node->blockInsts.addInst(loadInst);
-        curPtr = loadInst;
-        curType = const_cast<Type *>(static_cast<const PointerType *>(curType)->getPointeeType());
-        idx++;
-    }
+
     const ArrayType * arrayType = static_cast<const ArrayType *>(curType);
     std::vector<int32_t> dims;
     Type * baseType;
@@ -1453,116 +1448,63 @@ bool IRGenerator::ir_array_indices(ast_node * node)
     } else {
         // 指针类型或基本类型时，dims 为空
         dims.clear();
+        dims.push_back(1); // 作为指针处理时，假设只有一维
         baseType = curType;
     }
-    Value * totalOffset = module->newConstInt(0);
     Function * currentFunc = module->getCurrentFunction();
-    Type * intType = IntegerType::getTypeInt();
-    const int elementSize = baseType->getSize();
-    if (!curType->isArrayType()) { //指针类型
-        BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
-                                                               IRInstOperator::IRINST_OP_MUL_I,
-                                                               indices[0],
-                                                               module->newConstInt(elementSize),
-                                                               intType);
-        node->blockInsts.addInst(byteOffset);
-        totalOffset = byteOffset;
-    } else if (curType->isArrayType()) {
-        bool isFirstDim = true;
-        if (dims.size() + idx > 1) { //多维数组
-            for (size_t i = 0; i < indices.size() - 1; i++) {
-                int32_t stride = 1;
-                for (size_t j = i + 1 - idx; j < dims.size(); j++) {
-                    stride *= dims[j];
-                }
-                BinaryInstruction * dimOffset = new BinaryInstruction(currentFunc,
-                                                                      IRInstOperator::IRINST_OP_MUL_I,
-                                                                      indices[i],
-                                                                      module->newConstInt(stride),
-                                                                      intType);
-                node->blockInsts.addInst(dimOffset);
 
-                if (isFirstDim) {
-                    totalOffset = dimOffset;
-                    isFirstDim = false;
-                } else {
-                    BinaryInstruction * newOffset = new BinaryInstruction(currentFunc,
-                                                                          IRInstOperator::IRINST_OP_ADD_I,
-                                                                          totalOffset,
-                                                                          dimOffset,
-                                                                          intType);
-                    node->blockInsts.addInst(newOffset);
-                    totalOffset = newOffset;
-                }
-            }
-            // 加上最后一维的索引
-            BinaryInstruction * finalOffset = new BinaryInstruction(currentFunc,
-                                                                    IRInstOperator::IRINST_OP_ADD_I,
-                                                                    totalOffset,
-                                                                    indices.back(),
-                                                                    intType);
-            node->blockInsts.addInst(finalOffset);
+    Value * resultVal = arrayValue;
 
-            // 乘以元素大小
-            BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
-                                                                   IRInstOperator::IRINST_OP_MUL_I,
-                                                                   finalOffset,
-                                                                   module->newConstInt(elementSize),
-                                                                   intType);
-            node->blockInsts.addInst(byteOffset);
-            totalOffset = byteOffset;
-        } else { // 一维数组直接计算
-            BinaryInstruction * byteOffset = new BinaryInstruction(currentFunc,
-                                                                   IRInstOperator::IRINST_OP_MUL_I,
-                                                                   indices[0],
-                                                                   module->newConstInt(elementSize),
-                                                                   intType);
-            node->blockInsts.addInst(byteOffset);
-            totalOffset = byteOffset;
+    // 每个 getelementptr 指令只处理一层索引
+    for (size_t i = 0; i < dims.size(); ++i) {
+        std::vector<Value *> gepIndices;
+        // 更新指针和类型
+        std::vector<int32_t> nextdims;
+        ArrayType * nextArrayType = nullptr;
+        if (i < dims.size() - 1) {
+            // 如果还有下一维，获取下一维的维度
+            nextdims = dims;
+            nextdims.erase(nextdims.begin()); // 移除当前维度
+            nextArrayType = new ArrayType(baseType, nextdims);
+        } else {
+            nextdims.clear();                                       // 最后一维后没有更多维度
+            nextArrayType = (ArrayType *) arrayType->getBaseType(); // 最后一维后没有更多维度
         }
-    }
-    // 计算最终地址
-    // 1. GEP到 a[0][0]，即 getelementptr inbounds [3 x [5 x i32]], [3 x [5 x i32]]* %l1, i64 0, i64 0, i64 0
-    std::vector<Value *> gepIndices;
-    gepIndices.push_back(module->newConstInt64(0));
-    for (size_t i = 1; i < dims.size() + 1; ++i) {
+
+        // 第一个索引始终是 0，因为你从数组的第一维开始
         gepIndices.push_back(module->newConstInt64(0));
+
+        // 第二个索引是当前维度的索引值
+        gepIndices.push_back(indices[i]);
+
+        // 生成 getelementptr 指令
+        auto gepInst = new GetElementPtrInstruction(currentFunc, curPtr, gepIndices, nextArrayType);
+        node->blockInsts.addInst(gepInst);
+
+        // 如果是指针，报错
+        if (!nextArrayType->getDimensions().empty()) {
+            curPtr = gepInst; // 如果还处在数组中，继续使用该指针
+        } else {
+            curPtr = gepInst;    // 如果不是数组，说明已经到了最后一维
+            curType = baseType;  // 最后一维的数据类型
+            resultVal = gepInst; // 更新结果值为当前 gep 指令
+        }
+
+        // // 如果是最后一维，获取结果
+        // if (i == dims.size() - 1) {
+        //     resultVal = gepInst;
+        //     break;
+        // }
     }
-    auto gepInst = new GetElementPtrInstruction(currentFunc, curPtr, gepIndices, (Type *) (PointerType::get(baseType)));
-    node->blockInsts.addInst(gepInst);
 
-    // 2. bitcast i32* -> i8*
-    auto bitcastToI8 =
-        new BitCastInstruction(currentFunc, gepInst, (Type *) (PointerType::get(IntegerType::getTypeInt8())));
-    node->blockInsts.addInst(bitcastToI8);
-
-    // 3. sext i32 %offset to i64  CastType::SEXT
-    auto sextOffset = new CastInstruction(currentFunc, totalOffset, IntegerType::getTypeInt64());
-    node->blockInsts.addInst(sextOffset);
-
-    // 4. getelementptr inbounds i8, i8* ..., i64 ...
-    std::vector<Value *> gepByteIndices = {sextOffset};
-    auto gepByte = new GetElementPtrInstruction(currentFunc,
-                                                bitcastToI8,
-                                                gepByteIndices,
-                                                (Type *) (PointerType::get(IntegerType::getTypeInt8())));
-    node->blockInsts.addInst(gepByte);
-
-    // 5. bitcast i8* -> i32*
-    auto bitcastToElem = new BitCastInstruction(currentFunc, gepByte, (Type *) (PointerType::get(baseType)));
-    node->blockInsts.addInst(bitcastToElem);
-
-    Value * resultVal = bitcastToElem;
-
-    // 如果 store=false，则直接加载数组元素的值
-    if (!node->store) {
-        LoadInstruction * loadInst = new LoadInstruction(currentFunc, resultVal, true);
-        node->blockInsts.addInst(loadInst);
-        resultVal = loadInst;
+    // 如果是数组传参，那么dims会是空的，数组实际为指针类型
+    if (dims.empty() && curType->isPointerType()) {
     }
+
     node->val = resultVal;
     return true;
 }
+
 bool IRGenerator::ir_array_init(ast_node * node)
 {
     Value * arrayValue = node->parent->val;
@@ -2931,56 +2873,84 @@ bool IRGenerator::ir_const_define(ast_node * node)
     }
 
     // 创建常量
-    Value * constValue;
-    ast_node * init_expr_node = node->sons[1];
-    if (!module->getCurrentFunction()) { // 全局常量
-        // 处理初始化表达式
-        if (node->sons.size() > 1) {
-            if (!ir_visit_ast_node(init_expr_node)) {
-                minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+    if (node->sons[1]->node_type != ast_operator_type::AST_OP_ARRAY_DIMS) {
+        Value * constValue;
+        ast_node * init_expr_node = node->sons[1];
+        if (!module->getCurrentFunction()) { // 全局常量
+            // 处理初始化表达式
+            if (node->sons.size() > 1) {
+                if (!ir_visit_ast_node(init_expr_node)) {
+                    minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+                    return false;
+                }
+                constValue = module->newVarValue(constType, constName, init_expr_node->val);
+            } else {
+                minic_log(LOG_ERROR, "全局常量(%s)必须初始化", constName.c_str());
                 return false;
             }
-            constValue = module->newVarValue(constType, constName, init_expr_node->val);
-        } else {
-            minic_log(LOG_ERROR, "全局常量(%s)必须初始化", constName.c_str());
-            return false;
-        }
-    } else { // 局部常量
-        constValue = module->newVarValue(constType, constName);
-        if (!constValue) {
-            minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
-            return false;
-        }
-        // 处理初始化表达式
-        if (node->sons.size() > 1) {
-            if (!ir_visit_ast_node(init_expr_node)) {
-                minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+        } else { // 局部常量
+            constValue = module->newVarValue(constType, constName);
+            if (!constValue) {
+                minic_log(LOG_ERROR, "常量(%s)创建失败", constName.c_str());
                 return false;
             }
-            // 类型转换检查
-            if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
-                minic_log(LOG_ERROR,
-                          "无法将类型%d赋给类型%d",
-                          init_expr_node->val->getType()->getTypeID(),
-                          constType->getTypeID());
+            // 处理初始化表达式
+            if (node->sons.size() > 1) {
+                if (!ir_visit_ast_node(init_expr_node)) {
+                    minic_log(LOG_ERROR, "常量初始化表达式翻译失败");
+                    return false;
+                }
+                // 类型转换检查
+                if (!Type::canConvert(init_expr_node->val->getType(), constType)) {
+                    minic_log(LOG_ERROR,
+                              "无法将类型%d赋给类型%d",
+                              init_expr_node->val->getType()->getTypeID(),
+                              constType->getTypeID());
+                    return false;
+                }
+                // 生成赋值指令
+                StoreInstruction * movInst =
+                    new StoreInstruction(module->getCurrentFunction(), constValue, init_expr_node->val, true);
+                node->blockInsts.addInst(init_expr_node->blockInsts);
+                node->blockInsts.addInst(movInst);
+            } else {
+                minic_log(LOG_ERROR, "局部常量(%s)必须初始化", constName.c_str());
                 return false;
             }
-            // 生成赋值指令
-            StoreInstruction * movInst =
-                new StoreInstruction(module->getCurrentFunction(), constValue, init_expr_node->val, true);
-            node->blockInsts.addInst(init_expr_node->blockInsts);
-            node->blockInsts.addInst(movInst);
-        } else {
-            minic_log(LOG_ERROR, "局部常量(%s)必须初始化", constName.c_str());
-            return false;
         }
-    }
-    constValue->setConst(true);
-    constValue->setConstValue(init_expr_node->val);
-    node->val = constValue;
-    const_name_node->val = constValue;
+        constValue->setConst(true);
+        constValue->setConstValue(init_expr_node->val);
+        node->val = constValue;
+        const_name_node->val = constValue;
 
-    return true;
+        return true;
+    } else {
+        return false;
+
+        // 数组常量定义
+        ast_node * array_dims_node = node->sons[1];
+        if (array_dims_node->sons.empty()) {
+            minic_log(LOG_ERROR, "数组常量定义缺少维度信息");
+            return false;
+        }
+
+        // 处理数组维度
+        std::vector<int> dims;
+        if (!ir_array_dims(array_dims_node, dims)) {
+            minic_log(LOG_ERROR, "数组维度解析失败");
+            return false;
+        }
+
+        // 创建数组常量
+        ArrayType * arrayType = new ArrayType(constType, dims);
+        Value * constValue = module->newVarValue(arrayType, constName);
+        if (!constValue) {
+            minic_log(LOG_ERROR, "数组常量(%s)创建失败", constName.c_str());
+            return false;
+        }
+
+        // 创建初始化数组
+    }
 }
 
 /// @brief 处理条件节点，生成对应的IR。

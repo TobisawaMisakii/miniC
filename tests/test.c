@@ -1,18 +1,14 @@
-// int add(int a[][5], int b[])
+
+// int bubblesort(int arr[])
 // {
-//     return a[0][0]+b[0];
+//     return arr[4];
 // }
-// int main()
-// {
-//     int a[3][5];
-//     int b;
-//     a[1][1] = 2;
-//     b = a[1][1];
-//     return b+a[1][1];
-// }
-//test const gloal var define
-const int a = 10, b = 5;
 
 int main(){
-    return b;
+    int i;
+    int a[5], b[2][3], c[2][3][4];
+    a[4] = 33333;
+	b[1][2] = 22222;
+    // i = bubblesort(a);
+    return c[1][2][3];
 }
