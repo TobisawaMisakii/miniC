@@ -1448,27 +1448,27 @@ bool IRGenerator::ir_array_indices(ast_node * node)
     } else {
         // 指针类型或基本类型时，dims 为空
         dims.clear();
-        dims.push_back(1); // 作为指针处理时，假设只有一维
+        // dims.push_back(1); // 作为指针处理时，假设只有一维
         baseType = curType;
     }
     Function * currentFunc = module->getCurrentFunction();
 
     Value * resultVal = arrayValue;
+    std::vector<int32_t> nextdims = dims;
 
     // 每个 getelementptr 指令只处理一层索引
     for (size_t i = 0; i < dims.size(); ++i) {
         std::vector<Value *> gepIndices;
         // 更新指针和类型
-        std::vector<int32_t> nextdims;
-        ArrayType * nextArrayType = nullptr;
+
+        Type * nextArrayType = nullptr;
         if (i < dims.size() - 1) {
             // 如果还有下一维，获取下一维的维度
-            nextdims = dims;
             nextdims.erase(nextdims.begin()); // 移除当前维度
-            nextArrayType = new ArrayType(baseType, nextdims);
+            nextArrayType = (Type *) new ArrayType(baseType, nextdims);
         } else {
-            nextdims.clear();                                       // 最后一维后没有更多维度
-            nextArrayType = (ArrayType *) arrayType->getBaseType(); // 最后一维后没有更多维度
+            nextdims.clear();                                      // 最后一维后没有更多维度
+            nextArrayType = (Type *) (PointerType::get(baseType)); // 最后一维后没有更多维度
         }
 
         // 第一个索引始终是 0，因为你从数组的第一维开始
@@ -1482,23 +1482,24 @@ bool IRGenerator::ir_array_indices(ast_node * node)
         node->blockInsts.addInst(gepInst);
 
         // 如果是指针，报错
-        if (!nextArrayType->getDimensions().empty()) {
+        if (!nextdims.empty()) {
             curPtr = gepInst; // 如果还处在数组中，继续使用该指针
         } else {
             curPtr = gepInst;    // 如果不是数组，说明已经到了最后一维
-            curType = baseType;  // 最后一维的数据类型
+            curType = baseType;  // 最后一维的数据类型的指针
             resultVal = gepInst; // 更新结果值为当前 gep 指令
         }
-
-        // // 如果是最后一维，获取结果
-        // if (i == dims.size() - 1) {
-        //     resultVal = gepInst;
-        //     break;
-        // }
     }
 
     // 如果是数组传参，那么dims会是空的，数组实际为指针类型
     if (dims.empty() && curType->isPointerType()) {
+    }
+
+    // 如果 store=false，则直接加载数组元素的值
+    if (!node->store) {
+        LoadInstruction * loadInst = new LoadInstruction(currentFunc, resultVal, true);
+        node->blockInsts.addInst(loadInst);
+        resultVal = loadInst;
     }
 
     node->val = resultVal;
