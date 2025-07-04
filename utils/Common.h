@@ -16,6 +16,8 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
+#include <stdint.h>
 
 /// @brief 整数变字符串
 /// @param num 无符号数

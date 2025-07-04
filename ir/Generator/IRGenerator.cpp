@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 
 #include "AST.h"
 #include "Common.h"
@@ -612,11 +614,6 @@ bool IRGenerator::ir_add(ast_node * node)
         op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
         resultType = IntegerType::getTypeInt();
     } else {
-        // 类型转换
-        minic_log(LOG_INFO,
-                  "add语句操作数需要类型转换: %s <-> %s",
-                  right->val->getType()->toString().c_str(),
-                  left->val->getType()->toString().c_str());
         if (left->val->getType()->isFloatType()) {
             // float + i32
             cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
@@ -704,11 +701,6 @@ bool IRGenerator::ir_sub(ast_node * node)
         op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
         resultType = IntegerType::getTypeInt();
     } else {
-        // 类型转换
-        minic_log(LOG_INFO,
-                  "sub语句操作数需要类型转换: %s <-> %s",
-                  right->val->getType()->toString().c_str(),
-                  left->val->getType()->toString().c_str());
         if (left->val->getType()->isFloatType()) {
             // float - i32
             cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
@@ -805,11 +797,6 @@ bool IRGenerator::ir_mul(ast_node * node)
         op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
         resultType = IntegerType::getTypeInt();
     } else {
-        // 类型转换
-        minic_log(LOG_INFO,
-                  "mul语句操作数需要类型转换: %s <-> %s",
-                  right->val->getType()->toString().c_str(),
-                  left->val->getType()->toString().c_str());
         if (left->val->getType()->isFloatType()) {
             // float * i32
             cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
@@ -1426,13 +1413,16 @@ bool IRGenerator::ir_array_indices(ast_node * node)
         }
         node->blockInsts.addInst(index_node->blockInsts);
         if (index_node->val->getType()->isInt32Type()) {
-            // 扩展到i64
-            CastInstruction * cast_inst =
-                new CastInstruction(module->getCurrentFunction(), index_node->val, IntegerType::getTypeInt64());
-            index_node->val = cast_inst;
-            node->blockInsts.addInst(cast_inst);
+            if (!index_node->isLeafNode()) { // 扩展到i64
+                CastInstruction * cast_inst =
+                    new CastInstruction(module->getCurrentFunction(), index_node->val, IntegerType::getTypeInt64());
+                index_node->val = cast_inst;
+                node->blockInsts.addInst(cast_inst);
+                indices.push_back(index_node->val);
+            } else {
+                indices.push_back(new ConstInt(index_node->integer_val));
+            }
         }
-        indices.push_back(index_node->val);
     }
 
     // 1. 获取数组的类型和维度
@@ -1445,18 +1435,34 @@ bool IRGenerator::ir_array_indices(ast_node * node)
     if (curType->isArrayType()) {
         dims = arrayType->getDimensions();
         baseType = arrayType->getBaseType();
-    } else {
-        // 指针类型或基本类型时，dims 为空
+    } else if (curType->isPointerType()) {
+        // 指针类型，dims 为空，此时需要循环load解引用
         dims.clear();
-        // dims.push_back(1); // 作为指针处理时，假设只有一维
-        baseType = curType;
+        const Type * rootType = ((PointerType *) curType)->getRootType();
+        baseType = const_cast<Type *>(rootType);
+
+        Type * nowType = curType;
+        Type * nextType = nullptr;
+
+        // 解引用
+        while (nowType->isPointerType()) {
+            dims.push_back(0); // 每次解引用都添加一个维度
+            nextType = const_cast<Type *>(static_cast<const PointerType *>(nowType)->getPointeeType());
+            LoadInstruction * loadInst =
+                new LoadInstruction(module->getCurrentFunction(), curPtr, false); // true表示需要加载值
+            node->blockInsts.addInst(loadInst);
+            curPtr = loadInst;  // 更新指针为加载后的值
+            nowType = nextType; // 更新当前类型
+        }
     }
     Function * currentFunc = module->getCurrentFunction();
 
     Value * resultVal = arrayValue;
     std::vector<int32_t> nextdims = dims;
 
-    // 每个 getelementptr 指令只处理一层索引
+    bool isArray = curType->isArrayType();
+
+    // 数组类型，每个 getelementptr 指令只处理一层索引
     for (size_t i = 0; i < dims.size(); ++i) {
         std::vector<Value *> gepIndices;
         // 更新指针和类型
@@ -1471,8 +1477,9 @@ bool IRGenerator::ir_array_indices(ast_node * node)
             nextArrayType = (Type *) (PointerType::get(baseType)); // 最后一维后没有更多维度
         }
 
-        // 第一个索引始终是 0，因为你从数组的第一维开始
-        gepIndices.push_back(module->newConstInt64(0));
+        if (isArray) { // 第一个索引始终是 0，因为你从数组的第一维开始
+            gepIndices.push_back(module->newConstInt64(0));
+        }
 
         // 第二个索引是当前维度的索引值
         gepIndices.push_back(indices[i]);
@@ -1489,10 +1496,6 @@ bool IRGenerator::ir_array_indices(ast_node * node)
             curType = baseType;  // 最后一维的数据类型的指针
             resultVal = gepInst; // 更新结果值为当前 gep 指令
         }
-    }
-
-    // 如果是数组传参，那么dims会是空的，数组实际为指针类型
-    if (dims.empty() && curType->isPointerType()) {
     }
 
     // 如果 store=false，则直接加载数组元素的值
