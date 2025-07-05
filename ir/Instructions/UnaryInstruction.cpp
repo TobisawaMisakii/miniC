@@ -20,7 +20,7 @@ void UnaryInstruction::toString(std::string & str)
     switch (op) {
         case IRInstOperator::IRINST_OP_NEG:
             if (srcVal1->getType()->isFloatType()) {
-                str = getIRName() + " = fsub float 0, " + srcVal1->getIRName();
+                str = getIRName() + " = fsub float 0.0, " + srcVal1->getIRName();
             } else if (srcVal1->getType()->isInt32Type()) {
                 str = getIRName() + " = sub i32 0, " + srcVal1->getIRName();
             }

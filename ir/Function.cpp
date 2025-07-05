@@ -171,17 +171,6 @@ void Function::toString(std::string & str)
         str += "\n";
     }
 
-    // // 输出临时变量的declare形式
-    // // 遍历所有的线性IR指令，文本输出
-    // for (auto & inst: code.getInsts()) {
-
-    //     if (inst->hasResultValue()) {
-
-    //         // 局部变量和临时变量需要输出declare语句
-    //         str += "\tdeclare " + inst->getType()->toString() + " " + inst->getIRName() + "\n";
-    //     }
-    // }
-
     // 遍历所有的线性IR指令，文本输出
     // 记录上一个指令，避免连续空Label输出
     Instruction * lastInst = nullptr;

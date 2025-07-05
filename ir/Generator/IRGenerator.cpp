@@ -20,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 
 #include "AST.h"
 #include "Common.h"
@@ -543,8 +544,11 @@ bool IRGenerator::ir_function_call(ast_node * node)
     // }
 
     // 检查实参列表中是否有数组下标，需要往下广搜
-    bool paramNodeHasIndices = false;
-    paramNodeHasIndices = hasIndicesNode(paramsNode);
+    std::vector<bool> hasIndices;
+    for (size_t i = 0; i < realParams.size(); ++i) {
+        bool hasIndex = hasIndicesNode(paramsNode->sons[i]);
+        hasIndices.push_back(hasIndex);
+    }
 
     std::vector<Value *> callArgs;
     auto & formalParams = calledFunction->getParams();
@@ -553,7 +557,7 @@ bool IRGenerator::ir_function_call(ast_node * node)
         Type * formalType = (i < formalParams.size()) ? formalParams[i]->getType() : arg->getType();
 
         // 形参是指针，实参是数组
-        if (formalType->isPointerType() && arg->getType()->isArrayType() && !paramNodeHasIndices) {
+        if (formalType->isPointerType() && arg->getType()->isArrayType() && !hasIndices[i]) {
             const ArrayType * arrTy = static_cast<const ArrayType *>(arg->getType());
             Type * formalElemType = const_cast<Type *>(static_cast<const PointerType *>(formalType)->getPointeeType());
 
@@ -572,7 +576,13 @@ bool IRGenerator::ir_function_call(ast_node * node)
                 continue;
             }
         }
-        // 其它情况直接传递
+        // 类型转换
+        if (arg->getType() != formalType) {
+            // 如果实参类型与形参类型不一致，则需要转换
+            CastInstruction * castInst = new CastInstruction(currentFunc, arg, formalType);
+            node->blockInsts.addInst(castInst);
+            arg = castInst;
+        }
         callArgs.push_back(arg);
     }
     // 返回调用有返回值，则需要分配临时变量，用于保存函数调用的返回值
@@ -650,62 +660,32 @@ bool IRGenerator::ir_add(ast_node * node)
     //分别处理整数和浮点
     IRInstOperator op;
     Type * resultType;
-    CastInstruction * cast_inst = nullptr;
 
-    if (left->val->getType()->isFloatType() && right->val->getType()->isFloatType()) {
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
         op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
+        if (!left->val->getType()->isFloatType()) {
+            // 如果左操作数不是浮点数，则需要转换
+            CastInstruction * cast_left =
+                new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            left->val = cast_left;
+            node->blockInsts.addInst(cast_left);
+        }
+        if (!right->val->getType()->isFloatType()) {
+            // 如果右操作数不是浮点数，则需要转换
+            CastInstruction * cast_right =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = cast_right;
+            node->blockInsts.addInst(cast_right);
+        }
         resultType = FloatType::getTypeFloat();
-        // 需要确保0.1这样的常量被识别为float
-    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
+    } else {
         op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
         resultType = IntegerType::getTypeInt();
-    } else {
-        if (left->val->getType()->isFloatType()) {
-            // float + i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (right->val->getType()->isFloatType()) {
-            // i32 + float
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
-            left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
-            // i32 + i1
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
-            resultType = IntegerType::getTypeInt();
-        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
-            // i1 + i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
-            left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
-            resultType = IntegerType::getTypeInt();
-        } else {
-            // // 其它类型不支持
-            // minic_log(LOG_ERROR, "加法操作数的类型转换不支持");
-            if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-                op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
-                resultType = FloatType::getTypeFloat();
-                // 需要确保0.1这样的常量被识别为float
-            } else {
-                op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
-                resultType = IntegerType::getTypeInt();
-            }
-        }
     }
+
     BinaryInstruction * addInst =
         new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
-
-    // 加法ir，创建临时变量保存IR的值，以及线性IR指令
     node->blockInsts.addInst(addInst);
-
-    if (cast_inst) {
-        node->blockInsts.addInst(cast_inst);
-    }
 
     node->val = addInst;
     return true;
@@ -727,6 +707,7 @@ bool IRGenerator::ir_sub(ast_node * node)
         // 某个变量没有定值
         return false;
     }
+    node->blockInsts.addInst(left->blockInsts);
 
     // 加法的右边操作数
     ast_node * right = ir_visit_ast_node(src2_node);
@@ -734,63 +715,34 @@ bool IRGenerator::ir_sub(ast_node * node)
         // 某个变量没有定值
         return false;
     }
+    node->blockInsts.addInst(right->blockInsts);
+
     //分别处理整数和浮点
     IRInstOperator op;
     Type * resultType;
-    CastInstruction * cast_inst = nullptr;
-
-    if (left->val->getType()->isFloatType() && right->val->getType()->isFloatType()) {
-        op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
-        resultType = FloatType::getTypeFloat();
-        // 需要确保0.1这样的常量被识别为float
-    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
-        op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
-        resultType = IntegerType::getTypeInt();
-    } else {
-        if (left->val->getType()->isFloatType()) {
-            // float - i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (right->val->getType()->isFloatType()) {
-            // i32 - float
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
-            left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_SUB_F; // 浮点加法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
-            // i32 - i1
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
-            resultType = IntegerType::getTypeInt();
-        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
-            // i1 - i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
-            left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
-            resultType = IntegerType::getTypeInt();
-        } else {
-            if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-                op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
-                resultType = FloatType::getTypeFloat();
-                // 需要确保0.1这样的常量被识别为float
-            } else {
-                op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
-                resultType = IntegerType::getTypeInt();
-            }
+    if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
+        op = IRInstOperator::IRINST_OP_SUB_F; // 浮点减法指令
+        if (!left->val->getType()->isFloatType()) {
+            // 如果左操作数不是浮点数，则需要转换
+            CastInstruction * cast_left =
+                new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            left->val = cast_left;
+            node->blockInsts.addInst(cast_left);
         }
+        if (!right->val->getType()->isFloatType()) {
+            // 如果右操作数不是浮点数，则需要转换
+            CastInstruction * cast_right =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = cast_right;
+            node->blockInsts.addInst(cast_right);
+        }
+        resultType = FloatType::getTypeFloat();
+    } else {
+        op = IRInstOperator::IRINST_OP_SUB_I; // 整数减法指令
+        resultType = IntegerType::getTypeInt();
     }
     BinaryInstruction * subInst =
         new BinaryInstruction(module->getCurrentFunction(), op, left->val, right->val, resultType);
-
-    // 创建临时变量保存IR的值，以及线性IR指令
-    node->blockInsts.addInst(left->blockInsts);
-    node->blockInsts.addInst(right->blockInsts);
-    if (cast_inst) {
-        node->blockInsts.addInst(cast_inst);
-    }
     node->blockInsts.addInst(subInst);
 
     node->val = subInst;
@@ -823,67 +775,25 @@ bool IRGenerator::ir_mul(ast_node * node)
     CastInstruction * cast_inst = nullptr;
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-        CastInstruction * cast_left =
-            new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
-        CastInstruction * cast_right =
-            new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
-        if (cast_left) {
-            left->val = cast_left;
-            cast_inst = cast_left;
-        } else {
-            left->val = cast_right;
-            cast_inst = cast_right;
-        }
         op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
-        resultType = FloatType::getTypeFloat();
-        // 需要确保0.1这样的常量被识别为float
-    } else if (left->val->getType()->isInt32Type() && right->val->getType()->isInt32Type()) {
-        op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
-        resultType = IntegerType::getTypeInt();
-    } else {
-        if (left->val->getType()->isFloatType()) {
-            // float * i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (right->val->getType()->isFloatType()) {
-            // i32 * float
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
+        if (!left->val->getType()->isFloatType()) {
+            // 如果左操作数不是浮点数，则需要转换
+            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
             left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
-            resultType = FloatType::getTypeFloat();
-        } else if (left->val->getType()->isIntegerType() && right->val->getType()->isInt1Byte()) {
-            // i32 * i1
-            cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, left->val->getType());
-            right->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
-            resultType = IntegerType::getTypeInt();
-        } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isIntegerType()) {
-            // i1 * i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(), left->val, right->val->getType());
-            left->val = cast_inst;
-            op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
-            resultType = IntegerType::getTypeInt();
-        } else {
-            // 数组
-            if ((left->val->getType()->isPointerType() &&
-                 left->val->getType()->getBaseType() == IntegerType::getTypeInt()) ||
-                (right->val->getType()->isPointerType() &&
-                 right->val->getType()->getBaseType() == IntegerType::getTypeInt())) {
-                op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
-                resultType = IntegerType::getTypeInt();
-            } else {
-                if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
-                    op = IRInstOperator::IRINST_OP_MUL_F; // 浮点乘法指令
-                    resultType = FloatType::getTypeFloat();
-                    // 需要确保0.1这样的常量被识别为float
-                } else {
-                    op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
-                    resultType = IntegerType::getTypeInt();
-                }
+        }
+        if (!right->val->getType()->isFloatType()) {
+            // 如果右操作数不是浮点数，则需要转换
+            CastInstruction * cast_right =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = cast_right;
+            if (cast_inst) {
+                node->blockInsts.addInst(cast_inst);
             }
         }
+        resultType = FloatType::getTypeFloat();
+    } else {
+        op = IRInstOperator::IRINST_OP_MUL_I; // 整数乘法指令
+        resultType = IntegerType::getTypeInt();
     }
 
     BinaryInstruction * mulInst =
@@ -924,6 +834,20 @@ bool IRGenerator::ir_div(ast_node * node)
     Type * resultType;
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
         op = IRInstOperator::IRINST_OP_DIV_F; // 浮点除法指令
+        if (!left->val->getType()->isFloatType()) {
+            // 如果左操作数不是浮点数，则需要转换
+            CastInstruction * cast_left =
+                new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            left->val = cast_left;
+            node->blockInsts.addInst(cast_left);
+        }
+        if (!right->val->getType()->isFloatType()) {
+            // 如果右操作数不是浮点数，则需要转换
+            CastInstruction * cast_right =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = cast_right;
+            node->blockInsts.addInst(cast_right);
+        }
         resultType = FloatType::getTypeFloat();
     } else {
         op = IRInstOperator::IRINST_OP_DIV_I; // 整数除法指令
@@ -1021,36 +945,13 @@ bool IRGenerator::ir_assign(ast_node * node)
     // 检查是否需要进行类型转换
     CastInstruction * cast_inst = nullptr;
     if (left->val->getType() != right->val->getType()) {
-        // minic_log(LOG_INFO,
-        //    "赋值语句操作数需要类型转换: %s -> %s",
-        //    right->val->getType()->toString().c_str(),
-        //    left->val->getType()->toString().c_str());
+        // 如果左侧操作数的类型与右侧操作数的类型不一致，则需要进行类型转换
+        Type * leftType = left->val->getType();
 
-        if (left->val->getType()->isInt32Type() && right->val->getType()->isInt1Byte()) {
-            // i1 -> i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            // CastInstruction::CastType::ZEXT,
-                                            right->val,
-                                            IntegerType::getTypeInt());
-            right->val = cast_inst;
-        } else if (left->val->getType()->isInt32Type() && right->val->getType()->isFloatType()) {
-            // float -> i32
-            cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            // CastInstruction::CastType::FPTOSI,
-                                            right->val,
-                                            IntegerType::getTypeInt());
-            right->val = cast_inst;
-        } else if (left->val->getType()->isFloatType() && right->val->getType()->isInt32Type()) {
-            // i32 -> float
-            cast_inst = new CastInstruction(module->getCurrentFunction(),
-                                            // CastInstruction::CastType::SITOFP,
-                                            right->val,
-                                            FloatType::getTypeFloat());
-            right->val = cast_inst;
-        } else {
-            // minic_log(LOG_ERROR, "赋值语句操作数暂时不支持转换");
-            //  return false;
-        }
+        // 生成类型转换指令
+        cast_inst = new CastInstruction(module->getCurrentFunction(), right->val, leftType);
+        right->val = cast_inst; // 更新右侧操作数的值为转换后的值
+        node->blockInsts.addInst(cast_inst);
     }
 
     // 将右侧操作数的值赋给左侧操作数，采用load + store指令代替move指令
@@ -1141,20 +1042,18 @@ bool IRGenerator::ir_return(ast_node * node)
             minic_log(LOG_ERROR, "return语句的返回值表达式无效");
             return false;
         }
+        node->blockInsts.addInst(right->blockInsts);
 
         Value * returnValue = right->val;
-        // Type * valueType = returnValue->getType();
-
-        // 普通类型检查
-        // if (valueType != returnType) {
-        //     minic_log(LOG_ERROR,
-        //               "返回值类型(%s)与函数返回类型(%s)不匹配",
-        //               valueType->toString().c_str(),
-        //               returnType->toString().c_str());
-        //     return false;
-        // }
-        // 添加返回值的IR指令
-        node->blockInsts.addInst(right->blockInsts);
+        Type * valueType = returnValue->getType();
+        // 检查返回值类型是否与函数返回类型匹配
+        if (valueType != returnType && Type::canConvert(valueType, returnType)) {
+            // 如果返回值类型与函数返回类型不匹配，则需要进行类型转换
+            // 生成类型转换指令
+            CastInstruction * cast_inst = new CastInstruction(module->getCurrentFunction(), returnValue, returnType);
+            node->blockInsts.addInst(cast_inst);
+            returnValue = cast_inst; // 更新返回值为转换后的值
+        }
 
         // 如果有返回值变量（非void函数），生成赋值指令
         if (currentFunc->getReturnValue()) {
@@ -1165,6 +1064,7 @@ bool IRGenerator::ir_return(ast_node * node)
                 isFormalRes = false;
             if (returnValue->getType()->isArrayType() || returnValue->getType()->isPointerType())
                 isFormalSrc = false;
+
             StoreInstruction * store1 = new StoreInstruction(module->getCurrentFunction(),
                                                              currentFunc->getReturnValue(),
                                                              returnValue,
@@ -1185,10 +1085,10 @@ bool IRGenerator::ir_return(ast_node * node)
     node->blockInsts.addInst(new GotoInstruction(currentFunc, currentFunc->getExitLabel()));
 
     // 设置节点的值
-    if (right) {
-        node->val = right->val;
-        node->val = right->val;
-    }
+    // if (right) {
+    //     node->val = right->val;
+    //     node->val = right->val;
+    // }
     return true;
 }
 
@@ -1247,20 +1147,35 @@ bool IRGenerator::ir_leaf_node_uint(ast_node * node)
     return true;
 }
 
+std::string doubleToHex(double value)
+{
+    uint64_t intValue;
+    std::memcpy(&intValue, &value, sizeof(double)); // 复制 double 的二进制数据到 uint64_t
+
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << intValue;
+    return ss.str();
+}
+
 /// @brief 浮点数字面量叶子节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
 bool IRGenerator::ir_leaf_node_float(ast_node * node)
 {
     ConstFloat * val;
-
+    float floatValue = node->float_val;
+    std::string floatStr = doubleToHex(floatValue);
+    node->float_str = floatStr; // 保存浮点数的十六进制字符串表示
     // 新建一个浮点常量Value
     val = module->newConstFloat(node->float_val);
+    val->floatStr = floatStr; // 保存浮点数的十六进制字符串表示
     if (!val) {
         minic_log(LOG_ERROR, "创建浮点常量失败，值: %f", node->float_val);
         return false;
     }
     node->val = val;
+    val->setIRName(floatStr);
+    val->setName(floatStr); // 设置名称为十六进制字符串
     return true;
 }
 
@@ -1387,6 +1302,13 @@ bool IRGenerator::ir_variable_define(ast_node * node)
                       var_name_node->val->getType()->getTypeID(),
                       varType->getTypeID());
             return false;
+        }
+        if (init_expr_node->val->getType() != varValue->getType()) {
+            // 如果初始化表达式的类型与变量类型不匹配，则需要进行类型转换
+            CastInstruction * cast_inst =
+                new CastInstruction(module->getCurrentFunction(), init_expr_node->val, varValue->getType());
+            init_expr_node->val = cast_inst; // 更新初始化表达式的值为转换后的值
+            node->blockInsts.addInst(cast_inst);
         }
         // 生成赋值指令
         bool isFormalRes = true;
@@ -2163,21 +2085,20 @@ bool IRGenerator::ir_lt(ast_node * node)
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
         // 这里可以进行类型转换
-        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
-        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        if (!left->val->getType()->isFloatType()) {
+            CastInstruction * leftCast =
+                new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            left->val = leftCast;
+            node->blockInsts.addInst(leftCast);
+        }
+        if (!right->val->getType()->isFloatType()) {
+            CastInstruction * RightCast =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = RightCast;
+            node->blockInsts.addInst(RightCast);
+        }
         ltInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_FCMP_LT,
-                                       left->val,
-                                       right->val,
-                                       IntegerType::getTypeBool());
-    } else if (left->val->getType()->isInt1Byte() && right->val->getType()->isInt1Byte()) {
-        // 这里需要处理int1byte类型的比较
-        // 这里可以进行类型转换
-        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, IntegerType::getTypeInt1Byte());
-        // right->val = new CastInstruction(module->getCurrentFunction(), right->val,
-        // IntegerType::getTypeInt1Byte());
-        ltInst = new BinaryInstruction(module->getCurrentFunction(),
-                                       IRInstOperator::IRINST_OP_ICMP_LT,
                                        left->val,
                                        right->val,
                                        IntegerType::getTypeBool());
@@ -2188,7 +2109,6 @@ bool IRGenerator::ir_lt(ast_node * node)
                                        right->val,
                                        IntegerType::getTypeBool());
     } else {
-        // 其他类型的比较
         ltInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_ICMP_LT,
                                        left->val,
@@ -2225,8 +2145,18 @@ bool IRGenerator::ir_gt(ast_node * node)
 
     if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
         // 这里可以进行类型转换
-        // left->val = new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
-        // right->val = new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+        if (!left->val->getType()->isFloatType()) {
+            CastInstruction * leftCast =
+                new CastInstruction(module->getCurrentFunction(), left->val, FloatType::getTypeFloat());
+            left->val = leftCast;
+            node->blockInsts.addInst(leftCast);
+        }
+        if (!right->val->getType()->isFloatType()) {
+            CastInstruction * RightCast =
+                new CastInstruction(module->getCurrentFunction(), right->val, FloatType::getTypeFloat());
+            right->val = RightCast;
+            node->blockInsts.addInst(RightCast);
+        }
         gtInst = new BinaryInstruction(module->getCurrentFunction(),
                                        IRInstOperator::IRINST_OP_FCMP_GT,
                                        left->val,

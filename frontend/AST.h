@@ -103,6 +103,7 @@ public:
         uint32_t integer_val; // 整数值
         float float_val;      // 浮点值
     };
+    std::string float_str;
     std::string name;             // 变量名或函数名
     ast_node * parent;            // 父节点
     std::vector<ast_node *> sons; // 子节点

@@ -33,6 +33,7 @@ public:
     {
         this->loadRegNo = regId;
     }
+    std::string floatStr;
 
 private:
     float floatVal;

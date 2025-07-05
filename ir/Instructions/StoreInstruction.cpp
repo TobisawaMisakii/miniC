@@ -1,5 +1,10 @@
 #include "StoreInstruction.h"
 #include "PointerType.h"
+#include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include "ConstFloat.h"
 
 StoreInstruction::StoreInstruction(Function * _func,
                                    Value * _result,
@@ -12,6 +17,16 @@ StoreInstruction::StoreInstruction(Function * _func,
     addOperand(_result);
     addOperand(_sourcePtr);
 }
+
+// static std::string doubleToHex(double value)
+// {
+//     uint64_t intValue;
+//     std::memcpy(&intValue, &value, sizeof(double)); // 复制 double 的二进制数据到 uint64_t
+
+//     std::stringstream ss;
+//     ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << intValue;
+//     return ss.str();
+// }
 
 /// @brief 转换成字符串显示
 /// @param str 转换后的字符串
@@ -44,6 +59,14 @@ void StoreInstruction::toString(std::string & str)
     for (int i = 0; i < pointerLevelRes; ++i) {
         typeStrRes += "*";
     }
+
+    // if (source->getType()->isFloatType() && source->isConst()) {
+    //     // 如果是浮点类型，使用十六进制表示
+    //     double floatValue = dynamic_cast<ConstFloat *>(source)->getVal();
+    //     std::string floatHex = doubleToHex(floatValue);
+    //     source->setIRName(floatHex);
+    //     source->setName(floatHex);
+    // }
 
     if (result->getType()->isPointerType()) {
         str = "store " + typeStrSrc + " " + source->getIRName() + ", " + typeStrRes + " " + result->getIRName() +

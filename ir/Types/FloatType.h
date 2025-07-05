@@ -57,4 +57,6 @@ private:
     /// @brief 位宽
     ///
     int32_t bitWidth;
+
+    std::string floatStr;
 };
