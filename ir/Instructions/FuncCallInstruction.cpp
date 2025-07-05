@@ -44,8 +44,9 @@ void FuncCallInstruction::toString(std::string & str)
     // TODO 这里应该根据函数名查找函数定义或者声明获取函数的类型
     // 这里假定所有函数返回类型要么是i32，要么是void
     // 函数参数的类型是i32
+    std::string name = calledFunction->getName();
     printf("函数%s, 操作数数量：%d\n", calledFunction->getName().c_str(), operandsNum);
-    if (calledFunction->isBuiltin() && operandsNum == 1) {
+    if (calledFunction->isBuiltin() && operandsNum == 1 && name != "getarray" && name != "getfarray") {
         // 函数没有参数
         if (type->isInt32Type()) {
             str = getIRName() + " = call i32 (...) " + calledFunction->getIRName() + "()";
@@ -54,6 +55,24 @@ void FuncCallInstruction::toString(std::string & str)
             str = getIRName() + " = call float (...) " + calledFunction->getIRName() + "()";
             return;
         }
+    }
+
+    bool isArrayFunc = false;
+    if (calledFunction->getName() == "getarray" || calledFunction->getName() == "getfarray") {
+        isArrayFunc = true;
+    }
+
+    if (isArrayFunc) {
+        str = getIRName() + " = ";
+        str +=
+            "call i32 (i32*, ...) bitcast (i32 (...)* " + calledFunction->getIRName() + " to i32 (i32*, ...)*)(i32* ";
+        str += getOperand(0)->getIRName();
+        if (operandsNum > 1) {
+            str += ", ";
+            str += getOperand(1)->getIRName();
+        }
+        str += ")";
+        return;
     }
 
     if (type->isVoidType()) {
@@ -70,7 +89,7 @@ void FuncCallInstruction::toString(std::string & str)
 
     // 如果没有arg指令，则输出函数的实参
     // 不把返回值打印出来
-    if (!type->isVoidType()) {
+    if (!type->isVoidType() && !calledFunction->isBuiltin()) {
         operandsNum = operandsNum - 1;
     }
     auto & formalParams = calledFunction->getParams();

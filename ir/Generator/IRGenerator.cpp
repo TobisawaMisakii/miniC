@@ -414,6 +414,23 @@ bool IRGenerator::ir_function_formal_params(ast_node * node)
     return true;
 }
 
+bool hasIndicesNode(ast_node * node)
+{
+    // 往下广搜，看有没有节点类型是indice
+    if (node == nullptr) {
+        return false;
+    }
+    if (node->node_type == ast_operator_type::AST_OP_ARRAY_INDICES) {
+        return true;
+    }
+    for (auto son: node->sons) {
+        if (hasIndicesNode(son)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /// @brief 函数调用AST节点翻译成线性中间IR
 /// @param node AST节点
 /// @return 翻译是否成功，true：成功，false：失败
@@ -423,6 +440,46 @@ bool IRGenerator::ir_function_call(ast_node * node)
 
     // 获取当前正在处理的函数
     Function * currentFunc = module->getCurrentFunction();
+
+    bool isRightSideSTMT = false;
+    ast_node * parentNode = node->parent;
+    if (parentNode->node_type == ast_operator_type::AST_OP_LVAL) {
+        // 如果是左值，则不需要判断是否是右值
+        isRightSideSTMT = false;
+    } else if (parentNode->node_type == ast_operator_type::AST_OP_IF ||
+               parentNode->node_type == ast_operator_type::AST_OP_WHILE) {
+        isRightSideSTMT = true;
+    } else {
+        while (parentNode) {
+            if (parentNode->node_type == ast_operator_type::AST_OP_ASSIGN ||
+                parentNode->node_type == ast_operator_type::AST_OP_RETURN ||
+                parentNode->node_type == ast_operator_type::AST_OP_VAR_DEF ||
+                parentNode->node_type == ast_operator_type::AST_OP_CONST_DEF ||
+                parentNode->node_type == ast_operator_type::AST_OP_AND ||
+                parentNode->node_type == ast_operator_type::AST_OP_OR ||
+                parentNode->node_type == ast_operator_type::AST_OP_NOT ||
+                parentNode->node_type == ast_operator_type::AST_OP_POS ||
+                parentNode->node_type == ast_operator_type::AST_OP_NEG ||
+                parentNode->node_type == ast_operator_type::AST_OP_ADD ||
+                parentNode->node_type == ast_operator_type::AST_OP_SUB ||
+                parentNode->node_type == ast_operator_type::AST_OP_MUL ||
+                parentNode->node_type == ast_operator_type::AST_OP_DIV ||
+                parentNode->node_type == ast_operator_type::AST_OP_MOD ||
+                parentNode->node_type == ast_operator_type::AST_OP_EQ ||
+                parentNode->node_type == ast_operator_type::AST_OP_NE ||
+                parentNode->node_type == ast_operator_type::AST_OP_LT ||
+                parentNode->node_type == ast_operator_type::AST_OP_LE ||
+                parentNode->node_type == ast_operator_type::AST_OP_GT ||
+                parentNode->node_type == ast_operator_type::AST_OP_GE ||
+                parentNode->node_type == ast_operator_type::AST_OP_FUNC_REAL_PARAMS) {
+                isRightSideSTMT = true;
+                break;
+            } else if (parentNode->node_type == ast_operator_type::AST_OP_COMPILE_UNIT) {
+                break;
+            }
+            parentNode = parentNode->parent;
+        }
+    }
 
     // 函数调用的节点包含两个节点：
     // 第一个节点：函数名节点
@@ -461,7 +518,7 @@ bool IRGenerator::ir_function_call(ast_node * node)
         // 遍历参数列表，孩子是表达式
         // 这里自左往右计算表达式
         for (auto son: paramsNode->sons) {
-            printf("有参数\n");
+            // printf("有参数\n");
             // 遍历Block的每个语句，进行显示或者运算
             ast_node * temp = ir_visit_ast_node(son);
             if (!temp || !temp->val) {
@@ -484,6 +541,11 @@ bool IRGenerator::ir_function_call(ast_node * node)
     //     minic_log(LOG_ERROR, "第%lld行的被调用函数(%s)未定义或声明", (long long) lineno, funcName.c_str());
     //     return false;
     // }
+
+    // 检查实参列表中是否有数组下标，需要往下广搜
+    bool paramNodeHasIndices = false;
+    paramNodeHasIndices = hasIndicesNode(paramsNode);
+
     std::vector<Value *> callArgs;
     auto & formalParams = calledFunction->getParams();
     for (size_t i = 0; i < realParams.size(); ++i) {
@@ -491,7 +553,7 @@ bool IRGenerator::ir_function_call(ast_node * node)
         Type * formalType = (i < formalParams.size()) ? formalParams[i]->getType() : arg->getType();
 
         // 形参是指针，实参是数组
-        if (formalType->isPointerType() && arg->getType()->isArrayType()) {
+        if (formalType->isPointerType() && arg->getType()->isArrayType() && !paramNodeHasIndices) {
             const ArrayType * arrTy = static_cast<const ArrayType *>(arg->getType());
             Type * formalElemType = const_cast<Type *>(static_cast<const PointerType *>(formalType)->getPointeeType());
 
@@ -500,37 +562,13 @@ bool IRGenerator::ir_function_call(ast_node * node)
             if (formalElemType->isArrayType()) {
                 formalDims = static_cast<const ArrayType *>(formalElemType)->getDimensions().size();
             }
-
-            // 多维数组（如 [3 x [5 x i32]]），GEP到首元素，再bitcast
-            if (arrDims == formalDims + 1 && arrDims > 1) {
-                // GEP到 a[0][0]...
-                std::vector<Value *> gepIndices(arrDims + 1, module->newConstInt64(0));
-                // auto gepInst = new GetElementPtrInstruction(currentFunc,
-                //                                             arg,
-                //                                             gepIndices,
-                //                                             (Type *) PointerType::get(formalElemType));
-                Type * baseType = formalElemType;
-                while (baseType->isArrayType()) {
-                    baseType = static_cast<const ArrayType *>(baseType)->getBaseType();
-                }
-                auto gepInst =
-                    new GetElementPtrInstruction(currentFunc, arg, gepIndices, (Type *) PointerType::get(baseType));
-                node->blockInsts.addInst(gepInst);
-
-                // bitcast 到参数类型
-                auto bitcastInst = new BitCastInstruction(currentFunc, gepInst, (Type *) formalType);
-                node->blockInsts.addInst(bitcastInst);
-
-                callArgs.push_back(bitcastInst);
-                continue;
-            }
-            // 一维数组，GEP到首元素即可
-            else if (arrDims == 1 && formalDims == 0) {
+            if (arrDims == 1 && formalDims == 0) {
                 std::vector<Value *> gepIndices = {module->newConstInt64(0), module->newConstInt64(0)};
                 auto gepInst = new GetElementPtrInstruction(currentFunc, arg, gepIndices, (Type *) formalType);
                 node->blockInsts.addInst(gepInst);
 
                 callArgs.push_back(gepInst);
+                // callArgs.push_back(arg);
                 continue;
             }
         }
@@ -540,6 +578,14 @@ bool IRGenerator::ir_function_call(ast_node * node)
     // 返回调用有返回值，则需要分配临时变量，用于保存函数调用的返回值
     Type * type = calledFunction->getReturnType();
     // FuncCallInstruction * funcCallInst = new FuncCallInstruction(currentFunc, calledFunction, realParams, type);
+    if (!type->isVoidType() && !isRightSideSTMT && !calledFunction->isBuiltin()) {
+        // 有返回值的函数，但返回值未取得，未使用
+        // 这个时候会出现funcCallInst少一个operand的情况
+        // 导致后续的指令生成的参数少一个
+        // 强制增加一个参数
+        Value * extra = new ConstInt(0);
+        callArgs.push_back(extra);
+    }
 
     FuncCallInstruction * funcCallInst = new FuncCallInstruction(currentFunc, calledFunction, callArgs, type);
 
@@ -639,8 +685,8 @@ bool IRGenerator::ir_add(ast_node * node)
             op = IRInstOperator::IRINST_OP_ADD_I; // 整数加法指令
             resultType = IntegerType::getTypeInt();
         } else {
-            // 其它类型不支持
-            minic_log(LOG_ERROR, "加法操作数的类型转换不支持");
+            // // 其它类型不支持
+            // minic_log(LOG_ERROR, "加法操作数的类型转换不支持");
             if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
                 op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
                 resultType = FloatType::getTypeFloat();
@@ -726,8 +772,6 @@ bool IRGenerator::ir_sub(ast_node * node)
             op = IRInstOperator::IRINST_OP_SUB_I; // 整数加法指令
             resultType = IntegerType::getTypeInt();
         } else {
-            // 其它类型不支持
-            minic_log(LOG_ERROR, "减法操作数的类型转换不支持");
             if (left->val->getType()->isFloatType() || right->val->getType()->isFloatType()) {
                 op = IRInstOperator::IRINST_OP_ADD_F; // 浮点加法指令
                 resultType = FloatType::getTypeFloat();
@@ -1383,8 +1427,10 @@ bool IRGenerator::ir_array_dims(ast_node * node, std::vector<int32_t> & dimensio
         // 获取维度值
         ConstInt * constDim = dynamic_cast<ConstInt *>(dim_node->val);
         if (!constDim) {
-            minic_log(LOG_ERROR, "数组维度解析失败");
-            return false;
+            // minic_log(LOG_ERROR, "数组维度解析失败");
+            // return false;
+            dimensions.push_back(0); // 如果不是常量整数，默认维度为0
+            continue;                // 继续处理下一个维度
         }
 
         dimensions.push_back(constDim->getVal());
@@ -1404,6 +1450,21 @@ bool IRGenerator::ir_array_indices(ast_node * node)
         minic_log(LOG_ERROR, "数组变量未定义");
         return false;
     }
+
+    // 注意，这里只能检查出带indice的数组访问，比如x[0]，传x根本不会进入ir_array_indices
+    // 检查是否是函数调用，实际上函数调用的左值是一个指针，需要多一层解引用
+    bool isFuncCallParam = false;
+    ast_node * parent_node = node->parent;
+    while (parent_node) {
+        if (parent_node->node_type == ast_operator_type::AST_OP_FUNC_REAL_PARAMS) {
+            isFuncCallParam = true;
+            break;
+        } else if (parent_node->node_type == ast_operator_type::AST_OP_COMPILE_UNIT) {
+            break;
+        }
+        parent_node = parent_node->parent;
+    }
+
     // 解析所有索引
     std::vector<Value *> indices;
     for (auto index_node: indices_node->sons) {
@@ -1422,6 +1483,8 @@ bool IRGenerator::ir_array_indices(ast_node * node)
             } else {
                 indices.push_back(new ConstInt(index_node->integer_val));
             }
+        } else {
+            indices.push_back(index_node->val);
         }
     }
 
@@ -1454,32 +1517,62 @@ bool IRGenerator::ir_array_indices(ast_node * node)
             curPtr = loadInst;  // 更新指针为加载后的值
             nowType = nextType; // 更新当前类型
         }
+        if (nowType->isArrayType()) {
+            // 如果最后解引用后是数组类型，获取其维度
+            std::vector<int32_t> remain_dims;
+            const ArrayType * finalArrayType = static_cast<const ArrayType *>(nowType);
+            remain_dims = finalArrayType->getDimensions();
+            for (int i = 0; i < remain_dims.size(); ++i) {
+                dims.push_back(remain_dims[i]);
+            }
+            baseType = finalArrayType->getBaseType();
+        }
     }
     Function * currentFunc = module->getCurrentFunction();
 
     Value * resultVal = arrayValue;
-    std::vector<int32_t> nextdims = dims;
 
-    bool isArray = curType->isArrayType();
+    bool fromPointer = curType->isPointerType();
+    if (fromPointer) {
+        // 如果是指针，需要多一层解引用，采用退化的gep指令，没有第一个0偏移
+        std::vector<Value *> gepIndices;
+        Type * nextType = const_cast<Type *>(static_cast<const PointerType *>(curType)->getPointeeType());
+        gepIndices.push_back(indices[0]);
+        indices.erase(indices.begin()); // 移除第一个索引
+        dims.erase(dims.begin());       // 移除第一个维度
+        // 生成 getelementptr 指令
+        auto gepInst = new GetElementPtrInstruction(currentFunc, curPtr, gepIndices, nextType);
+        node->blockInsts.addInst(gepInst);
+        curPtr = gepInst;    // 更新指针为 gep 指令
+        curType = nextType;  // 解一层引用
+        resultVal = gepInst; // 更新结果值为当前 gep 指令
+    }
 
     // 数组类型，每个 getelementptr 指令只处理一层索引
-    for (size_t i = 0; i < dims.size(); ++i) {
+    std::vector<int32_t> nextdims = dims;
+    for (size_t i = 0; i < dims.size() && i < indices.size(); ++i) {
         std::vector<Value *> gepIndices;
         // 更新指针和类型
 
         Type * nextArrayType = nullptr;
-        if (i < dims.size() - 1) {
+        if (i < dims.size() - 1 && i < indices.size() - 1) {
             // 如果还有下一维，获取下一维的维度
             nextdims.erase(nextdims.begin()); // 移除当前维度
             nextArrayType = (Type *) new ArrayType(baseType, nextdims);
         } else {
-            nextdims.clear();                                      // 最后一维后没有更多维度
-            nextArrayType = (Type *) (PointerType::get(baseType)); // 最后一维后没有更多维度
+            // nextdims.clear();                                      // 最后一维后没有更多维度
+            if (!nextdims.empty()) {
+                nextdims.erase(nextdims.begin()); // 移除当前维度
+            }
+            if (nextdims.empty()) {
+                nextArrayType = (Type *) (PointerType::get(baseType)); // 最后一维后没有更多维度
+            } else {
+                nextArrayType = (Type *) new ArrayType(baseType, nextdims); // 最后一维后没有更多维度
+            }
         }
 
-        if (isArray) { // 第一个索引始终是 0，因为你从数组的第一维开始
-            gepIndices.push_back(module->newConstInt64(0));
-        }
+        // 第一个索引始终是 0，因为你从数组的第一维开始
+        gepIndices.push_back(module->newConstInt64(0));
 
         // 第二个索引是当前维度的索引值
         gepIndices.push_back(indices[i]);
@@ -1488,14 +1581,35 @@ bool IRGenerator::ir_array_indices(ast_node * node)
         auto gepInst = new GetElementPtrInstruction(currentFunc, curPtr, gepIndices, nextArrayType);
         node->blockInsts.addInst(gepInst);
 
-        // 如果是指针，报错
         if (!nextdims.empty()) {
             curPtr = gepInst; // 如果还处在数组中，继续使用该指针
         } else {
-            curPtr = gepInst;    // 如果不是数组，说明已经到了最后一维
-            curType = baseType;  // 最后一维的数据类型的指针
-            resultVal = gepInst; // 更新结果值为当前 gep 指令
+            curPtr = gepInst;                                // 如果不是数组，说明已经到了最后一维
+            curType = (Type *) (PointerType::get(baseType)); // 最后一维的数据类型的指针
+            resultVal = gepInst;                             // 更新结果值为当前 gep 指令
         }
+    }
+
+    if (isFuncCallParam && indices.size() < dims.size()) {
+        // 如果是函数调用的参数传递，且索引数量小于维度
+        // 多加一层0 0 索引gep
+        std::vector<Value *> gepIndices;
+        gepIndices.push_back(module->newConstInt64(0)); // 第一个索引为0
+        gepIndices.push_back(module->newConstInt64(0)); // 第二个索引为0
+        Type * nextType = curType;
+        while (indices.size() < dims.size()) {
+            dims.erase(dims.begin());                          // 移除第一个维度
+            nextType = (Type *) new ArrayType(baseType, dims); // 生成新的数组类型
+            auto gepInst = new GetElementPtrInstruction(module->getCurrentFunction(), curPtr, gepIndices, nextType);
+            node->blockInsts.addInst(gepInst);
+            curPtr = gepInst;   // 更新数组值为gep指令
+            curType = nextType; // 更新当前类型为新的数组类型
+        }
+        // 如果已经解引用到baseType，则最后需要 load 出值，反之
+        if (nextType->isArrayType() || nextType->isPointerType()) {
+            node->store = true;
+        }
+        resultVal = curPtr; // 更新结果值为当前 gep 指令
     }
 
     // 如果 store=false，则直接加载数组元素的值
@@ -1916,11 +2030,14 @@ bool IRGenerator::ir_while(ast_node * node)
             minic_log(LOG_ERROR, "while语句的条件表达式值无效");
             return false;
         }
-        // 检查条件表达式的类型是否正确
-        if (!condNode->val->getType()->isInt1Byte()) {
-            minic_log(LOG_ERROR, "while语句的条件表达式类型错误");
-            return false;
-        }
+        // 与0比较
+        BinaryInstruction * math_expr_ne_0 = new BinaryInstruction(currentFunc,
+                                                                   IRInstOperator::IRINST_OP_ICMP_NE,
+                                                                   condNode->val,
+                                                                   module->newConstInt(0),
+                                                                   IntegerType::getTypeBool());
+        node->blockInsts.addInst(math_expr_ne_0);
+        condNode->val = math_expr_ne_0;
         node->blockInsts.addInst(condNode->blockInsts);
         // 根据条件表达式的值，跳转到bodyLabel或endLabel
         BranchCondInstruction * condGotoInst =

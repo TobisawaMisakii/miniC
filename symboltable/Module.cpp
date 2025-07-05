@@ -35,14 +35,10 @@ Module::Module(std::string _name) : name(_name)
     (void) newFunction("getfloat", FloatType::getTypeFloat(), {}, true);
     (void) newFunction("getch", IntegerType::getTypeInt(), {}, true);
 
-    (void) newFunction("getarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(IntegerType::getTypeInt()), ""}},
-                       true);
-    (void) newFunction("getfarray",
-                       IntegerType::getTypeInt(),
-                       {new FormalParam{new PointerType(FloatType::getTypeFloat()), ""}},
-                       true);
+    std::vector<FormalParam *> params;
+    params.push_back(new FormalParam{new PointerType(IntegerType::getTypeInt()), ""});
+    (void) newFunction("getarray", IntegerType::getTypeInt(), params, true);
+    (void) newFunction("getfarray", IntegerType::getTypeInt(), params, true);
 
     (void) newFunction("putint", VoidType::getType(), {new FormalParam{IntegerType::getTypeInt(), ""}}, true);
     (void) newFunction("putfloat", VoidType::getType(), {new FormalParam{FloatType::getTypeFloat(), ""}}, true);
@@ -337,7 +333,7 @@ Value * Module::newArrayValue(Type * type, std::string name, const std::vector<i
     // 计算数组的总大小
     // int32_t totalSize = 1;
     for (int32_t dim: dimensions) {
-        if (dim <= 0) {
+        if (dim < 0) {
             minic_log(LOG_ERROR, "数组(%s)的维度大小无效", name.c_str());
             return nullptr;
         }

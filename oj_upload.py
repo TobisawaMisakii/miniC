@@ -63,6 +63,7 @@ if __name__ == '__main__':
         '2025performance-tests',
         'oj_upload.py',
         '*.sh',
-        'Doxygen.config'
+        'Doxygen.config',
+        '*.png'
     ]
     create_zip_with_exclusions(source_dir, output_zip, exclude)

@@ -81,6 +81,16 @@ bool Function::isBuiltin()
 void Function::toString(std::string & str)
 {
     if (builtIn) {
+        std::string name = getIRName();
+        if (name == "@getarray") {
+            // 内置函数的声明
+            str = "declare dso_local i32 @getarray(...)\n";
+            return;
+        } else if (name == "@getfarray") {
+            // 内置函数的声明
+            str = "declare dso_local float @getfarray(...)\n";
+            return;
+        }
         str += "declare ";
         str += getReturnType()->toString() + " " + getIRName() + "(";
         bool firstParam = false;

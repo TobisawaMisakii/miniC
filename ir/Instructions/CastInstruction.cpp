@@ -12,6 +12,7 @@ CastInstruction::CastInstruction(Function * _func, Value * _value, Type * _resul
         delete this;
         return;
     }
+    addOperand(_value);
 
     // 设置操作码
     if (resultType == IntegerType::getTypeInt64() && value->getType() == IntegerType::getTypeInt()) {
